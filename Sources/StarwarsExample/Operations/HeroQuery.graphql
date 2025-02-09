@@ -1,0 +1,22 @@
+query Hero($episode: Episode!) {
+  hero(episode: $episode) {
+    __typename
+    ...jedi
+    ...droid
+  }
+}
+
+fragment jedi on Jedi {
+  ...character
+  lightSaberColor
+}
+
+fragment droid on Droid {
+  ...character
+  primaryFunction
+}
+
+fragment character on Character {
+  id
+  name
+}

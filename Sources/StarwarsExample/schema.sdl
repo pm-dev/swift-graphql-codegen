@@ -1,0 +1,26 @@
+type Query {
+  hero(episode: Episode): Character!
+}
+
+interface Character {
+  id: ID!
+  name: String!
+}
+
+type Jedi implements Character {
+  id: ID!
+  name: String!
+  lightSaberColor: String!
+}
+
+type Droid implements Character {
+  id: ID!
+  name: String!
+  primaryFunction: String
+}
+
+enum Episode {
+  NEWHOPE
+  EMPIRE
+  JEDI
+}

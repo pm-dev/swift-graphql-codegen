@@ -1,0 +1,34 @@
+--disable hoistAwait
+--disable hoistPatternLet
+--disable redundantRawValues
+--disable redundantSelf
+
+--enable blankLineAfterImports
+--enable isEmpty
+--enable noExplicitOwnership
+--enable organizeDeclarations
+--enable redundantProperty
+--enable sortSwitchCases
+--enable unusedPrivateDeclarations
+--enable wrapEnumCases
+--enable wrapLoopBodies
+--enable wrapMultilineConditionalAssignment
+
+--commas always
+--extensionacl on-declarations
+--funcattributes prev-line
+--guardelse next-line
+--header strip
+--organizationmode type
+--redundanttype inferred
+--stripunusedargs closure-only
+--typeattributes prev-line
+--markcategories false
+--typeorder beforeMarks,nestedType,staticProperty,staticPropertyWithBody,staticMethod,classPropertyWithBody,classMethod,overriddenProperty,swiftUIPropertyWrapper,instanceProperty,instancePropertyWithBody,instanceLifecycle,overriddenMethod,instanceMethod,swiftUIProperty,swiftUIMethod
+--xcodeindentation enabled
+--storedvarattrs prev-line
+--computedvarattrs prev-line
+--ranges no-space
+--wraparguments before-first
+--wrapcollections before-first
+--wrapparameters before-first

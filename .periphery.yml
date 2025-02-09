@@ -1,0 +1,7 @@
+retain_public: true
+report_exclude:
+  - "Sources/GraphQLCodegen/Input/Documents/AST/DocumentAST.swift"
+  - "Sources/GraphQLCodegen/Input/Schema/Introspection/__Schema.swift"
+  - "Sources/GraphQLCodegen/Output/PersistedOperations/PersistedOperationManifest.swift"
+exclude_targets:
+  - "StarwarsExample"
