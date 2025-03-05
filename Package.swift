@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "GraphQLCodegen", targets: ["GraphQLCodegen"])
     ],
     dependencies: [
+        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", exact: "0.58.2"),
         .package(url: "https://github.com/apple/swift-collections", from: "1.1.0"),
     ],
     targets: [
