@@ -11,31 +11,35 @@ struct SelectionSetResolver {
     func resolve() throws -> ResolvedSelectionSet {
         try collect(
             selectionSet: selectionSet,
-            onType: onType
+            onType: onType,
+            inOptionalDirective: false
         )
     }
 
     private func collect(
         selectionSet: AST.SelectionSet,
-        onType: Schema.SelectionSet
+        onType: Schema.SelectionSet,
+        inOptionalDirective: Bool
     ) throws -> ResolvedSelectionSet {
         var resolvedSelectionSet = ResolvedSelectionSet()
         for selection in selectionSet.selections {
             switch selection {
             case .field(let field):
-                let resolvedField: ResolvedField = field.name.value == "__typename" ?
-                    ResolvedField(
+                let resolvedField = field.name.value == "__typename" ? ResolvedField(
                         type: .scalar(typeName: "String", isEnum: false),
                         deprecation: nil,
                         description: nil
-                    ) : try FieldResolver(
+                ) : try FieldResolver(
                         fieldSelection: field,
                         fieldSchema: onType.field(field),
                         schema: schema,
                         documents: documents
                     ).resolve()
+                let conditional = self.onType.name != onType.name ||
+                    inOptionalDirective ||
+                    selection.hasOptionalDirective
                 try resolvedSelectionSet.addSelection(
-                    .field(resolvedField, conditional: self.onType.name != onType.name),
+                    .field(resolvedField, conditional: conditional),
                     responseKey: field.responseKey
                 )
             case .fragmentSpread(let fragmentSpread):
@@ -43,6 +47,15 @@ struct SelectionSetResolver {
                 if fragmentName == "typename" {
                     throw Codegen.Error(description: """
                     "typename" is not allowed as a fragment spread name.
+                    """)
+                }
+                if inOptionalDirective || selection.hasOptionalDirective {
+                    throw Codegen.Error(description: """
+                    'skip' or 'include' directives are not currently supported on fragment spreads.
+                    It's not possible to determine whether this fragment spread is fulfilled.
+                    During decoding, we don't have access to the variable which determines whether the
+                    fragment spread is fulfilled.
+                    Fragment name: \(fragmentName)
                     """)
                 }
                 let fragment = try documents.fragment(fragmentName)
@@ -65,7 +78,8 @@ struct SelectionSetResolver {
                         // https://github.com/graphql/graphql-spec/pull/879
                         let fragmentGroupedSelections = try collect(
                             selectionSet: fragment.ast.selectionSet,
-                            onType: fragmentType
+                            onType: fragmentType,
+                            inOptionalDirective: inOptionalDirective || selection.hasOptionalDirective
                         )
                         try resolvedSelectionSet.merge(fragmentGroupedSelections) { try $0.merging(with: $1) }
                     }
@@ -73,7 +87,8 @@ struct SelectionSetResolver {
             case .inlineFragment(let inlineFragment):
                 let fragmentGroupedSelections = try collect(
                     selectionSet: inlineFragment.selectionSet,
-                    onType: try schema.fragmentType(inlineFragment) ?? onType
+                    onType: try schema.fragmentType(inlineFragment) ?? onType,
+                    inOptionalDirective: inOptionalDirective || selection.hasOptionalDirective
                 )
                 try resolvedSelectionSet.merge(fragmentGroupedSelections) { try $0.merging(with: $1) }
             }

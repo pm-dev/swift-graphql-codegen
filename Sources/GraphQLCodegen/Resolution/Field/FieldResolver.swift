@@ -7,8 +7,8 @@ struct FieldResolver {
     let documents: Documents
 
     func resolve() throws -> ResolvedField {
-        try ResolvedField(
-            type: resolveFieldType(schema.fieldType(fieldSchema)),
+        ResolvedField(
+            type: try resolveFieldType(schema.fieldType(fieldSchema)),
             deprecation: fieldSchema.isDeprecated ? Deprecation(reason: fieldSchema.deprecationReason) : nil,
             description: fieldSchema.description
         )

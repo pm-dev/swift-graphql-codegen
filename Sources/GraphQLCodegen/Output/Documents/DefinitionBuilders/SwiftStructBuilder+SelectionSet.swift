@@ -15,12 +15,12 @@ extension SwiftStructBuilder {
     ) throws {
         var hasFields = false
         var hasFragments = false
-        var hasTypenameField = false
+        var hasNonnilTypenameField = false
         for (responseKey, selection) in selectionSet {
             switch selection {
             case .field(let field, let conditional):
                 hasFields = true
-                hasTypenameField = hasTypenameField || responseKey == "__typename"
+                hasNonnilTypenameField = hasNonnilTypenameField || (responseKey == "__typename" && !conditional)
                 let conditionalField = conditional ? field.asOptional() : field
                 addProperty(
                     description: field.description,
@@ -68,7 +68,7 @@ extension SwiftStructBuilder {
             selectionSet,
             hasFragments: hasFragments,
             hasFields: hasFields,
-            hasTypenameField: hasTypenameField,
+            hasNonnilTypenameField: hasNonnilTypenameField,
             configuration: configuration
         )
     }
@@ -135,7 +135,7 @@ extension SwiftStructBuilder {
         _ selectionSet: ResolvedSelectionSet,
         hasFragments: Bool,
         hasFields: Bool,
-        hasTypenameField: Bool,
+        hasNonnilTypenameField: Bool,
         configuration: Configuration
     ) throws {
         if hasFragments {
@@ -177,7 +177,7 @@ extension SwiftStructBuilder {
                     let fragmentTypeName = fragmentSpreadName.capitalizedFirst
                     var assignment = "\(responseKey) = "
                     if let checkTypename {
-                        if !hasTypenameField {
+                        if !hasNonnilTypenameField {
                             throw SelectionSetError.fragmentSpreadNeedsTypename(fragmentSpread: fragmentSpreadName)
                         }
                         assignment.append("__typename == \"\(checkTypename)\" ? ")
