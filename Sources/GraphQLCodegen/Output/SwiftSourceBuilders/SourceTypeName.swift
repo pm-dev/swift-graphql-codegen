@@ -2,6 +2,16 @@ indirect enum SourceTypeName {
     case name(String)
     case optional(SourceTypeName)
     case list(SourceTypeName)
+
+    static func swiftNativeScalar(graphQLScalarName: String) -> String? {
+        switch graphQLScalarName {
+        case "String": "String"
+        case "Int": "Int"
+        case "Float": "Double"
+        case "Boolean": "Bool"
+        default: nil
+        }
+    }
 }
 
 extension SourceTypeName {

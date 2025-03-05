@@ -77,6 +77,20 @@ enum AST {
         case fragmentSpread(FragmentSpread)
         case inlineFragment(InlineFragment)
 
+        var hasOptionalDirective: Bool {
+            directives.contains {
+                $0.name.value == "skip" || $0.name.value == "include"
+            }
+        }
+
+        private var directives: [Directive] {
+            switch self {
+            case .field(let field): field.directives
+            case .fragmentSpread(let fragmentSpread): fragmentSpread.directives
+            case .inlineFragment(let inlineFragment): inlineFragment.directives
+            }
+        }
+
         private enum Kind: String, Decodable {
             case Field
             case FragmentSpread
@@ -321,7 +335,11 @@ enum AST {
 
         var typeName: SourceTypeName {
             switch self {
-            case .named(let namedType): return .optional(.name(namedType.name.value))
+            case .named(let namedType): return .optional(
+                .name(
+                    SourceTypeName.swiftNativeScalar(graphQLScalarName: namedType.name.value) ?? namedType.name.value
+                )
+            )
             case .list(let innerType): return .optional(.list(innerType.type.typeName))
             case .nonNull(let innerType):
                 let resolved = innerType.type.typeName
