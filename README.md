@@ -57,13 +57,13 @@ import PackageDescription
 let package = Package(
     name: "MyCodegenCLI",
     platforms: [
-        .macOS(.v15)
+        .macOS(.v14)
     ],
     products: [
         .executable(name: "my-codegen-cli", targets: ["MyCodegenCLI"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/pm-dev/swift-graphql-codegen", from: "0.5"),
+        .package(url: "https://github.com/pm-dev/swift-graphql-codegen", from: "0.5.0"),
     ],
     targets: [
         .executableTarget(
@@ -439,4 +439,4 @@ Contributions, documentation improvements, bug reports, and feature requests are
 ## License
 This project is released under the MIT License.
 
-Thanks for choosing Swift GraphQL Codegen! We hope it helps you deliver type-safe and maintainable GraphQL clients in Swift. If you have any questions or run into issues, please open an issue or reach out on the project’s discussion board.
+Thanks for choosing Swift GraphQL Codegen! We hope it helps you deliver type-safe and maintainable GraphQL clients in Swift. If you have any questions or run into issues, please open an issue.
