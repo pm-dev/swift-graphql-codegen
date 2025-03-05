@@ -1,0 +1,20 @@
+name: CI
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  build-lint-test:
+    runs-on: macos-latest
+    steps:
+    - uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: "6.0.2"
+    - uses: actions/checkout@v4
+    - name: Build
+      run: swift build -v
+    - name: Lint
+      run: swift package plugin --allow-writing-to-package-directory swiftlint
+    - name: Test
+      run: swift test -v
