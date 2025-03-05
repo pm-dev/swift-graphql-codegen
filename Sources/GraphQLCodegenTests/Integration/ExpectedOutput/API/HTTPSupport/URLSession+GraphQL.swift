@@ -3,6 +3,9 @@ import Foundation
 
 /// Defaults conform to https://graphql.github.io/graphql-over-http/draft/
 extension URLSession {
+    struct HTTPError: Error {
+        let response: HTTPURLResponse
+    }
 
     /// Executes a GraphQL operation
     /// - Parameters:
@@ -12,9 +15,11 @@ extension URLSession {
         _ request: GraphQLRequest<Operation>,
         decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder()
     ) async throws -> GraphQLResponse<Operation.Data>.Success {
-        let (data, _) = try await data(for: request.urlRequest)
-        let response = try decoder(data)
-        switch response {
+        let (data, response) = try await data(for: request.urlRequest)
+        if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
+            throw HTTPError(response: httpResponse)
+        }
+        switch try decoder(data) {
         case .success(let success): return success
         case .requestError(let requestError):
             let containsPersistedQueryNotFound = requestError.errors.contains { error in
