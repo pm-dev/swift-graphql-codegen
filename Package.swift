@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "swift-graphql-codegen",
     platforms: [
-        .macOS(.v15),
+        .macOS(.v14),
     ],
     products: [
         .library(name: "GraphQLCodegen", targets: ["GraphQLCodegen"])
