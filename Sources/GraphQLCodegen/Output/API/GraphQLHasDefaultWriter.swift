@@ -24,7 +24,6 @@ struct GraphQLHasDefaultWriter {
                 }
             }
         }
-
         """.write(
             to: configuration.output.api.directory.appending(
                 path: "GraphQLHasDefault.swift",

@@ -1,6 +1,7 @@
 import Foundation
 
 struct GraphQLRequestWriter {
+    let hasSubscription: Bool
     let configuration: Configuration
 
     private var accessLevel: String {
@@ -10,6 +11,10 @@ struct GraphQLRequestWriter {
     private var header: String {
         guard let header = configuration.output.api.header else { return "" }
         return "\(header)\n"
+    }
+
+    private var includeSubscriptionSupport: Bool {
+        hasSubscription && configuration.output.api.HTTPSupport?.subscriptionSupport == true
     }
 
     private var enableGETQueries: Bool {
@@ -76,7 +81,7 @@ struct GraphQLRequestWriter {
             /// The decoding function to use by default for decoding the response of a GraphQLRequest.
             /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
             /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> (Data) throws -> GraphQLResponse<Operation.Data> {
+            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
                 { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
             }
 
@@ -169,7 +174,7 @@ struct GraphQLRequestWriter {
                 self.operation = query
                 self.minifyDocument = minifyDocument
                 self.persistedOperationBodyEncoder = persistedOperationBodyEncoder
-            }
+            }\(subscriptionSupportGETWithAutomaticPersistedOperations())
 
             /// Initializes a new `GraphQLRequest` with an operation
             /// - Parameters:
@@ -207,7 +212,6 @@ struct GraphQLRequestWriter {
                 self.persistedOperationBodyEncoder = automaticPersistedOperations ? bodyEncoder : nil
             }
         }
-
         """
     }
 
@@ -235,7 +239,7 @@ struct GraphQLRequestWriter {
             /// The decoding function to use by default for decoding the response of a GraphQLRequest.
             /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
             /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> (Data) throws -> GraphQLResponse<Operation.Data> {
+            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
                 { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
             }
 
@@ -265,7 +269,7 @@ struct GraphQLRequestWriter {
             ) throws where Operation: GraphQLQuery {
                 switch strategy {
                 case .GET(let queryEncoder):
-                    let url = endpoint.appending(queryItems: try queryEncoder.encode(operation: query))
+                    let url = endpoint.appending(queryItems: try queryEncoder.encode(query: query))
                     self.urlRequest = URLRequest(url: url)
                     self.urlRequest.httpMethod = "GET"
                 case .POST(let bodyEncoder):
@@ -277,7 +281,7 @@ struct GraphQLRequestWriter {
                 self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
                 self.endpoint = endpoint
                 self.operation = query
-            }
+            }\(subscriptionSupportGETWithRegisteredPersistedOperations())
 
             /// Initializes a new `GraphQLRequest` with an operation
             /// - Parameters:
@@ -302,7 +306,6 @@ struct GraphQLRequestWriter {
                 self.operation = operation
             }
         }
-
         """
     }
 
@@ -334,7 +337,7 @@ struct GraphQLRequestWriter {
             /// The decoding function to use by default for decoding the response of a GraphQLRequest.
             /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
             /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> (Data) throws -> GraphQLResponse<Operation.Data> {
+            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
                 { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
             }
 
@@ -380,7 +383,7 @@ struct GraphQLRequestWriter {
                 self.endpoint = endpoint
                 self.operation = query
                 self.minifyDocument = minifyDocument
-            }
+            }\(subscriptionSupportGETWithNoPersistedOperations())
 
             /// Initializes a new `GraphQLRequest` with an operation
             /// - Parameters:
@@ -409,7 +412,6 @@ struct GraphQLRequestWriter {
                 self.minifyDocument = minifyDocument
             }
         }
-
         """
     }
 
@@ -446,7 +448,7 @@ struct GraphQLRequestWriter {
             /// The decoding function to use by default for decoding the response of a GraphQLRequest.
             /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
             /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> (Data) throws -> GraphQLResponse<Operation.Data> {
+            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
                 { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
             }
 
@@ -484,9 +486,8 @@ struct GraphQLRequestWriter {
                 self.operation = operation
                 self.minifyDocument = minifyDocument
                 self.persistedOperationBodyEncoder = automaticPersistedOperations ? bodyEncoder : nil
-            }
+            }\(subscriptionSupportPOSTWithAutomaticPersistedOperations())
         }
-
         """
     }
 
@@ -514,7 +515,7 @@ struct GraphQLRequestWriter {
             /// The decoding function to use by default for decoding the response of a GraphQLRequest.
             /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
             /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> (Data) throws -> GraphQLResponse<Operation.Data> {
+            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
                 { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
             }
 
@@ -539,9 +540,8 @@ struct GraphQLRequestWriter {
                 self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
                 self.endpoint = endpoint
                 self.operation = operation
-            }
+            }\(subscriptionSupportPOSTWithRegisteredPersistedOperations())
         }
-
         """
     }
 
@@ -574,7 +574,7 @@ struct GraphQLRequestWriter {
             /// The decoding function to use by default for decoding the response of a GraphQLRequest.
             /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
             /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> (Data) throws -> GraphQLResponse<Operation.Data> {
+            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
                 { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
             }
 
@@ -603,9 +603,243 @@ struct GraphQLRequestWriter {
                 self.endpoint = endpoint
                 self.operation = operation
                 self.minifyDocument = minifyDocument
-            }
+            }\(subscriptionSupportPOSTWithNoPersistedOperations())
         }
+        """
+    }
 
+    private func subscriptionSupportGETWithAutomaticPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            /// Initializes a new `GraphQLRequest` with a subscription operation
+            /// - Parameters:
+            ///   - subscription: The GraphQLSubscription operation the request is for.
+            ///   - endpoint: The GraphQL server endpoint supporting GraphQL over Server-Sent Events.
+            ///   - strategy: The option describing whether the request should be a GET or POST and whether
+            ///   automatic persisted operations is enabled. By default `GET` is used
+            ///   and automatic persisted operations is enabled, meaning a `POST` will be executed with the full
+            ///   query document if the initial GET results in a "PersistedQueryNotFound" error.
+            ///   - minifyDocument: Whether the query document text should be minified
+            ///   (unnecessary whitespace removed) when sent. `true` by default.
+            \(accessLevel)init(
+                subscription: Operation,
+                endpoint: URL,
+                strategy: QueryStrategy = .GETWithAutomaticPersistedOperations(),
+                minifyDocument: Bool = true
+            ) throws where Operation: GraphQLSubscription {
+                let persistedOperationBodyEncoder: HTTPBodyEncoder?
+                switch strategy {
+                case .GET(let queryEncoder):
+                    persistedOperationBodyEncoder = nil
+                    let url = endpoint.appending(
+                        queryItems: try queryEncoder.encode(
+                            subscription: subscription,
+                            automaticPersistedOperations: false,
+                            minifyDocument: minifyDocument
+                        )
+                    )
+                    self.urlRequest = URLRequest(url: url)
+                    self.urlRequest.httpMethod = "GET"
+                case .POST(let bodyEncoder):
+                    persistedOperationBodyEncoder = nil
+                    self.urlRequest = URLRequest(url: endpoint)
+                    self.urlRequest.httpMethod = "POST"
+                    self.urlRequest.httpBody = try bodyEncoder.encode(
+                        operation: subscription,
+                        automaticPersistedOperationPhase: nil,
+                        minifyDocument: minifyDocument
+                    )
+                    self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
+                case .GETWithAutomaticPersistedOperations(let queryEncoder, let persistRequestBodyEncoder):
+                    persistedOperationBodyEncoder = persistRequestBodyEncoder
+                    let url = endpoint.appending(
+                        queryItems: try queryEncoder.encode(
+                            subscription: subscription,
+                            automaticPersistedOperations: true,
+                            minifyDocument: minifyDocument
+                        )
+                    )
+                    self.urlRequest = URLRequest(url: url)
+                    self.urlRequest.httpMethod = "GET"
+                case .POSTWithAutomaticPersistedOperations(let bodyEncoder):
+                    persistedOperationBodyEncoder = bodyEncoder
+                    self.urlRequest = URLRequest(url: endpoint)
+                    self.urlRequest.httpMethod = "POST"
+                    self.urlRequest.httpBody = try bodyEncoder.encode(
+                        operation: subscription,
+                        automaticPersistedOperationPhase: .initialRequestWithHash,
+                        minifyDocument: minifyDocument
+                    )
+                    self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
+                }
+                self.urlRequest.setValue("text/event-stream", forHTTPHeaderField: "accept")
+                self.endpoint = endpoint
+                self.operation = subscription
+                self.minifyDocument = minifyDocument
+                self.persistedOperationBodyEncoder = persistedOperationBodyEncoder
+            }
+        """
+    }
+
+    private func subscriptionSupportGETWithRegisteredPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            /// Initializes a new `GraphQLRequest` with a subscription operation
+            /// - Parameters:
+            ///   - subscription: The GraphQLSubscription operation the request is for.
+            ///   - endpoint: The GraphQL server endpoint.
+            ///   - strategy: The option describing whether the request should be a GET or POST. `GET` by default.
+            \(accessLevel)init(
+                subscription: Operation,
+                endpoint: URL,
+                strategy: QueryStrategy = .GET()
+            ) throws where Operation: GraphQLSubscription {
+                switch strategy {
+                case .GET(let queryEncoder):
+                    let url = endpoint.appending(queryItems: try queryEncoder.encode(subscription: subscription))
+                    self.urlRequest = URLRequest(url: url)
+                    self.urlRequest.httpMethod = "GET"
+                case .POST(let bodyEncoder):
+                    self.urlRequest = URLRequest(url: endpoint)
+                    self.urlRequest.httpMethod = "POST"
+                    self.urlRequest.httpBody = try bodyEncoder.encode(operation: subscription)
+                    self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
+                }
+                self.urlRequest.setValue("text/event-stream", forHTTPHeaderField: "accept")
+                self.endpoint = endpoint
+                self.operation = subscription
+            }
+        """
+    }
+
+    private func subscriptionSupportGETWithNoPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            /// Initializes a new `GraphQLRequest` with a subscription operation
+            /// - Parameters:
+            ///   - subscription: The GraphQLSubscription operation the request is for.
+            ///   - endpoint: The GraphQL server endpoint.
+            ///   - strategy: The option describing whether the request should be a GET or POST. `GET` by default.
+            ///   - minifyDocument: Whether the query document text should be minified
+            ///   (unnecessary whitespace removed) when sent. `true` by default.
+            \(accessLevel)init(
+                subscription: Operation,
+                endpoint: URL,
+                strategy: QueryStrategy = .GET(),
+                minifyDocument: Bool = true
+            ) throws where Operation: GraphQLSubscription {
+                switch strategy {
+                case .GET(let queryEncoder):
+                    let url = endpoint.appending(
+                        queryItems: try queryEncoder.encode(subscription: subscription, minifyDocument: minifyDocument)
+                    )
+                    self.urlRequest = URLRequest(url: url)
+                    self.urlRequest.httpMethod = "GET"
+                case .POST(let bodyEncoder):
+                    self.urlRequest = URLRequest(url: endpoint)
+                    self.urlRequest.httpMethod = "POST"
+                    self.urlRequest.httpBody = try bodyEncoder.encode(operation: subscription, minifyDocument: minifyDocument)
+                    self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
+                }
+                self.urlRequest.setValue("text/event-stream", forHTTPHeaderField: "accept")
+                self.endpoint = endpoint
+                self.operation = subscription
+                self.minifyDocument = minifyDocument
+            }
+        """
+    }
+
+    private func subscriptionSupportPOSTWithAutomaticPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            /// Initializes a new `GraphQLRequest` with a subscription operation
+            /// - Parameters:
+            ///   - subscription: The GraphQLSubscription operation the request is for.
+            ///   - endpoint: The GraphQL server endpoint.
+            ///   - automaticPersistedOperations: Whether automatic persisted operations is enabled.
+            ///   By default this is `true` meaning a subsequent request will be executed with the full
+            ///   query document if this initial request results in a "PersistedQueryNotFound" error.
+            ///   - minifyDocument: Whether the query document text should be minified
+            ///   (unnecessary whitespace removed) when sent. `true` by default.
+            ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
+            \(accessLevel)init(
+                subscription: Operation,
+                endpoint: Foundation.URL,
+                automaticPersistedOperations: Bool = true,
+                minifyDocument: Bool = true,
+                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
+            ) throws where Operation: GraphQLSubscription {
+                try self.init(
+                    operation: subscription,
+                    endpoint: endpoint,
+                    automaticPersistedOperations: automaticPersistedOperations,
+                    minifyDocument: minifyDocument,
+                    bodyEncoder: bodyEncoder,
+                    accept: "text/event-stream"
+                )
+            }
+        """
+    }
+
+    private func subscriptionSupportPOSTWithRegisteredPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            /// Initializes a new `GraphQLRequest` with a subscription operation
+            /// - Parameters:
+            ///   - subscription: The GraphQLSubscription operation the request is for.
+            ///   - endpoint: The GraphQL server endpoint.
+            ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
+            \(accessLevel)init(
+                subscription: Operation,
+                endpoint: Foundation.URL,
+                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
+            ) throws where Operation: GraphQLSubscription {
+                try self.init(
+                    operation: subscription,
+                    endpoint: endpoint,
+                    bodyEncoder: bodyEncoder,
+                    accept: "text/event-stream"
+                )
+            }
+        """
+    }
+
+    private func subscriptionSupportPOSTWithNoPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            /// Initializes a new `GraphQLRequest` with a subscription operation
+            /// - Parameters:
+            ///   - subscription: The GraphQLSubscription operation the request is for.
+            ///   - minifyDocument: Whether the query document text should be minified
+            ///   (unnecessary whitespace removed) when sent. `true` by default.
+            ///   - endpoint: The GraphQL server endpoint.
+            ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
+            \(accessLevel)init(
+                subscription: Operation,
+                endpoint: Foundation.URL,
+                minifyDocument: Bool = true,        
+                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
+            ) throws where Operation: GraphQLSubscription {
+                try self.init(
+                    operation: subscription,
+                    endpoint: endpoint,
+                    minifyDocument: minifyDocument,
+                    bodyEncoder: bodyEncoder,
+                    accept: "text/event-stream"
+                )
+            }
         """
     }
 }

@@ -25,7 +25,6 @@ struct GraphQLEnumWriter {
                 }
             }
         }
-
         """.write(
             to: configuration.output.api.directory.appending(
                 path: "GraphQLEnum.swift",

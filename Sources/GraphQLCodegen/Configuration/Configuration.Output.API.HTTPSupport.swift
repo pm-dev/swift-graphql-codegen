@@ -13,15 +13,22 @@ extension Configuration.Output.API {
         /// - Parameters:
         ///   - enableGETQueries: Pass `true` to enable making `query` operation requests using the HTTP GET
         ///   method. Passing `false` will ensure all operation requests are made using the HTTP POST method
+        ///   - subscriptionSupport: Pass `true` to enable support for subscription operations via GraphQL over Server-Sent Events:
+        ///   https://github.com/enisdenjo/graphql-sse/blob/master/PROTOCOL.md#distinct-connections-mode. If your
+        ///   graphql documents include one or more subscription operations, this will add a `subscribe` function to the generated URLSession
+        ///   extension.
         /// - Returns: A new `HTTPSupport` instance to be passed to the `API.api` factory function.
         public static func httpSupport(
-            enableGETQueries: Bool = false
+            enableGETQueries: Bool = false,
+            subscriptionSupport: Bool = false
         ) -> HTTPSupport {
             HTTPSupport(
-                enableGETQueries: enableGETQueries
+                enableGETQueries: enableGETQueries,
+                subscriptionSupport: subscriptionSupport
             )
         }
 
         public var enableGETQueries: Bool
+        public var subscriptionSupport: Bool
     }
 }

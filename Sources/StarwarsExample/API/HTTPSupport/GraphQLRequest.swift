@@ -30,7 +30,7 @@ extension GraphQLRequest {
     /// The decoding function to use by default for decoding the response of a GraphQLRequest.
     /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
     /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-    static func defaultDecoder() -> (Data) throws -> GraphQLResponse<Operation.Data> {
+    static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
         { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
     }
 

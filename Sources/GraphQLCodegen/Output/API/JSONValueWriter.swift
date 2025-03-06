@@ -39,7 +39,6 @@ struct JSONValueWriter {
                 }
             }
         }
-
         """.write(
             to: configuration.output.api.directory.appending(
                 path: "JSONValue.swift",

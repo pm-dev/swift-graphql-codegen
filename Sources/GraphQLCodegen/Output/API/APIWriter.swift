@@ -26,15 +26,27 @@ struct APIWriter {
         // HTTP Support
         if configuration.output.api.HTTPSupport != nil {
             await FileOutput.default.createDirectory(at: HTTPSupportDirectory)
-            try await DefaultEncodersWriter(configuration: configuration).write()
+            try await DefaultEncodersWriter(
+                hasSubscription: hasSubscription,
+                configuration: configuration
+            ).write()
             try await GraphQLOperationWriter(
                 configuration: configuration,
                 hasMutation: hasMutation,
                 hasSubscription: hasSubscription
             ).write()
-            try await EncodersWriter(configuration: configuration).write()
-            try await URLSessionWriter(configuration: configuration).write()
-            try await GraphQLRequestWriter(configuration: configuration).write()
+            try await EncodersWriter(
+                hasSubscription: hasSubscription,
+                configuration: configuration
+            ).write()
+            try await URLSessionWriter(
+                hasSubscription: hasSubscription,
+                configuration: configuration
+            ).write()
+            try await GraphQLRequestWriter(
+                hasSubscription: hasSubscription,
+                configuration: configuration
+            ).write()
         } else {
             await FileOutput.default.remove(at: HTTPSupportDirectory)
         }

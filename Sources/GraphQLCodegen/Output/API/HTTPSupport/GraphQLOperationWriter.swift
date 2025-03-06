@@ -57,10 +57,7 @@ struct GraphQLOperationWriter {
             associatedtype Data: Decodable, Sendable
         }
 
-        \(accessLevel)protocol GraphQLQuery: GraphQLOperation {}
-        \(hasMutation ? "\(accessLevel)protocol GraphQLMutation: GraphQLOperation {}" : "")
-        \(hasSubscription ? "\(accessLevel)protocol GraphQLSubscription: GraphQLOperation {}" : "")
-
+        \(accessLevel)protocol GraphQLQuery: GraphQLOperation {}\(mutationProtocol())\(subscriptionProtocol())
         """
     }
 
@@ -90,10 +87,25 @@ struct GraphQLOperationWriter {
             associatedtype Data: Decodable, Sendable
         }
 
-        \(accessLevel)protocol GraphQLQuery: GraphQLOperation {}
-        \(hasMutation ? "\(accessLevel)protocol GraphQLMutation: GraphQLOperation {}" : "")
-        \(hasSubscription ? "\(accessLevel)protocol GraphQLSubscription: GraphQLOperation {}" : "")
+        \(accessLevel)protocol GraphQLQuery: GraphQLOperation {}\(mutationProtocol())\(subscriptionProtocol())
+        """
+    }
 
+    private func mutationProtocol() -> String {
+        guard hasMutation else { return "" }
+        return """
+        
+
+        \(accessLevel)protocol GraphQLMutation: GraphQLOperation {}
+        """
+    }
+
+    private func subscriptionProtocol() -> String {
+        guard hasSubscription else { return "" }
+        return """
+        
+
+        \(accessLevel)protocol GraphQLSubscription: GraphQLOperation {}
         """
     }
 }

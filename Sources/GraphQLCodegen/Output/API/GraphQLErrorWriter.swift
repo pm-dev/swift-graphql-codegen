@@ -46,7 +46,6 @@ struct GraphQLErrorWriter {
             \(accessLevel)let path: [PathSegment]?
             \(accessLevel)let extensions: [String: JSONValue]?
         }
-
         """.write(
             to: configuration.output.api.directory.appending(
                 path: "GraphQLError.swift",

@@ -1,6 +1,7 @@
 import Foundation
 
 struct DefaultEncodersWriter {
+    let hasSubscription: Bool
     let configuration: Configuration
 
     private var accessLevel: String {
@@ -10,6 +11,10 @@ struct DefaultEncodersWriter {
     private var header: String {
         guard let header = configuration.output.api.header else { return "" }
         return "\(header)\n"
+    }
+
+    private var includeSubscriptionSupport: Bool {
+        hasSubscription && configuration.output.api.HTTPSupport?.subscriptionSupport == true
     }
 
     private var enableGETQueries: Bool {
@@ -72,7 +77,7 @@ struct DefaultEncodersWriter {
                         String(data: try encoder.encode(extensions), encoding: .utf8)!
                     })
                 ]
-            }
+            }\(subscriptionSupportWithAutomaticPersistedOperations())
         }
 
         /// A HTTPBodyEncoder that encodes an operation into json formatted data
@@ -143,7 +148,6 @@ struct DefaultEncodersWriter {
                 }
             }
         }
-
         """
     }
 
@@ -166,7 +170,7 @@ struct DefaultEncodersWriter {
                         String(data: try encoder.encode(extensions), encoding: .utf8)!
                     })
                 ]
-            }
+            }\(subscriptionSupportWithRegisteredPersistedOperations())
         }
 
         /// A HTTPBodyEncoder that encodes an operation into json formatted data
@@ -196,7 +200,6 @@ struct DefaultEncodersWriter {
                 self.extensions = extensions
             }
         }
-
         """
     }
 
@@ -226,7 +229,7 @@ struct DefaultEncodersWriter {
                         String(data: try encoder.encode(extensions), encoding: .utf8)!
                     })
                 ]
-            }
+            }\(subscriptionSupportWithNoPersistedOperations())
         }
 
         /// A HTTPBodyEncoder that encodes an operation into json formatted data
@@ -270,7 +273,6 @@ struct DefaultEncodersWriter {
                     .joined(separator: " ")
             }
         }
-
         """
     }
 
@@ -347,7 +349,6 @@ struct DefaultEncodersWriter {
                 }
             }
         }
-
         """
     }
 
@@ -382,7 +383,6 @@ struct DefaultEncodersWriter {
                 self.extensions = extensions
             }
         }
-
         """
     }
 
@@ -431,7 +431,79 @@ struct DefaultEncodersWriter {
                     .joined(separator: " ")
             }
         }
+        """
+    }
 
+    private func subscriptionSupportWithAutomaticPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            \(accessLevel)func encode<Subscription: GraphQLSubscription>(
+                subscription: Subscription,
+                automaticPersistedOperations: Bool,
+                minifyDocument: Bool
+            ) throws -> [URLQueryItem] {
+                let body = Body(
+                    operation: subscription,
+                    automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil,
+                    minifyDocument: minifyDocument
+                )
+                let encoder = JSONEncoder()
+                return [
+                    URLQueryItem(name: "operationName", value: body.operationName),
+                    URLQueryItem(name: "query", value: body.query),
+                    URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
+                    URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
+                        String(data: try encoder.encode(extensions), encoding: .utf8)!
+                    })
+                ]
+            }
+        """
+    }
+
+    private func subscriptionSupportWithRegisteredPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            \(accessLevel)func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLQueryItem] {
+                let body = Body(operation: subscription)
+                let encoder = JSONEncoder()
+                return [
+                    URLQueryItem(name: "operationName", value: body.operationName),
+                    URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
+                    URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
+                        String(data: try encoder.encode(extensions), encoding: .utf8)!
+                    })
+                ]
+            }
+        """
+    }
+
+    private func subscriptionSupportWithNoPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            \(accessLevel)func encode<Subscription: GraphQLSubscription>(
+                subscription: Subscription,
+                minifyDocument: Bool
+            ) throws -> [URLQueryItem] {
+                let body = Body(
+                    operation: subscription,
+                    minifyDocument: minifyDocument
+                )
+                let encoder = JSONEncoder()
+                return [
+                    URLQueryItem(name: "operationName", value: body.operationName),
+                    URLQueryItem(name: "query", value: body.query),
+                    URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
+                    URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
+                        String(data: try encoder.encode(extensions), encoding: .utf8)!
+                    })
+                ]
+            }
         """
     }
 }

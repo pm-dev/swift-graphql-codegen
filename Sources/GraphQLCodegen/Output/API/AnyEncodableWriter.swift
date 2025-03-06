@@ -25,7 +25,6 @@ struct AnyEncodableWriter {
                 try self.encoder(encoder)
             }
         }
-
         """.write(
             to: configuration.output.api.directory.appending(
                 path: "AnyEncodable.swift",

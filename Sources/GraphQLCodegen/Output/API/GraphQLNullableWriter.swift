@@ -24,7 +24,6 @@ struct GraphQLNullableWriter {
                 }
             }
         }
-
         """.write(
             to: configuration.output.api.directory.appending(
                 path: "GraphQLNullable.swift",
