@@ -23,7 +23,7 @@ Everything you need and nothing you don't. Swift GraphQL Codegen is a lightweigh
 - [x] Automatic Hashable/Equatable conformance
 - [x] Swift concurrency support via Sendable conformance
 - [x] Persisted operations support
-- [x] Optional URLSession support, including support for query operations using GET 
+- [x] Optional URLSession support, including support for query operations using GET and subscriptions using server-sent events
 - [x] Schema can come from SDL, JSON or an introspection endpoint
 - [x] Control over public/internal access level
 - [x] Control over mutable or immutable types
