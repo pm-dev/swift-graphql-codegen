@@ -54,4 +54,3 @@ enum AutomaticPersistedOperationPhase {
     /// the document's hash was not previously found by the server.
     case persistRequestWithDocument
 }
-

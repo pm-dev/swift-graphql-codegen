@@ -1,6 +1,7 @@
 import Foundation
 
 struct EncodersWriter {
+    let hasSubscription: Bool
     let configuration: Configuration
 
     private var accessLevel: String {
@@ -10,6 +11,10 @@ struct EncodersWriter {
     private var header: String {
         guard let header = configuration.output.api.header else { return "" }
         return "\(header)\n"
+    }
+
+    private var includeSubscriptionSupport: Bool {
+        hasSubscription && configuration.output.api.HTTPSupport?.subscriptionSupport == true
     }
 
     private var enableGETQueries: Bool {
@@ -64,11 +69,10 @@ struct EncodersWriter {
                 query: Query,
                 automaticPersistedOperations: Bool,
                 minifyDocument: Bool
-            ) throws -> [URLQueryItem]
+            ) throws -> [URLQueryItem]\(subscriptionSupportWithAutomaticPersistedOperations())
         }
 
         \(HTTPBodyEncoderWithAutomaticPersistedOperations())
-
         """
     }
 
@@ -84,11 +88,10 @@ struct EncodersWriter {
             /// - Parameters:
             ///   query: The query operation to encode.
             /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
-            func encode<Query: GraphQLQuery>(query: Query) throws -> [URLQueryItem]
+            func encode<Query: GraphQLQuery>(query: Query) throws -> [URLQueryItem]\(subscriptionSupportWithRegisteredPersistedOperations())
         }
 
         \(HTTPBodyEncoderWithRegisteredPersistedOperations())
-
         """
     }
 
@@ -108,11 +111,10 @@ struct EncodersWriter {
             func encode<Query: GraphQLQuery>(
                 query: Query,
                 minifyDocument: Bool
-            ) throws -> [URLQueryItem]
+            ) throws -> [URLQueryItem]\(subscriptionSupportWithNoPersistedOperations())            
         }
 
         \(HTTPBodyEncoderWithNoPersistedOperations())
-
         """
     }
 
@@ -121,7 +123,6 @@ struct EncodersWriter {
         \(header)import Foundation
 
         \(HTTPBodyEncoderWithAutomaticPersistedOperations())
-
         """
     }
 
@@ -130,7 +131,6 @@ struct EncodersWriter {
         \(header)import Foundation
 
         \(HTTPBodyEncoderWithRegisteredPersistedOperations())
-
         """
     }
 
@@ -139,7 +139,6 @@ struct EncodersWriter {
         \(header)import Foundation
 
         \(HTTPBodyEncoderWithNoPersistedOperations())
-
         """
     }
 
@@ -178,7 +177,6 @@ struct EncodersWriter {
             /// the document's hash was not previously found by the server.
             case persistRequestWithDocument
         }
-
         """
     }
 
@@ -197,7 +195,6 @@ struct EncodersWriter {
             /// - Returns: The encoded data to be set as the HTTP body of the POST request.
             func encode<Operation: GraphQLOperation>(operation: Operation) throws -> Data
         }
-
         """
     }
 
@@ -220,7 +217,58 @@ struct EncodersWriter {
                 minifyDocument: Bool
             ) throws -> Data
         }
+        """
+    }
 
+    private func subscriptionSupportWithAutomaticPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            /// Encodes a subscription operation for a GET request.
+            /// - Parameters:
+            ///   subscription: The subscription operation to encode.
+            ///   automaticPersistedOperations: Pass `true` if automatic persisted operations is enabled.
+            ///   When automatic persisted operations is enabled, implementations should encode the document's
+            ///   hash, rather than the full document text. Note: Only the initial request uses GET. When the
+            ///   persisted operation is not found by the server, the subsequent request is sent as a POST.
+            ///   minifyDocument: Pass `true` if the document should remove unnecessary whitespace.
+            /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
+            func encode<Subscription: GraphQLSubscription>(
+                subscription: Subscription,
+                automaticPersistedOperations: Bool,
+                minifyDocument: Bool
+            ) throws -> [URLQueryItem]
+        """
+    }
+
+    private func subscriptionSupportWithRegisteredPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            /// Encodes a subscription operation for a GET request.
+            /// - Parameters:
+            ///   subscription: The subscription operation to encode.
+            /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
+            func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLQueryItem]
+        """
+    }
+
+    private func subscriptionSupportWithNoPersistedOperations() -> String {
+        guard includeSubscriptionSupport else { return "" }
+        return """
+
+
+            /// Encodes a subscription operation for a GET request.
+            /// - Parameters:
+            ///   subscription: The subscription operation to encode.
+            ///   minifyDocument: Pass `true` if the document should remove unnecessary whitespace.
+            /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
+            func encode<Subscription: GraphQLSubscription>(
+                subscription: Subscription,
+                minifyDocument: Bool
+            ) throws -> [URLQueryItem]
         """
     }
 }

@@ -1,12 +1,12 @@
-struct PersistedOperationManifest: Encodable {
-    struct Operation: Encodable {
-        let id: String
-        let body: String
-        let name: String?
-        let type: String
+public struct PersistedOperationManifest: Codable {
+    public struct Operation: Codable {
+        public let id: String
+        public let body: String
+        public let name: String?
+        public let type: String
     }
 
-    let format = "apollo-persisted-query-manifest"
-    let version = 1
-    let operations: [Operation]
+    public let format = "apollo-persisted-query-manifest"
+    public let version = 1
+    public var operations: [Operation]
 }

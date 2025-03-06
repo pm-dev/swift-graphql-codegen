@@ -24,5 +24,3 @@ protocol GraphQLOperation: Sendable {
 }
 
 protocol GraphQLQuery: GraphQLOperation {}
-
-
