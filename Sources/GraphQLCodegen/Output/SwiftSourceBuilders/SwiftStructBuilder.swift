@@ -51,7 +51,7 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         value: PropertyValue
     ) {
         builder.addEmptyLine()
-        if let description {
+        if let description, !description.isEmpty {
             builder.addComment(description)
         }
         if let deprecation {

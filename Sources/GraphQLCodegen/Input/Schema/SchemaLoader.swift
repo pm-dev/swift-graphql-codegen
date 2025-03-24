@@ -162,6 +162,9 @@ struct SchemaLoader {
             sdlSchemaString,
             introspectionQuery: introspectionQuery
         )
+        if jsonSchemaString == "undefined" {
+            throw Codegen.Error(description: "Failed to parse schema SDL")
+        }
         let data = Data(jsonSchemaString.utf8)
         if let error = try? JSONDecoder().decode(DocumentValidator.Error.self, from: data) {
             throw Codegen.Error(description: """
