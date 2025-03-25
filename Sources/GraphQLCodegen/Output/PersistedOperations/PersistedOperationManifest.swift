@@ -6,7 +6,13 @@ public struct PersistedOperationManifest: Codable {
         public let type: String
     }
 
-    public let format = "apollo-persisted-query-manifest"
-    public let version = 1
+    public let format: String
+    public let version: Int
     public var operations: [Operation]
+
+    init(operations: [Operation]) {
+        self.format = "apollo-persisted-query-manifest"
+        self.version = 1
+        self.operations = operations
+    }
 }
