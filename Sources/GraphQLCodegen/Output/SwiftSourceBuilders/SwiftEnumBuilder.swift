@@ -15,7 +15,7 @@ struct SwiftEnumBuilder: SwiftTypeBuildable {
             description: description,
             isPublic: isPublic,
             type: "enum",
-            name: enumName,
+            name: identifier(enumName),
             conformances: conformances
         )
     }
@@ -31,6 +31,6 @@ struct SwiftEnumBuilder: SwiftTypeBuildable {
         if let deprecation {
             builder.addDeprecation(deprecation.reason)
         }
-        builder.addLine("case \(name)")
+        builder.addLine("case \(identifier(name))")
     }
 }

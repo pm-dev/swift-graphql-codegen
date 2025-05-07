@@ -17,6 +17,7 @@ type Droid implements Character {
   id: ID!
   name: String!
   primaryFunction: String
+  operator: String
 }
 
 enum Episode {
