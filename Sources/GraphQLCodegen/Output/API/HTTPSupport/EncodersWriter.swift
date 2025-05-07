@@ -111,7 +111,7 @@ struct EncodersWriter {
             func encode<Query: GraphQLQuery>(
                 query: Query,
                 minifyDocument: Bool
-            ) throws -> [URLQueryItem]\(subscriptionSupportWithNoPersistedOperations())            
+            ) throws -> [URLQueryItem]\(subscriptionSupportWithNoPersistedOperations())
         }
 
         \(HTTPBodyEncoderWithNoPersistedOperations())

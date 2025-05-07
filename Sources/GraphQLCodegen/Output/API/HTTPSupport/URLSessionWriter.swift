@@ -132,7 +132,7 @@ struct URLSessionWriter {
         guard includeSubscriptionSupport else { return "" }
         return """
 
-            
+
             /// Initiates an event stream using a GraphQL subscription.
             /// This implementation assumes your server uses the "GraphQL over Server-Sent Events" spec:
             /// https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverSSE.md#distinct-connections-mode
