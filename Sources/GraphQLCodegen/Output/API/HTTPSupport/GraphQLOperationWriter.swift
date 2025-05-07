@@ -94,7 +94,7 @@ struct GraphQLOperationWriter {
     private func mutationProtocol() -> String {
         guard hasMutation else { return "" }
         return """
-        
+
 
         \(accessLevel)protocol GraphQLMutation: GraphQLOperation {}
         """
@@ -103,7 +103,7 @@ struct GraphQLOperationWriter {
     private func subscriptionProtocol() -> String {
         guard hasSubscription else { return "" }
         return """
-        
+
 
         \(accessLevel)protocol GraphQLSubscription: GraphQLOperation {}
         """
