@@ -21,7 +21,7 @@ type Droid implements Character {
 }
 
 enum Episode {
-  NEWHOPE
+  NEW_HOPE
   EMPIRE
   JEDI
 }
