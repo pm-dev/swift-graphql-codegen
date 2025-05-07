@@ -829,7 +829,7 @@ struct GraphQLRequestWriter {
             \(accessLevel)init(
                 subscription: Operation,
                 endpoint: Foundation.URL,
-                minifyDocument: Bool = true,        
+                minifyDocument: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
             ) throws where Operation: GraphQLSubscription {
                 try self.init(

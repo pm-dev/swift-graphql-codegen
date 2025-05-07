@@ -36,7 +36,7 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             description: description,
             isPublic: isPublic,
             type: "struct",
-            name: structName,
+            name: identifier(structName),
             conformances: conformances
         )
     }
@@ -62,7 +62,8 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             case .computed: "var"
             case .assigned, .unassigned: immutable ? "let" : "var"
             }
-        var declarationLine = "\(isPublic ? "public " : "")\(isStatic ? "static " : "")\(creator) \(name)"
+        let safeName = identifier(name)
+        var declarationLine = "\(isPublic ? "public " : "")\(isStatic ? "static " : "")\(creator) \(safeName)"
         switch value {
         case .computed(let value, type: let type):
             declarationLine.append(": \(type)")
@@ -81,17 +82,18 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             builder.addLine(declarationLine)
             switch initialized {
             case .direct(let defaultValue):
-                builder.addInitializerArguments("\(name): \(type)".addingDefaultValue(defaultValue))
-                builder.addInitializerBody(["self.\(name) = \(name)"], isThrowing: false)
+                builder.addInitializerArguments("\(safeName): \(type)".addingDefaultValue(defaultValue))
+                builder.addInitializerBody(["self.\(safeName) = \(safeName)"], isThrowing: false)
             case .flattened(let initializerArguments, let indentation):
                 for argument in initializerArguments {
                     builder.addInitializerArguments(
-                        "\(argument.name): \(argument.type)".addingDefaultValue(argument.defaultValue)
+                        "\(identifier(argument.name)): \(argument.type)".addingDefaultValue(argument.defaultValue)
                     )
                 }
-                var assignmentLines = ["self.\(name) = \(type)("]
+                var assignmentLines = ["self.\(safeName) = \(type)("]
                 for (idx, argument) in initializerArguments.enumerated() {
-                    var ln = "\(indentation.string)\(argument.name): \(argument.name)"
+                    let safeArgumentName = identifier(argument.name)
+                    var ln = "\(indentation.string)\(safeArgumentName): \(safeArgumentName)"
                     let isLast = idx == initializerArguments.count - 1
                     if !isLast {
                         ln.append(",")

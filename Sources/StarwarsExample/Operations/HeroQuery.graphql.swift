@@ -90,6 +90,7 @@ struct Droid: Decodable, Sendable, Hashable {
     fragment droid on Droid {
       ...character
       primaryFunction
+      operator
     }
     """
 
@@ -97,12 +98,16 @@ struct Droid: Decodable, Sendable, Hashable {
 
     var primaryFunction: String?
 
+    var `operator`: String?
+
     init(from decoder: Decoder) throws {
         enum CodingKeys: CodingKey {
             case primaryFunction
+            case `operator`
         }
         let container = try decoder.container(keyedBy: CodingKeys.self)
         primaryFunction = try container.decode(String?.self, forKey: .primaryFunction)
+        `operator` = try container.decode(String?.self, forKey: .operator)
         __character = try Character(from: decoder)
     }
 }

@@ -154,7 +154,7 @@ extension SwiftStructBuilder {
             for (responseKey, selection) in selectionSet {
                 switch selection {
                 case .field(let field, let conditional):
-                    var assignment = "\(responseKey) = "
+                    var assignment = "\(identifier(responseKey)) = "
                     assignment.append("try container.")
                     let typename: String
                     if conditional {
@@ -175,7 +175,7 @@ extension SwiftStructBuilder {
                 case .field: break
                 case .fragmentSpread(let fragmentSpreadName, let checkTypename):
                     let fragmentTypeName = fragmentSpreadName.capitalizedFirst
-                    var assignment = "\(responseKey) = "
+                    var assignment = "\(identifier(responseKey)) = "
                     if let checkTypename {
                         if !hasNonnilTypenameField {
                             throw SelectionSetError.fragmentSpreadNeedsTypename(fragmentSpread: fragmentSpreadName)
