@@ -13,6 +13,13 @@ struct OperationBuilder {
         resolvedOperation.operation
     }
 
+    private var isPublic: Bool {
+        switch configuration.output.documents.accessLevel {
+        case .internal: false
+        case .public: true
+        }
+    }
+
     init(
         configuration: Configuration,
         document: Document,
@@ -72,7 +79,7 @@ struct OperationBuilder {
         }
         operationStruct.start(
             description: nil,
-            isPublic: false,
+            isPublic: isPublic,
             structName: structName,
             conformances: conformances
         )
@@ -88,7 +95,7 @@ struct OperationBuilder {
         operationStruct.addProperty(
             description: nil,
             deprecation: nil,
-            isPublic: false,
+            isPublic: isPublic,
             isStatic: true,
             immutable: true,
             name: "operationName",
@@ -107,7 +114,7 @@ struct OperationBuilder {
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
-                isPublic: false,
+                isPublic: isPublic,
                 isStatic: true,
                 immutable: true,
                 name: "document",
@@ -121,7 +128,7 @@ struct OperationBuilder {
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
-                isPublic: false,
+                isPublic: isPublic,
                 isStatic: true,
                 immutable: true,
                 name: "hash",
@@ -134,7 +141,7 @@ struct OperationBuilder {
         operationStruct.addProperty(
             description: nil,
             deprecation: nil,
-            isPublic: false,
+            isPublic: isPublic,
             isStatic: false,
             immutable: configuration.output.documents.operations.immutableExtensions,
             name: "extensions",
@@ -151,7 +158,7 @@ struct OperationBuilder {
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
-                isPublic: false,
+                isPublic: isPublic,
                 isStatic: false,
                 immutable: true,
                 name: "variables",
@@ -163,7 +170,7 @@ struct OperationBuilder {
         operationStruct.addProperty(
             description: nil,
             deprecation: nil,
-            isPublic: false,
+            isPublic: isPublic,
             isStatic: false,
             immutable: configuration.output.documents.operations.immutableVariables,
             name: "variables",
@@ -205,7 +212,7 @@ struct OperationBuilder {
         var variablesStruct = SwiftStructBuilder()
         variablesStruct.start(
             description: nil,
-            isPublic: false,
+            isPublic: isPublic,
             structName: "Variables",
             conformances: configuration.output.documents.operations.variables.conformances
         )
@@ -213,7 +220,7 @@ struct OperationBuilder {
             variablesStruct.addProperty(
                 description: nil,
                 deprecation: nil,
-                isPublic: false,
+                isPublic: isPublic,
                 isStatic: false,
                 immutable: configuration.output.documents.operations.variables.immutable,
                 name: variableDefinition.variable.name.value,
@@ -227,7 +234,7 @@ struct OperationBuilder {
         var structBuilder = SwiftStructBuilder()
         structBuilder.start(
             description: nil,
-            isPublic: false,
+            isPublic: isPublic,
             structName: "Data",
             conformances: configuration.output.documents.operations.responseData.conformances
         )
@@ -235,7 +242,7 @@ struct OperationBuilder {
             try structBuilder.addSelectionSet(
                 resolvedOperation.resolvedSelectionSet,
                 immutable: configuration.output.documents.operations.responseData.immutable,
-                isPublic: false,
+                isPublic: isPublic,
                 conformances: configuration.output.documents.operations.responseData.conformances,
                 configuration: configuration
             )
