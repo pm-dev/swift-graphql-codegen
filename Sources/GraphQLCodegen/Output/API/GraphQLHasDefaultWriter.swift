@@ -12,7 +12,7 @@ struct GraphQLHasDefaultWriter {
 
     func write() async throws {
         try await """
-        \(header)\(accessLevel)enum GraphQLHasDefault<T>: Encodable, Hashable where T: Encodable, T: Hashable {
+        \(header)\(accessLevel)enum GraphQLHasDefault<T>: Encodable, Hashable where T: Encodable & Hashable & Sendable {
             case useDefault
             case value(T)
 
