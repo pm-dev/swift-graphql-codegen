@@ -11,24 +11,27 @@ extension Configuration.Output {
         ///   Just include the module name, the "import" keyword will be added automatically.
         ///   - operations: Options controlling generated code for operation definitions (which exist inside documents).
         ///   - fragments: Options controlling generated code for fragment definitions (which exist inside documents).
+        ///   - accessLevel: The `AccessLevel` for the generated swift code representing operation and fragment types.
         /// - Returns: A new `Documents` instance to be passed to the `Output.output` factory function.
         public static func documents(
             header: String? = "// @generated",
             importedModules: [String] = [],
             operations: Operations = .operations(),
-            fragments: Fragments = .fragments()
+            fragments: Fragments = .fragments(),
+            accessLevel: AccessLevel = .internal
         ) -> Documents {
             Documents(
                 header: header,
                 importedModules: importedModules,
                 operations: operations,
-                fragments: fragments
+                fragments: fragments,
+                accessLevel: accessLevel
             )
         }
-
         public var header: String?
         public var importedModules: [String]
         public var operations: Operations
         public var fragments: Fragments
+        public var accessLevel: AccessLevel
     }
 }

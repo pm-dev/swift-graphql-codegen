@@ -14,6 +14,13 @@ struct FragmentBuilder {
         resolvedDocuments.fulfilledFragments.contains(fragment.ast.name.value)
     }
 
+    private var isPublic: Bool {
+        switch configuration.output.documents.accessLevel {
+        case .internal: false
+        case .public: true
+        }
+    }
+
     init(
         configuration: Configuration,
         document: Document,
@@ -40,7 +47,7 @@ struct FragmentBuilder {
             try fragmentStruct.addSelectionSet(
                 resolvedFragment.resolvedSelectionSet,
                 immutable: configuration.output.documents.fragments.immutable,
-                isPublic: false,
+                isPublic: isPublic,
                 conformances: configuration.output.documents.fragments.conformances,
                 configuration: configuration
             )
@@ -68,7 +75,7 @@ struct FragmentBuilder {
     private mutating func startFragmentStruct() {
         fragmentStruct.start(
             description: nil,
-            isPublic: false,
+            isPublic: isPublic,
             structName: fragment.ast.name.value.capitalizedFirst,
             conformances: isFulfilled ? configuration.output.documents.fragments.conformances : []
         )
@@ -81,7 +88,7 @@ struct FragmentBuilder {
             fragmentStruct.addProperty(
                 description: nil,
                 deprecation: nil,
-                isPublic: false,
+                isPublic: isPublic,
                 isStatic: true,
                 immutable: true,
                 name: "source",
