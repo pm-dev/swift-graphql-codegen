@@ -23,6 +23,7 @@ extension Configuration.Output {
         ///   - operations: Options controlling generated code for operation definitions (which exist inside documents).
         ///   - fragments: Options controlling generated code for fragment definitions (which exist inside documents).
         ///   - accessLevel: The `AccessLevel` for the generated swift code representing operation and fragment types.
+        ///   - memberwiseInitializer: Whether to create an explicit memberwise initializer.
         /// - Returns: A new `Documents` instance to be passed to the `Output.output` factory function.
         public static func documents(
             directory: DocumentOutputLocation = .definition,
@@ -30,7 +31,8 @@ extension Configuration.Output {
             importedModules: [String] = [],
             operations: Operations = .operations(),
             fragments: Fragments = .fragments(),
-            accessLevel: AccessLevel = .internal
+            accessLevel: AccessLevel = .internal,
+            memberwiseInitializer: Bool = false
         ) -> Documents {
             Documents(
                 directory: directory,
@@ -38,7 +40,8 @@ extension Configuration.Output {
                 importedModules: importedModules,
                 operations: operations,
                 fragments: fragments,
-                accessLevel: accessLevel
+                accessLevel: accessLevel,
+                memberwiseInitializer: memberwiseInitializer
             )
         }
 
@@ -48,5 +51,6 @@ extension Configuration.Output {
         public var operations: Operations
         public var fragments: Fragments
         public var accessLevel: AccessLevel
+        public var memberwiseInitializer: Bool
     }
 }

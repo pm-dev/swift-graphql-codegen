@@ -10,7 +10,7 @@ extension SwiftStructBuilder {
         _ selectionSet: ResolvedSelectionSet,
         immutable: Bool,
         isPublic: Bool,
-        conformances: [String],
+        conformances: OrderedSet<String>,
         configuration: Configuration
     ) throws {
         var hasFields = false
@@ -31,7 +31,8 @@ extension SwiftStructBuilder {
                     name: responseKey,
                     value: .unassigned(
                         type: conditionalField.sourceTypeName(responseKey: responseKey).formatted(),
-                        initialized: nil
+                        initialized: configuration.output.documents.memberwiseInitializer ?
+                            .direct(defaultValue: nil) : nil
                     )
                 )
             case .fragmentSpread(let fragmentSpreadName, let checkTypename):
@@ -45,7 +46,8 @@ extension SwiftStructBuilder {
                     name: responseKey,
                     value: .unassigned(
                         type: fragmentSpreadName.capitalizedFirst + (checkTypename != nil ? "?" : ""),
-                        initialized: nil
+                        initialized: configuration.output.documents.memberwiseInitializer ?
+                            .direct(defaultValue: nil) : nil
                     )
                 )
             }
@@ -64,13 +66,14 @@ extension SwiftStructBuilder {
                 )
             }
         }
-        try addSelectionSetInitializer(
-            selectionSet,
-            hasFragments: hasFragments,
-            hasFields: hasFields,
-            hasNonnilTypenameField: hasNonnilTypenameField,
-            configuration: configuration
-        )
+        if hasFragments, conformances.contains("Decodable") {
+            try addDecodableInitializer(
+                selectionSet,
+                hasFields: hasFields,
+                hasNonnilTypenameField: hasNonnilTypenameField,
+                configuration: configuration
+            )
+        }
     }
 
     private mutating func addNestedStruct(
@@ -78,7 +81,7 @@ extension SwiftStructBuilder {
         for fieldType: ResolvedFieldType,
         immutable: Bool,
         isPublic: Bool,
-        conformances: [String],
+        conformances: OrderedSet<String>,
         configuration: Configuration
     ) throws {
         switch fieldType {
@@ -89,7 +92,7 @@ extension SwiftStructBuilder {
                 description: nil,
                 isPublic: isPublic,
                 structName: responseKey.capitalizedFirst,
-                conformances: conformances
+                conformances: conformances.elements
             )
             do {
                 try nestedStruct.addSelectionSet(
@@ -131,67 +134,67 @@ extension SwiftStructBuilder {
         }
     }
 
-    private mutating func addSelectionSetInitializer(
+    private mutating func addDecodableInitializer(
         _ selectionSet: ResolvedSelectionSet,
-        hasFragments: Bool,
         hasFields: Bool,
         hasNonnilTypenameField: Bool,
         configuration: Configuration
     ) throws {
-        if hasFragments {
-            addInitializerArguments(["from decoder: Decoder"])
-            var initializerBody: [String] = []
-            if hasFields {
-                initializerBody.append("let container = try decoder.container(keyedBy: CodingKeys.self)")
-            }
-            var codingKeysEnum = hasFields ? SwiftEnumBuilder() : nil
-            codingKeysEnum?.start(
-                description: nil,
-                isPublic: false,
-                enumName: "CodingKeys",
-                conformances: ["CodingKey"]
-            )
-            for (responseKey, selection) in selectionSet {
-                switch selection {
-                case .field(let field, let conditional):
-                    var assignment = "\(identifier(responseKey)) = "
-                    assignment.append("try container.")
-                    let typename: String
-                    if conditional {
-                        assignment.append("decodeIfPresent(")
-                        typename = field.asNonOptional().sourceTypeName(responseKey: responseKey).formatted()
-                    } else {
-                        assignment.append("decode(")
-                        typename = field.sourceTypeName(responseKey: responseKey).formatted()
-                    }
-                    assignment.append("\(typename).self, forKey: .\(responseKey))")
-                    codingKeysEnum?.addCase(description: nil, deprecation: nil, name: responseKey)
-                    initializerBody.append(assignment)
-                case .fragmentSpread: break
-                }
-            }
-            for (responseKey, selection) in selectionSet {
-                switch selection {
-                case .field: break
-                case .fragmentSpread(let fragmentSpreadName, let checkTypename):
-                    let fragmentTypeName = fragmentSpreadName.capitalizedFirst
-                    var assignment = "\(identifier(responseKey)) = "
-                    if let checkTypename {
-                        if !hasNonnilTypenameField {
-                            throw SelectionSetError.fragmentSpreadNeedsTypename(fragmentSpread: fragmentSpreadName)
-                        }
-                        assignment.append("__typename == \"\(checkTypename)\" ? ")
-                        assignment.append("try \(fragmentTypeName)(from: decoder) : nil")
-                    } else {
-                        assignment.append("try \(fragmentTypeName)(from: decoder)")
-                    }
-                    initializerBody.append(assignment)
-                }
-            }
-            if let codingKeysEnum {
-                initializerBody = codingKeysEnum.build(configuration: configuration) + initializerBody
-            }
-            addInitializerBody(initializerBody, isThrowing: true)
+        var initializerBody: [String] = []
+        if hasFields {
+            initializerBody.append("let container = try decoder.container(keyedBy: CodingKeys.self)")
         }
+        var codingKeysEnum = hasFields ? SwiftEnumBuilder() : nil
+        codingKeysEnum?.start(
+            description: nil,
+            isPublic: false,
+            enumName: "CodingKeys",
+            conformances: ["CodingKey"]
+        )
+        for (responseKey, selection) in selectionSet {
+            switch selection {
+            case .field(let field, let conditional):
+                var assignment = "\(identifier(responseKey)) = "
+                assignment.append("try container.")
+                let typename: String
+                if conditional {
+                    assignment.append("decodeIfPresent(")
+                    typename = field.asNonOptional().sourceTypeName(responseKey: responseKey).formatted()
+                } else {
+                    assignment.append("decode(")
+                    typename = field.sourceTypeName(responseKey: responseKey).formatted()
+                }
+                assignment.append("\(typename).self, forKey: .\(responseKey))")
+                codingKeysEnum?.addCase(description: nil, deprecation: nil, name: responseKey)
+                initializerBody.append(assignment)
+            case .fragmentSpread: break
+            }
+        }
+        for (responseKey, selection) in selectionSet {
+            switch selection {
+            case .field: break
+            case .fragmentSpread(let fragmentSpreadName, let checkTypename):
+                let fragmentTypeName = fragmentSpreadName.capitalizedFirst
+                var assignment = "\(identifier(responseKey)) = "
+                if let checkTypename {
+                    if !hasNonnilTypenameField {
+                        throw SelectionSetError.fragmentSpreadNeedsTypename(fragmentSpread: fragmentSpreadName)
+                    }
+                    assignment.append("__typename == \"\(checkTypename)\" ? ")
+                    assignment.append("try \(fragmentTypeName)(from: decoder) : nil")
+                } else {
+                    assignment.append("try \(fragmentTypeName)(from: decoder)")
+                }
+                initializerBody.append(assignment)
+            }
+        }
+        if let codingKeysEnum {
+            initializerBody = codingKeysEnum.build(configuration: configuration) + initializerBody
+        }
+        addInitializer(
+            arguments: ["from decoder: Decoder"],
+            body: initializerBody,
+            isThrowing: true
+        )
     }
 }

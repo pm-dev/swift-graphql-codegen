@@ -243,7 +243,7 @@ struct OperationBuilder {
                 resolvedOperation.resolvedSelectionSet,
                 immutable: configuration.output.documents.operations.responseData.immutable,
                 isPublic: isPublic,
-                conformances: configuration.output.documents.operations.responseData.conformances,
+                conformances: OrderedSet(configuration.output.documents.operations.responseData.conformances),
                 configuration: configuration
             )
         } catch {

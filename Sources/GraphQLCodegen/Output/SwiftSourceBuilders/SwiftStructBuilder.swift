@@ -82,11 +82,11 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             builder.addLine(declarationLine)
             switch initialized {
             case .direct(let defaultValue):
-                builder.addInitializerArguments("\(safeName): \(type)".addingDefaultValue(defaultValue))
-                builder.addInitializerBody(["self.\(safeName) = \(safeName)"], isThrowing: false)
+                builder.addPropertyInitializerArguments("\(safeName): \(type)".addingDefaultValue(defaultValue))
+                builder.addPropertyInitializerBody(["self.\(safeName) = \(safeName)"], isThrowing: false)
             case .flattened(let initializerArguments, let indentation):
                 for argument in initializerArguments {
-                    builder.addInitializerArguments(
+                    builder.addPropertyInitializerArguments(
                         "\(identifier(argument.name)): \(argument.type)".addingDefaultValue(argument.defaultValue)
                     )
                 }
@@ -101,7 +101,7 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
                     assignmentLines.append(ln)
                 }
                 assignmentLines.append(")")
-                builder.addInitializerBody(assignmentLines, isThrowing: false)
+                builder.addPropertyInitializerBody(assignmentLines, isThrowing: false)
             case .none: break
             }
         }
@@ -111,12 +111,16 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         builder.addNestedType(type)
     }
 
-    mutating func addInitializerArguments(_ lines: [String]) {
-        builder.addInitializerArguments(lines)
-    }
-
-    mutating func addInitializerBody(_ lines: [String], isThrowing: Bool) {
-        builder.addInitializerBody(lines, isThrowing: isThrowing)
+    mutating func addInitializer(
+        arguments: [String],
+        body: [String],
+        isThrowing: Bool
+    ) {
+        builder.addInitializer(
+            arguments: arguments,
+            body: body,
+            isThrowing: isThrowing
+        )
     }
 }
 

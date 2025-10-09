@@ -1,3 +1,5 @@
+import OrderedCollections
+
 struct FragmentBuilder {
     let configuration: Configuration
     let document: Document
@@ -48,7 +50,7 @@ struct FragmentBuilder {
                 resolvedFragment.resolvedSelectionSet,
                 immutable: configuration.output.documents.fragments.immutable,
                 isPublic: isPublic,
-                conformances: configuration.output.documents.fragments.conformances,
+                conformances: OrderedSet(configuration.output.documents.fragments.conformances),
                 configuration: configuration
             )
         } catch {
