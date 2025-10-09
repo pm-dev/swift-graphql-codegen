@@ -7,6 +7,11 @@ struct DocumentsWriter {
 
     func write() async throws {
         try await withThrowingTaskGroup(of: Void.self) { group in
+            switch configuration.output.documents.directory {
+            case .definition: break
+            case .directory(let url):
+                await FileOutput.default.createDirectory(at: url)
+            }
             for resolvedDocument in resolvedDocuments.documents {
                 group.addTask {
                     let document = resolvedDocument.document
@@ -27,16 +32,17 @@ struct DocumentsWriter {
                             }
                         }
                     }
+                    let outputURL = document.outputURL(configuration)
                     if emptyFile {
-                        await FileOutput.default.remove(at: document.generatedSwiftFile)
+                        await FileOutput.default.remove(at: outputURL)
                     } else {
-                        try await file.write(to: document.generatedSwiftFile, configuration: configuration)
+                        try await file.write(to: outputURL, configuration: configuration)
                     }
                 }
                 try await group.waitForAll()
             }
         }
-        let generated = resolvedDocuments.documents.map(\.document.generatedSwiftFile)
+        let generated = resolvedDocuments.documents.map { $0.document.outputURL(configuration) }
         let removed = Set(resolvedDocuments.previouslyGenerated).subtracting(generated)
         await FileOutput.default.remove(at: removed)
     }
