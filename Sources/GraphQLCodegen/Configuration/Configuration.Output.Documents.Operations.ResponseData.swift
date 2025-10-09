@@ -11,7 +11,7 @@ extension Configuration.Output.Documents.Operations {
         /// - Returns: A new `ResponseData` instance to be passed to the `Operations.operations` factory function.
         public static func responseData(
             immutable: Bool = true,
-            conformances: [String] = ["Decodable", "Sendable"],
+            conformances: [String] = ["Decodable", "Sendable", "Hashable"],
             memberwiseInitializer: Bool = false
         ) -> ResponseData {
             ResponseData(

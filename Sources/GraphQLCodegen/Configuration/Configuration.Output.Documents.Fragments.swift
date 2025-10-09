@@ -11,7 +11,7 @@ extension Configuration.Output.Documents {
         /// - Returns: A new `Fragments` instance to be passed to the `Documents.documents` factory function.
         public static func fragments(
             immutable: Bool = false,
-            conformances: [String] = ["Decodable", "Sendable"]
+            conformances: [String] = ["Decodable", "Sendable", "Hashable"]
         ) -> Fragments {
             Fragments(
                 immutable: immutable,

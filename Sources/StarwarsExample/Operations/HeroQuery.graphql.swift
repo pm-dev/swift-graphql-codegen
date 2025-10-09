@@ -36,11 +36,11 @@ struct HeroQuery: GraphQLQuery {
         let episode: Episode
     }
 
-    struct Data: Decodable, Sendable {
+    struct Data: Decodable, Sendable, Hashable {
 
         let hero: Hero
 
-        struct Hero: Decodable, Sendable {
+        struct Hero: Decodable, Sendable, Hashable {
 
             let __typename: String
 
