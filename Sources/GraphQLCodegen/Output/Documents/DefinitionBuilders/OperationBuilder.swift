@@ -118,7 +118,7 @@ struct OperationBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "document",
-                value: .assigned(SwiftStringLiteral.multiline(expandedSourceText), type: nil)
+                value: .assigned(SwiftSource(value: expandedSourceText).multilineStringLiteral, type: nil)
             )
             let resolvedSourceText = try OperationTextResolver(
                 operation: operation,
@@ -132,7 +132,9 @@ struct OperationBuilder {
                 immutable: true,
                 name: "minifiedDocument",
                 value: .assigned(
-                    SwiftStringLiteral.multiline(GraphQLJS.canonicalizeDocument(resolvedSourceText)),
+                    SwiftSource(
+                        value: GraphQLJS(sourceText: resolvedSourceText).canonicalized()
+                    ).multilineStringLiteral,
                     type: nil
                 )
             )
@@ -201,13 +203,13 @@ struct OperationBuilder {
                                 switch variableDefinition.type.typeName {
                                 case .optional:
                                     if let defaultValue = variableDefinition.defaultValue {
-                                        ".value(.useDefault) \(SwiftStringLiteral.blockComment(defaultValue.description))"
+                                        ".value(.useDefault) \(SwiftSource(value: defaultValue.description).blockComment)"
                                     } else {
                                         "nil"
                                     }
                                 case .list, .name:
                                     if let defaultValue = variableDefinition.defaultValue {
-                                        ".useDefault \(SwiftStringLiteral.blockComment(defaultValue.description))"
+                                        ".useDefault \(SwiftSource(value: defaultValue.description).blockComment)"
                                     } else {
                                         nil
                                     }

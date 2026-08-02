@@ -95,12 +95,13 @@ struct SchemaLoader {
         switch configuration.input.schemaSource {
         case .introspectionEndpoint(
             let endpoint,
+            let headers,
             let includeDeprecatedFields,
             let includeDeprecatedEnumValues
         ):
             try await loadSchemaFromIntrospectionEndpoint(
                 endpoint: endpoint,
-                headers: configuration.input.introspectionHeaders,
+                headers: headers,
                 includeDeprecatedFields: includeDeprecatedFields,
                 includeDeprecatedEnumValues: includeDeprecatedEnumValues
             )
@@ -162,10 +163,8 @@ struct SchemaLoader {
             includeDeprecatedFields: includeDeprecatedFields,
             includeDeprecatedEnumValues: includeDeprecatedEnumValues
         ).query
-        let jsonSchemaString = GraphQLJS.convertSDLSchema(
-            sdlSchemaString,
-            introspectionQuery: introspectionQuery
-        )
+        let jsonSchemaString = GraphQLJS(sourceText: sdlSchemaString)
+            .convertedSDLSchema(introspectionQuery: introspectionQuery)
         if jsonSchemaString == "undefined" {
             throw Codegen.Error(description: "Failed to parse schema SDL")
         }

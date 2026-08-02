@@ -10,7 +10,7 @@ struct GraphQLResponseWriter {
         return "\(header)\n\n"
     }
 
-    func write() async throws {
+    func write(using fileOutput: FileOutput) async throws {
         try await """
         \(header)\(accessLevel)enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {
             \(accessLevel)struct Success: Sendable {
@@ -74,7 +74,8 @@ struct GraphQLResponseWriter {
             to: configuration.output.api.directory.appending(
                 path: "GraphQLResponse.swift",
                 directoryHint: .notDirectory
-            )
+            ),
+            using: fileOutput
         )
     }
 }

@@ -9,23 +9,18 @@ extension Configuration {
         ///   - schemaSource: The method controlling how to injest the GraphQL schema used in codegen.
         ///   - documentDirectories: A list of URLs to directories on the local file-system. Codegen will
         ///   recursively search these directories for GraphQL documents (files using a .graphql extension)
-        ///   - introspectionHeaders: Additional HTTP headers, such as authorization, to send when
-        ///   `schemaSource` is an introspection endpoint.
         /// - Returns: A new `Input` instance to be passed to the `Configuration.configuration` factory function.
         public static func input(
             schemaSource: SchemaSource,
-            documentDirectories: [URL],
-            introspectionHeaders: [String: String] = [:]
+            documentDirectories: [URL]
         ) -> Input {
             Input(
                 schemaSource: schemaSource,
-                documentDirectories: documentDirectories,
-                introspectionHeaders: introspectionHeaders
+                documentDirectories: documentDirectories
             )
         }
 
         public var schemaSource: SchemaSource
         public var documentDirectories: [URL]
-        public var introspectionHeaders: [String: String]
     }
 }

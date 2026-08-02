@@ -5,11 +5,11 @@ struct DocumentsWriter {
     let configuration: Configuration
     let resolvedDocuments: ResolvedDocuments
 
-    func write() async throws {
+    func write(using fileOutput: FileOutput) async throws {
         switch configuration.output.documents.directory {
         case .definition: break
         case .directory(let url):
-            await FileOutput.required.createDirectory(at: url)
+            await fileOutput.createDirectory(at: url)
         }
         for resolvedDocument in resolvedDocuments.documents {
             let document = resolvedDocument.document
@@ -32,14 +32,14 @@ struct DocumentsWriter {
             }
             let outputURL = document.outputURL(configuration)
             if emptyFile {
-                await FileOutput.required.remove(at: outputURL)
+                await fileOutput.remove(at: outputURL)
             } else {
-                try await file.write(to: outputURL, configuration: configuration)
+                try await file.write(to: outputURL, configuration: configuration, using: fileOutput)
             }
         }
         let generated = resolvedDocuments.documents.map { $0.document.outputURL(configuration) }
         let removed = Set(resolvedDocuments.previouslyGenerated).subtracting(generated)
-        await FileOutput.required.remove(at: removed)
+        await fileOutput.remove(at: removed)
     }
 
     private func buildOperation(

@@ -10,7 +10,7 @@ struct AnyEncodableWriter {
         return "\(header)\n\n"
     }
 
-    func write() async throws {
+    func write(using fileOutput: FileOutput) async throws {
         try await """
         \(header)\(accessLevel)struct AnyEncodable: Encodable, Sendable {
             private let encoder: @Sendable (Encoder) throws -> Void
@@ -29,7 +29,8 @@ struct AnyEncodableWriter {
             to: configuration.output.api.directory.appending(
                 path: "AnyEncodable.swift",
                 directoryHint: .notDirectory
-            )
+            ),
+            using: fileOutput
         )
     }
 }

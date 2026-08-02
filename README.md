@@ -38,13 +38,21 @@ The code generator runs on macOS 14 or newer because it uses JavaScriptCore to e
 
 ---
 
+## Upgrade Note: Generated HTTP Operations
+
+Generated HTTP support now requires `GraphQLOperation.minifiedDocument`. Regenerate the API and operation files together when upgrading. If your application defines a custom `GraphQLOperation` conformer, add a precomputed `minifiedDocument` that is lexically equivalent to `document` with ignored GraphQL characters removed. This is a source-breaking generated-API change intended for the next minor release.
+
+---
+
 ## Table of Contents
-1. [Getting Started](#getting-started)  
-2. [Example](#example-output)  
-3. [Motivation](#motivation)  
-4. [Design](#design)  
-5. [Contributing](#contributing)  
-6. [License](#license)  
+1. [Platform Support](#platform-support)
+2. [Upgrade Note: Generated HTTP Operations](#upgrade-note-generated-http-operations)
+3. [Getting Started](#getting-started)
+4. [Example](#example-output)
+5. [Motivation](#motivation)
+6. [Design](#design)
+7. [Contributing](#contributing)
+8. [License](#license)
 
 ---
 
@@ -96,7 +104,10 @@ struct MyCodegenCLI {
             .configuration(
                 input: .input(
                     // SDL and JSON files are also supported
-                    schemaSource: .introspectionEndpoint(URL(string: "http://localhost:5173/api/graphql")!),
+                    schemaSource: .introspectionEndpoint(
+                        url: URL(string: "http://localhost:5173/api/graphql")!,
+                        headers: ["Authorization": "Bearer <token>"]
+                    ),
                     documentDirectories: [graphQLDocumentsDirectory]
                 ),
                 output: .output(

@@ -10,7 +10,7 @@ struct GraphQLNullableWriter {
         return "\(header)\n\n"
     }
 
-    func write() async throws {
+    func write(using fileOutput: FileOutput) async throws {
         try await """
         \(header)\(accessLevel)enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
             case null
@@ -28,7 +28,8 @@ struct GraphQLNullableWriter {
             to: configuration.output.api.directory.appending(
                 path: "GraphQLNullable.swift",
                 directoryHint: .notDirectory
-            )
+            ),
+            using: fileOutput
         )
     }
 }

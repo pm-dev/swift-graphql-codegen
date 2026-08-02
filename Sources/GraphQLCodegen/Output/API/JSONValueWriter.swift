@@ -10,7 +10,7 @@ struct JSONValueWriter {
         return "\(header)\n\n"
     }
 
-    func write() async throws {
+    func write(using fileOutput: FileOutput) async throws {
         try await """
         \(header)\(accessLevel)enum JSONValue: Decodable, Sendable {
             case map([String: JSONValue])
@@ -43,7 +43,8 @@ struct JSONValueWriter {
             to: configuration.output.api.directory.appending(
                 path: "JSONValue.swift",
                 directoryHint: .notDirectory
-            )
+            ),
+            using: fileOutput
         )
     }
 }

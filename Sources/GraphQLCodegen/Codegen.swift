@@ -35,36 +35,42 @@ public struct Codegen: Sendable {
 
         // Output
         let fileOutput = FileOutput()
-        try await FileOutput.$current.withValue(fileOutput) {
-            do {
-                try await DocumentsWriter(
-                    configuration: configuration,
-                    resolvedDocuments: resolvedDocuments
-                ).write()
-                try await SchemaWriter(
-                    configuration: configuration,
-                    schema: schema,
-                    resolvedDocuments: resolvedDocuments
-                ).write()
-                try await APIWriter(
-                    configuration: configuration,
-                    hasMutation: resolvedDocuments.hasMutation,
-                    hasSubscription: resolvedDocuments.hasSubscription
-                ).write()
-                switch configuration.output.documents.operations.persistedOperations {
-                case .registered(let manifestURL):
-                    try await PersistedOperationManifestWriter(
-                        manifestURL: manifestURL,
-                        documents: documents
-                    ).write()
-                case .automatic, .none: break
-                }
-                try await fileOutput.execute()
-            } catch {
-                await fileOutput.discard()
-                throw error
+        do {
+            try await DocumentsWriter(
+                configuration: configuration,
+                resolvedDocuments: resolvedDocuments
+            ).write(using: fileOutput)
+            try await SchemaWriter(
+                configuration: configuration,
+                schema: schema,
+                resolvedDocuments: resolvedDocuments
+            ).write(using: fileOutput)
+            try await APIWriter(
+                configuration: configuration,
+                hasMutation: resolvedDocuments.hasMutation,
+                hasSubscription: resolvedDocuments.hasSubscription
+            ).write(using: fileOutput)
+            switch configuration.output.documents.operations.persistedOperations {
+            case .registered(let manifestURL):
+                try await PersistedOperationManifestWriter(
+                    manifestURL: manifestURL,
+                    documents: documents
+                ).write(using: fileOutput)
+            case .automatic, .none: break
             }
+        } catch {
+            let generationError = error
+            do {
+                try await fileOutput.discard()
+            } catch {
+                throw Codegen.Error(description: """
+                Failed to generate output: \(generationError)
+                Failed to discard staged output: \(error)
+                """)
+            }
+            throw generationError
         }
+        try await fileOutput.execute()
         print("Codegen completed in \((Date().timeIntervalSince(start) * 1000).rounded() / 1000) seconds")
     }
 }

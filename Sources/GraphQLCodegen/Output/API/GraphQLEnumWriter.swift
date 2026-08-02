@@ -10,7 +10,7 @@ struct GraphQLEnumWriter {
         return "\(header)\n\n"
     }
 
-    func write() async throws {
+    func write(using fileOutput: FileOutput) async throws {
         try await """
         \(header)\(accessLevel)enum GraphQLEnum<T>: Decodable, Hashable, Sendable where T: Hashable & RawRepresentable & Sendable, T.RawValue == String {
             case known(T)
@@ -29,7 +29,8 @@ struct GraphQLEnumWriter {
             to: configuration.output.api.directory.appending(
                 path: "GraphQLEnum.swift",
                 directoryHint: .notDirectory
-            )
+            ),
+            using: fileOutput
         )
     }
 }

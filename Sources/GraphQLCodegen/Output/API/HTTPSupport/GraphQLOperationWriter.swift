@@ -21,8 +21,8 @@ struct GraphQLOperationWriter {
         )
     }
 
-    func write() async throws {
-        try await content().write(to: url)
+    func write(using fileOutput: FileOutput) async throws {
+        try await content().write(to: url, using: fileOutput)
     }
 
     private func content() -> String {
@@ -46,7 +46,10 @@ struct GraphQLOperationWriter {
             /// https://spec.graphql.org/October2021/#sec-Document
             static var document: String { get }
 
-            /// A lexically equivalent document with ignored characters removed.
+            /// A precomputed, lexically equivalent document with ignored characters removed.
+            /// The generated HTTP encoders use this representation when `minifyDocument` is enabled,
+            /// avoiding an incomplete runtime rewrite of GraphQL source text. Generated operation types
+            /// provide this value; custom conformers must provide an equivalent canonical document.
             static var minifiedDocument: String { get }
 
             /// The parameterized variables to execute the operation with.

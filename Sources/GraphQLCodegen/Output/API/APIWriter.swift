@@ -12,43 +12,43 @@ struct APIWriter {
         )
     }
 
-    func write() async throws {
+    func write(using fileOutput: FileOutput) async throws {
         let destinationPath = configuration.output.api.directory
-        await FileOutput.required.createDirectory(at: destinationPath)
-        try await AnyEncodableWriter(configuration: configuration).write()
-        try await GraphQLEnumWriter(configuration: configuration).write()
-        try await GraphQLErrorWriter(configuration: configuration).write()
-        try await GraphQLHasDefaultWriter(configuration: configuration).write()
-        try await GraphQLNullableWriter(configuration: configuration).write()
-        try await GraphQLResponseWriter(configuration: configuration).write()
-        try await JSONValueWriter(configuration: configuration).write()
+        await fileOutput.createDirectory(at: destinationPath)
+        try await AnyEncodableWriter(configuration: configuration).write(using: fileOutput)
+        try await GraphQLEnumWriter(configuration: configuration).write(using: fileOutput)
+        try await GraphQLErrorWriter(configuration: configuration).write(using: fileOutput)
+        try await GraphQLHasDefaultWriter(configuration: configuration).write(using: fileOutput)
+        try await GraphQLNullableWriter(configuration: configuration).write(using: fileOutput)
+        try await GraphQLResponseWriter(configuration: configuration).write(using: fileOutput)
+        try await JSONValueWriter(configuration: configuration).write(using: fileOutput)
 
         // HTTP Support
         if configuration.output.api.HTTPSupport != nil {
-            await FileOutput.required.createDirectory(at: HTTPSupportDirectory)
+            await fileOutput.createDirectory(at: HTTPSupportDirectory)
             try await DefaultEncodersWriter(
                 hasSubscription: hasSubscription,
                 configuration: configuration
-            ).write()
+            ).write(using: fileOutput)
             try await GraphQLOperationWriter(
                 configuration: configuration,
                 hasMutation: hasMutation,
                 hasSubscription: hasSubscription
-            ).write()
+            ).write(using: fileOutput)
             try await EncodersWriter(
                 hasSubscription: hasSubscription,
                 configuration: configuration
-            ).write()
+            ).write(using: fileOutput)
             try await URLSessionWriter(
                 hasSubscription: hasSubscription,
                 configuration: configuration
-            ).write()
+            ).write(using: fileOutput)
             try await GraphQLRequestWriter(
                 hasSubscription: hasSubscription,
                 configuration: configuration
-            ).write()
+            ).write(using: fileOutput)
         } else {
-            await FileOutput.required.remove(at: HTTPSupportDirectory)
+            await fileOutput.remove(at: HTTPSupportDirectory)
         }
     }
 }

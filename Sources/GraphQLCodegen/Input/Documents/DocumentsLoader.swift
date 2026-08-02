@@ -81,12 +81,12 @@ struct DocumentsLoader {
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
-                    let resolvedText = GraphQLJS.canonicalizeDocument(
-                        try OperationTextResolver(
+                    let resolvedText = GraphQLJS(
+                        sourceText: try OperationTextResolver(
                             operation: operation,
                             fragmentLookup: fragmentLookup
                         ).expandSourceText { $0.sourceText }
-                    )
+                    ).canonicalized()
                     updatedDefinitions.append(
                         .operation(
                             Document.Operation(

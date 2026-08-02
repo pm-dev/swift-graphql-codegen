@@ -9,19 +9,19 @@ struct SchemaWriter {
         configuration.output.schema.directory
     }
 
-    func write() async throws {
-        try await writeCustomScalars()
-        try await writeEnums()
-        try await writeInputObjects()
+    func write(using fileOutput: FileOutput) async throws {
+        try await writeCustomScalars(using: fileOutput)
+        try await writeEnums(using: fileOutput)
+        try await writeInputObjects(using: fileOutput)
     }
 
-    private func writeCustomScalars() async throws {
+    private func writeCustomScalars(using fileOutput: FileOutput) async throws {
         var scalarsDir = schemaDirectory
         if let scalarDirectoryName = configuration.output.schema.scalars.directoryName {
             scalarsDir.append(path: scalarDirectoryName, directoryHint: .isDirectory)
         }
-        await FileOutput.required.remove(at: scalarsDir)
-        await FileOutput.required.createDirectory(at: scalarsDir)
+        await fileOutput.remove(at: scalarsDir)
+        await fileOutput.createDirectory(at: scalarsDir)
         for scalar in schema.typeCache.scalars.values {
             guard !scalar.ast.isNativeSwiftType else { continue }
             guard resolvedDocuments.usedTypes.contains(scalar.ast.name) else { continue }
@@ -29,24 +29,24 @@ struct SchemaWriter {
             let url = scalarsDir.appending(path: filename, directoryHint: .notDirectory)
             guard !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
                 // Will not overwrite existing scalar file
-                await FileOutput.required.save(at: url)
+                await fileOutput.save(at: url)
                 continue
             }
             var file = SwiftFileWriter()
             file.setHeader(configuration.output.schema.scalars.header)
             file.setImports(configuration.output.schema.scalars.importedModules)
             file.addType(SchemaScalarBuilder(scalar: scalar))
-            try await file.write(to: url, configuration: configuration)
+            try await file.write(to: url, configuration: configuration, using: fileOutput)
         }
     }
 
-    private func writeEnums() async throws {
+    private func writeEnums(using fileOutput: FileOutput) async throws {
         var enumsDir = schemaDirectory
         if let enumDirectoryName = configuration.output.schema.enums.directoryName {
             enumsDir.append(path: enumDirectoryName, directoryHint: .isDirectory)
         }
-        await FileOutput.required.remove(at: enumsDir)
-        await FileOutput.required.createDirectory(at: enumsDir)
+        await fileOutput.remove(at: enumsDir)
+        await fileOutput.createDirectory(at: enumsDir)
         for `enum` in schema.typeCache.enums.values {
             guard !`enum`.ast.isSystemType else { continue }
             guard resolvedDocuments.usedTypes.contains(`enum`.ast.name) else { continue }
@@ -56,18 +56,19 @@ struct SchemaWriter {
             file.addType(SchemaEnumBuilder(enum: `enum`, configuration: configuration))
             try await file.write(
                 to: enumsDir.appending(path: "\(`enum`.ast.name).graphqls.swift", directoryHint: .notDirectory),
-                configuration: configuration
+                configuration: configuration,
+                using: fileOutput
             )
         }
     }
 
-    private func writeInputObjects() async throws {
+    private func writeInputObjects(using fileOutput: FileOutput) async throws {
         var inputObjectsDir = schemaDirectory
         if let inputObjectDirectoryName = configuration.output.schema.inputObjects.directoryName {
             inputObjectsDir.append(path: inputObjectDirectoryName, directoryHint: .isDirectory)
         }
-        await FileOutput.required.remove(at: inputObjectsDir)
-        await FileOutput.required.createDirectory(at: inputObjectsDir)
+        await fileOutput.remove(at: inputObjectsDir)
+        await fileOutput.createDirectory(at: inputObjectsDir)
         for inputObject in schema.typeCache.inputObjects.values {
             guard resolvedDocuments.usedTypes.contains(inputObject.ast.name) else { continue }
             var file = SwiftFileWriter()
@@ -79,7 +80,8 @@ struct SchemaWriter {
                     path: "\(inputObject.ast.name).graphqls.swift",
                     directoryHint: .notDirectory
                 ),
-                configuration: configuration
+                configuration: configuration,
+                using: fileOutput
             )
         }
     }

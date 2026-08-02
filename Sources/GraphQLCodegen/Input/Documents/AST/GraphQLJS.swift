@@ -1,13 +1,15 @@
 @preconcurrency import JavaScriptCore
 
-enum GraphQLJS {
-    private static var parseGraphQLFunction: JSValue { library.objectForKeyedSubscript("parseGraphQL") }
+struct GraphQLJS {
+    let sourceText: String
 
-    private static var validateDocumentFunction: JSValue { library.objectForKeyedSubscript("validateDocument") }
+    private var parseGraphQLFunction: JSValue { library.objectForKeyedSubscript("parseGraphQL") }
 
-    private static var convertSDLSchemaFunction: JSValue { library.objectForKeyedSubscript("convertSDLSchema") }
+    private var validateDocumentFunction: JSValue { library.objectForKeyedSubscript("validateDocument") }
 
-    private static var canonicalizeDocumentFunction: JSValue {
+    private var convertSDLSchemaFunction: JSValue { library.objectForKeyedSubscript("convertSDLSchema") }
+
+    private var canonicalizeDocumentFunction: JSValue {
         library.objectForKeyedSubscript("canonicalizeDocument")
     }
 
@@ -16,38 +18,38 @@ enum GraphQLJS {
         return try! String(contentsOf: graphqlJSLibFileURL, encoding: .utf8)
     }()
 
-    private static var library: JSValue {
+    private var library: JSValue {
         let context = JSContext()!
-        context.evaluateScript(graphqlJSLibContents)
+        context.evaluateScript(Self.graphqlJSLibContents)
         return context.objectForKeyedSubscript("GraphQL")!
     }
 
-    static func parseGraphQL(_ sourceText: String) -> String {
+    func parsed() -> String {
         let javascriptResult: JSValue = parseGraphQLFunction.call(withArguments: [sourceText])
         return javascriptResult.toString()
     }
 
-    static func validateDocument(_ documentText: String, schemaJSONString: String) -> String {
+    func validated(schemaJSONString: String) -> String {
         let javascriptResult: JSValue = validateDocumentFunction.call(
             withArguments: [
-                documentText,
+                sourceText,
                 schemaJSONString,
             ]
         )
         return javascriptResult.toString()
     }
 
-    static func convertSDLSchema(_ sdlSchemaString: String, introspectionQuery: String) -> String {
+    func convertedSDLSchema(introspectionQuery: String) -> String {
         let javascriptResult: JSValue = convertSDLSchemaFunction.call(
             withArguments: [
-                sdlSchemaString,
+                sourceText,
                 introspectionQuery,
             ]
         )
         return javascriptResult.toString()
     }
 
-    static func canonicalizeDocument(_ sourceText: String) -> String {
+    func canonicalized() -> String {
         canonicalizeDocumentFunction.call(withArguments: [sourceText]).toString()
     }
 }
