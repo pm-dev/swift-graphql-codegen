@@ -4,10 +4,10 @@ struct DocumentsResolver {
     let schema: Schema
     let documents: Documents
 
-    func resolve() async throws -> ResolvedDocuments {
+    func resolve() throws -> ResolvedDocuments {
         let usedFragments = usedFragments()
-        let resolvedFragments = try await resolveFragments(usedFragments)
-        let resolvedDocuments = try await resolveDocuments(documents)
+        let resolvedFragments = try resolveFragments(usedFragments)
+        let resolvedDocuments = try resolveDocuments(documents)
         let fulfilledFragments = fulfilledFragments(
             resolvedFragments: resolvedFragments,
             resolvedDocuments: resolvedDocuments
@@ -58,66 +58,51 @@ struct DocumentsResolver {
 
     private func resolveFragments(
         _ usedFragments: [String: Document.Fragment]
-    ) async throws -> [String: ResolvedFragment] {
+    ) throws -> [String: ResolvedFragment] {
         var resolvedFragments: [String: ResolvedFragment] = [:]
-        try await withThrowingTaskGroup(of: (String, ResolvedFragment).self) { group in
-            for (name, fragment) in usedFragments {
-                group.addTask {
-                    let selectionSet = try SelectionSetResolver(
-                        onType: try schema.fragmentType(fragment.ast),
-                        selectionSet: fragment.ast.selectionSet,
-                        schema: schema,
-                        documents: documents
-                    ).resolve()
-                    let resolvedFragment = ResolvedFragment(
-                        fragment: fragment,
-                        resolvedSelectionSet: selectionSet
-                    )
-                    return (name, resolvedFragment)
-                }
-            }
-            for try await (name, resolvedFragment) in group {
-                resolvedFragments[name] = resolvedFragment
-            }
+        for name in usedFragments.keys.sorted() {
+            let fragment = usedFragments[name]!
+            let selectionSet = try SelectionSetResolver(
+                onType: try schema.fragmentType(fragment.ast),
+                selectionSet: fragment.ast.selectionSet,
+                schema: schema,
+                documents: documents
+            ).resolve()
+            resolvedFragments[name] = ResolvedFragment(
+                fragment: fragment,
+                resolvedSelectionSet: selectionSet
+            )
         }
         return resolvedFragments
     }
 
-    private func resolveDocuments(_ documents: Documents) async throws -> [ResolvedDocument] {
+    private func resolveDocuments(_ documents: Documents) throws -> [ResolvedDocument] {
         var resolvedDocuments: [ResolvedDocument] = []
-        try await withThrowingTaskGroup(of: ResolvedDocument.self) { group in
-            for document in documents.documents {
-                group.addTask {
-                    var resolvedDefinitions: [ResolvedDefinition] = []
-                    for definition in document.definitions {
-                        switch definition {
-                        case .operation(let operation):
-                            try resolvedDefinitions.append(
-                                .operation(
-                                    ResolvedOperation(
-                                        operation: operation,
-                                        resolvedSelectionSet: SelectionSetResolver(
-                                            onType: .OBJECT(schema.operationType(operation)),
-                                            selectionSet: operation.ast.selectionSet,
-                                            schema: schema,
-                                            documents: documents
-                                        ).resolve()
-                                    )
-                                )
+        for document in documents.documents {
+            var resolvedDefinitions: [ResolvedDefinition] = []
+            for definition in document.definitions {
+                switch definition {
+                case .operation(let operation):
+                    try resolvedDefinitions.append(
+                        .operation(
+                            ResolvedOperation(
+                                operation: operation,
+                                resolvedSelectionSet: SelectionSetResolver(
+                                    onType: .OBJECT(schema.operationType(operation)),
+                                    selectionSet: operation.ast.selectionSet,
+                                    schema: schema,
+                                    documents: documents
+                                ).resolve()
                             )
-                        case .fragment(let name):
-                            resolvedDefinitions.append(.fragment(name))
-                        }
-                    }
-                    return ResolvedDocument(
-                        document: document,
-                        resolvedDefinitions: resolvedDefinitions
+                        )
                     )
+                case .fragment(let name):
+                    resolvedDefinitions.append(.fragment(name))
                 }
             }
-            for try await resolvedDocument in group {
-                resolvedDocuments.append(resolvedDocument)
-            }
+            resolvedDocuments.append(
+                ResolvedDocument(document: document, resolvedDefinitions: resolvedDefinitions)
+            )
         }
         return resolvedDocuments
     }

@@ -20,8 +20,8 @@ struct SchemaWriter {
         if let scalarDirectoryName = configuration.output.schema.scalars.directoryName {
             scalarsDir.append(path: scalarDirectoryName, directoryHint: .isDirectory)
         }
-        await FileOutput.default.remove(at: scalarsDir)
-        await FileOutput.default.createDirectory(at: scalarsDir)
+        await FileOutput.required.remove(at: scalarsDir)
+        await FileOutput.required.createDirectory(at: scalarsDir)
         for scalar in schema.typeCache.scalars.values {
             guard !scalar.ast.isNativeSwiftType else { continue }
             guard resolvedDocuments.usedTypes.contains(scalar.ast.name) else { continue }
@@ -29,7 +29,7 @@ struct SchemaWriter {
             let url = scalarsDir.appending(path: filename, directoryHint: .notDirectory)
             guard !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
                 // Will not overwrite existing scalar file
-                await FileOutput.default.save(at: url)
+                await FileOutput.required.save(at: url)
                 continue
             }
             var file = SwiftFileWriter()
@@ -45,8 +45,8 @@ struct SchemaWriter {
         if let enumDirectoryName = configuration.output.schema.enums.directoryName {
             enumsDir.append(path: enumDirectoryName, directoryHint: .isDirectory)
         }
-        await FileOutput.default.remove(at: enumsDir)
-        await FileOutput.default.createDirectory(at: enumsDir)
+        await FileOutput.required.remove(at: enumsDir)
+        await FileOutput.required.createDirectory(at: enumsDir)
         for `enum` in schema.typeCache.enums.values {
             guard !`enum`.ast.isSystemType else { continue }
             guard resolvedDocuments.usedTypes.contains(`enum`.ast.name) else { continue }
@@ -66,8 +66,8 @@ struct SchemaWriter {
         if let inputObjectDirectoryName = configuration.output.schema.inputObjects.directoryName {
             inputObjectsDir.append(path: inputObjectDirectoryName, directoryHint: .isDirectory)
         }
-        await FileOutput.default.remove(at: inputObjectsDir)
-        await FileOutput.default.createDirectory(at: inputObjectsDir)
+        await FileOutput.required.remove(at: inputObjectsDir)
+        await FileOutput.required.createDirectory(at: inputObjectsDir)
         for inputObject in schema.typeCache.inputObjects.values {
             guard resolvedDocuments.usedTypes.contains(inputObject.ast.name) else { continue }
             var file = SwiftFileWriter()

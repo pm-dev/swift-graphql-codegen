@@ -14,7 +14,7 @@ struct APIWriter {
 
     func write() async throws {
         let destinationPath = configuration.output.api.directory
-        await FileOutput.default.createDirectory(at: destinationPath)
+        await FileOutput.required.createDirectory(at: destinationPath)
         try await AnyEncodableWriter(configuration: configuration).write()
         try await GraphQLEnumWriter(configuration: configuration).write()
         try await GraphQLErrorWriter(configuration: configuration).write()
@@ -25,7 +25,7 @@ struct APIWriter {
 
         // HTTP Support
         if configuration.output.api.HTTPSupport != nil {
-            await FileOutput.default.createDirectory(at: HTTPSupportDirectory)
+            await FileOutput.required.createDirectory(at: HTTPSupportDirectory)
             try await DefaultEncodersWriter(
                 hasSubscription: hasSubscription,
                 configuration: configuration
@@ -48,7 +48,7 @@ struct APIWriter {
                 configuration: configuration
             ).write()
         } else {
-            await FileOutput.default.remove(at: HTTPSupportDirectory)
+            await FileOutput.required.remove(at: HTTPSupportDirectory)
         }
     }
 }

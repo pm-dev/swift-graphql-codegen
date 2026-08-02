@@ -7,6 +7,10 @@ enum GraphQLJS {
 
     private static var convertSDLSchemaFunction: JSValue { library.objectForKeyedSubscript("convertSDLSchema") }
 
+    private static var canonicalizeDocumentFunction: JSValue {
+        library.objectForKeyedSubscript("canonicalizeDocument")
+    }
+
     private static let graphqlJSLibContents: String = {
         let graphqlJSLibFileURL = Bundle.module.url(forResource: "graphql.bundle", withExtension: "js")!
         return try! String(contentsOf: graphqlJSLibFileURL, encoding: .utf8)
@@ -41,5 +45,9 @@ enum GraphQLJS {
             ]
         )
         return javascriptResult.toString()
+    }
+
+    static func canonicalizeDocument(_ sourceText: String) -> String {
+        canonicalizeDocumentFunction.call(withArguments: [sourceText]).toString()
     }
 }

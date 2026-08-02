@@ -46,6 +46,9 @@ struct GraphQLOperationWriter {
             /// https://spec.graphql.org/October2021/#sec-Document
             static var document: String { get }
 
+            /// A lexically equivalent document with ignored characters removed.
+            static var minifiedDocument: String { get }
+
             /// The parameterized variables to execute the operation with.
             /// https://spec.graphql.org/October2021/#sec-Language.Variables
             var variables: Variables { get }

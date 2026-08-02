@@ -8,8 +8,8 @@
   <a href="https://swift.org/package-manager/">
     <img src="https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat-square" alt="Swift Package Manager compatible">
   </a>
-  <a href="Platforms">
-    <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS-333333.svg" alt="Supported Platforms: iOS, macOS, tvOS, watchOS" />
+  <a href="#platform-support">
+    <img src="https://img.shields.io/badge/generator-macOS%2014%2B-333333.svg" alt="Generator host: macOS 14 or newer" />
   </a>
 </p>
 
@@ -29,6 +29,12 @@ Everything you need and nothing you don't. Swift GraphQL Codegen is a lightweigh
 - [x] Control over mutable or immutable types
 - [x] Only generates types for scalars, enums, and input objects that are used by operations
 - [x] No dependency added to your app binary
+
+---
+
+## Platform Support
+
+The code generator runs on macOS 14 or newer because it uses JavaScriptCore to execute the bundled GraphQL reference implementation. The generated source uses portable Foundation APIs and can be included in iOS, macOS, tvOS, and watchOS applications, subject to the APIs enabled in your configuration.
 
 ---
 

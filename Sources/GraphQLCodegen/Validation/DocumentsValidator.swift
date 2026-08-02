@@ -30,44 +30,33 @@ struct DocumentsValidator {
     let schema: Schema
     let documents: Documents
 
-    func validate() async throws {
+    func validate() throws {
         var documentErrors: [DocumentError] = []
         let schemaJSONString = schema.jsonString!
-        try await withThrowingTaskGroup(of: DocumentError?.self) { group in
-            for document in documents.documents {
-                group.addTask {
-                    var operationErrors: [OperationError] = []
-                    for definition in document.definitions {
-                        switch definition {
-                        case .operation(let operation):
-                            let errors = try DocumentValidator(
-                                documentText: operation.resolvedText!,
-                                schemaJSONString: schemaJSONString
-                            ).validate()
-                            if !errors.isEmpty {
-                                operationErrors.append(
-                                    OperationError(
-                                        operationName: operation.ast.name?.value,
-                                        errors: errors.map(\.description)
-                                    )
-                                )
-                            }
-                        case .fragment: break
-                        }
-                    }
-                    if !operationErrors.isEmpty {
-                        return DocumentError(
-                            url: document.url,
-                            operationErrors: operationErrors
+        for document in documents.documents {
+            var operationErrors: [OperationError] = []
+            for definition in document.definitions {
+                switch definition {
+                case .operation(let operation):
+                    let errors = try DocumentValidator(
+                        documentText: operation.resolvedText!,
+                        schemaJSONString: schemaJSONString
+                    ).validate()
+                    if !errors.isEmpty {
+                        operationErrors.append(
+                            OperationError(
+                                operationName: operation.ast.name?.value,
+                                errors: errors.map(\.description)
+                            )
                         )
                     }
-                    return nil
+                case .fragment: break
                 }
             }
-            for try await error in group {
-                if let error {
-                    documentErrors.append(error)
-                }
+            if !operationErrors.isEmpty {
+                documentErrors.append(
+                    DocumentError(url: document.url, operationErrors: operationErrors)
+                )
             }
         }
         if !documentErrors.isEmpty {

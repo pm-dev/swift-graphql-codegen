@@ -94,7 +94,7 @@ struct FragmentBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "source",
-                value: .assigned("\"\"\"\n\(fragment.sourceText)\n\"\"\"", type: nil)
+                value: .assigned(SwiftStringLiteral.multiline(String(fragment.sourceText)), type: nil)
             )
         }
     }

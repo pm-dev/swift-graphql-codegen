@@ -118,7 +118,23 @@ struct OperationBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "document",
-                value: .assigned("\"\"\"\n\(expandedSourceText)\n\"\"\"", type: nil)
+                value: .assigned(SwiftStringLiteral.multiline(expandedSourceText), type: nil)
+            )
+            let resolvedSourceText = try OperationTextResolver(
+                operation: operation,
+                fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment)
+            ).expandSourceText(mapFragmentSpread: \.sourceText)
+            operationStruct.addProperty(
+                description: nil,
+                deprecation: nil,
+                isPublic: isPublic,
+                isStatic: true,
+                immutable: true,
+                name: "minifiedDocument",
+                value: .assigned(
+                    SwiftStringLiteral.multiline(GraphQLJS.canonicalizeDocument(resolvedSourceText)),
+                    type: nil
+                )
             )
         }
     }
@@ -185,13 +201,13 @@ struct OperationBuilder {
                                 switch variableDefinition.type.typeName {
                                 case .optional:
                                     if let defaultValue = variableDefinition.defaultValue {
-                                        ".value(.useDefault) /* \(defaultValue.description) */"
+                                        ".value(.useDefault) \(SwiftStringLiteral.blockComment(defaultValue.description))"
                                     } else {
                                         "nil"
                                     }
                                 case .list, .name:
                                     if let defaultValue = variableDefinition.defaultValue {
-                                        ".useDefault /* \(defaultValue.description) */"
+                                        ".useDefault \(SwiftStringLiteral.blockComment(defaultValue.description))"
                                     } else {
                                         nil
                                     }

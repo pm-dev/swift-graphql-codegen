@@ -16,7 +16,7 @@ struct SwiftFileWriter {
             lines.append(contentsOf: type.build(configuration: configuration))
             lines.append("")
         }
-        try await FileOutput.default.write(lines, to: file)
+        try await FileOutput.required.write(lines, to: file)
     }
 
     mutating func setHeader(_ header: String?) {

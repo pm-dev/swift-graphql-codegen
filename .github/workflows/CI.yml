@@ -7,14 +7,18 @@ on:
 jobs:
   build-lint-test:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        swift-version: ["6.0", "6.3"]
     steps:
     - uses: swift-actions/setup-swift@v2
       with:
-        swift-version: "6.1.0"
+        swift-version: ${{ matrix.swift-version }}
     - uses: actions/checkout@v4
     - name: Build
       run: swift build -v
     - name: Lint
-      run: swift package plugin --allow-writing-to-package-directory swiftlint
+      if: matrix.swift-version == '6.3'
+      run: brew install swiftlint && swiftlint lint --strict
     - name: Test
       run: swift test -v

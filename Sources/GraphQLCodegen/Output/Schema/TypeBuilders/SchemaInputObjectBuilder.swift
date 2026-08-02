@@ -25,13 +25,13 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
                             switch inputField.type.swiftName {
                             case .optional:
                                 if let defaultValue = inputField.defaultValue {
-                                    ".value(.useDefault) /* \(defaultValue.description) */"
+                                    ".value(.useDefault) \(SwiftStringLiteral.blockComment(defaultValue.description))"
                                 } else {
                                     "nil"
                                 }
                             case .list, .name:
                                 if let defaultValue = inputField.defaultValue {
-                                    ".useDefault /* \(defaultValue.description) */"
+                                    ".useDefault \(SwiftStringLiteral.blockComment(defaultValue.description))"
                                 } else {
                                     nil
                                 }

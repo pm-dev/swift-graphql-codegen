@@ -1,4 +1,11 @@
-const { parse, validate, buildClientSchema, buildASTSchema, graphqlSync } = require('graphql');
+const {
+    parse,
+    validate,
+    buildClientSchema,
+    buildASTSchema,
+    graphqlSync,
+    stripIgnoredCharacters,
+} = require('graphql');
 
 function parseGraphQL(query) {
   return JSON.stringify(parse(query));
@@ -25,4 +32,8 @@ function convertSDLSchema(SDLSchemaString, introspectionQueryString) {
     }
 }
 
-module.exports = { parseGraphQL, validateDocument, convertSDLSchema };
+function canonicalizeDocument(document) {
+    return stripIgnoredCharacters(document);
+}
+
+module.exports = { parseGraphQL, validateDocument, convertSDLSchema, canonicalizeDocument };

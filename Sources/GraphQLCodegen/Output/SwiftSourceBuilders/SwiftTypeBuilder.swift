@@ -156,7 +156,7 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
     private func _deprecation(_ deprecationReason: String?) -> String {
         var line = "@available(*, deprecated"
         if let deprecationReason, !deprecationReason.isEmpty {
-            line.append(", message: \"\(deprecationReason)\")")
+            line.append(", message: \(SwiftStringLiteral.singleLine(deprecationReason)))")
         } else {
             line.append(")")
         }

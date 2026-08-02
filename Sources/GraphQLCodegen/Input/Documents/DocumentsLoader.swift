@@ -81,7 +81,7 @@ struct DocumentsLoader {
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
-                    let resolvedText = minify(
+                    let resolvedText = GraphQLJS.canonicalizeDocument(
                         try OperationTextResolver(
                             operation: operation,
                             fragmentLookup: fragmentLookup
@@ -104,12 +104,6 @@ struct DocumentsLoader {
             updatedDocuments.append(Document(url: document.url, definitions: updatedDefinitions))
         }
         return updatedDocuments
-    }
-
-    private func minify(_ sourceText: String) -> String {
-        sourceText.components(separatedBy: CharacterSet.whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
     }
 
     private func hash(_ sourceText: String) -> String {

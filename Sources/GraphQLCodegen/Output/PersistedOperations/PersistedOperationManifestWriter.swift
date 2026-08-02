@@ -26,6 +26,6 @@ struct PersistedOperationManifestWriter {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(manifest)
-        try await FileOutput.default.write(data, to: manifestURL)
+        try await FileOutput.required.write(data, to: manifestURL)
     }
 }
