@@ -3,7 +3,7 @@
     <img src="https://img.shields.io/badge/license-MIT-lightgrey.svg?maxAge=2592000" alt="MIT license">
   </a>
   <a href="https://github.com/apple/swift">
-    <img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift 6.0 supported">
+    <img src="https://img.shields.io/badge/Swift-6.3-orange.svg" alt="Swift 6.3 supported">
   </a>
   <a href="https://swift.org/package-manager/">
     <img src="https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat-square" alt="Swift Package Manager compatible">
@@ -65,7 +65,7 @@ Below is a simple example demonstrating how you might integrate this library int
 In `Package.swift` create an executable target that depends on this library:
 
 ```swift
-// swift-tools-version:6.0
+// swift-tools-version:6.3
 import PackageDescription
 
 let package = Package(
