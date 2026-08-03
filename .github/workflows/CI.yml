@@ -6,30 +6,17 @@ on:
     branches: [ "main" ]
 jobs:
   build-lint-test:
-    name: build-lint-test (${{ matrix.name }})
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - name: Swift 6.0
-          runner: macos-14
-          swift-version: "6.0"
-        - name: Current Swift
-          runner: macos-latest
-          swift-version: ""
+    runs-on: macos-14
     steps:
     - uses: swift-actions/setup-swift@v2
-      if: matrix.swift-version != ''
       with:
-        swift-version: ${{ matrix.swift-version }}
+        swift-version: "6.0"
     - uses: actions/checkout@v4
     - name: Toolchain
       run: swift --version
     - name: Build
       run: swift build -v
     - name: Lint
-      if: matrix.swift-version == ''
       run: brew install swiftlint && swiftlint lint --strict
     - name: Test
       run: swift test -v
