@@ -26,7 +26,7 @@ struct DocumentValidator {
     let schemaJSONString: String
 
     func validate() throws -> [Error] {
-        let errorsJSONString = GraphQLJS.validateDocument(documentText, schemaJSONString: schemaJSONString)
+        let errorsJSONString = GraphQLJS(sourceText: documentText).validated(schemaJSONString: schemaJSONString)
         if errorsJSONString == "[]" {
             return []
         } else if errorsJSONString.hasPrefix("{") {

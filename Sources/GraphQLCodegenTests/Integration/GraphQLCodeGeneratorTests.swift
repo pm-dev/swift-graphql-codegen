@@ -1,5 +1,5 @@
 import Foundation
-@testable import GraphQLCodegen
+import GraphQLCodegen
 import Testing
 
 struct GraphQLCodeGeneratorTests {

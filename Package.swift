@@ -10,7 +10,6 @@ let package = Package(
         .library(name: "GraphQLCodegen", targets: ["GraphQLCodegen"])
     ],
     dependencies: [
-        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", exact: "0.58.2"),
         .package(url: "https://github.com/apple/swift-collections", from: "1.1.0"),
     ],
     targets: [
@@ -25,9 +24,10 @@ let package = Package(
             ]
         ),
         .target(
-            // From https://github.com/rwbutler/LetterCas
-            // No need to add the entire repository since it's only 4 files and MIT LICENSED
-            name: "LetterCase"
+            // From https://github.com/rwbutler/LetterCase.
+            // See Sources/LetterCase/LICENSE for the upstream license.
+            name: "LetterCase",
+            exclude: ["LICENSE"]
         ),
         .testTarget(
             name: "GraphQLCodegenTests",

@@ -4,7 +4,7 @@ struct HeroQuery: GraphQLQuery {
 
     static let operationName: String? = "Hero"
 
-    static let document = """
+    static let document = #"""
     query Hero($episode: Episode!) {
       hero(episode: $episode) {
         __typename
@@ -15,7 +15,11 @@ struct HeroQuery: GraphQLQuery {
     \(Jedi.source)
     \(Droid.source)
     \(Character.source)
-    """
+    """#
+
+    static let minifiedDocument = #"""
+    query Hero($episode:Episode!){hero(episode:$episode){__typename ...jedi ...droid}}fragment jedi on Jedi{...character lightSaberColor}fragment droid on Droid{...character primaryFunction operator}fragment character on Character{id name}
+    """#
 
     let variables: Variables
 
@@ -63,12 +67,12 @@ struct HeroQuery: GraphQLQuery {
 
 struct Jedi: Decodable, Sendable, Hashable {
 
-    static let source = """
+    static let source = #"""
     fragment jedi on Jedi {
       ...character
       lightSaberColor
     }
-    """
+    """#
 
     var __character: Character
 
@@ -86,13 +90,13 @@ struct Jedi: Decodable, Sendable, Hashable {
 
 struct Droid: Decodable, Sendable, Hashable {
 
-    static let source = """
+    static let source = #"""
     fragment droid on Droid {
       ...character
       primaryFunction
       operator
     }
-    """
+    """#
 
     var __character: Character
 
@@ -114,12 +118,12 @@ struct Droid: Decodable, Sendable, Hashable {
 
 struct Character: Decodable, Sendable, Hashable {
 
-    static let source = """
+    static let source = #"""
     fragment character on Character {
       id
       name
     }
-    """
+    """#
 
     var id: ID
 

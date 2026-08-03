@@ -10,7 +10,7 @@ struct GraphQLHasDefaultWriter {
         return "\(header)\n\n"
     }
 
-    func write() async throws {
+    func write(using fileOutput: FileOutput) async throws {
         try await """
         \(header)\(accessLevel)enum GraphQLHasDefault<T>: Encodable, Hashable where T: Encodable, T: Hashable {
             case useDefault
@@ -28,7 +28,8 @@ struct GraphQLHasDefaultWriter {
             to: configuration.output.api.directory.appending(
                 path: "GraphQLHasDefault.swift",
                 directoryHint: .notDirectory
-            )
+            ),
+            using: fileOutput
         )
     }
 }

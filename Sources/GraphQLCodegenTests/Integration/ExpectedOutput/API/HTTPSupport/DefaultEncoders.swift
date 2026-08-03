@@ -61,7 +61,7 @@ private struct Body: Encodable {
         automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
         minifyDocument: Bool
     ) {
-        let query = minifyDocument ? Body.minify(Operation.document) : Operation.document
+        let query = minifyDocument ? Operation.minifiedDocument : Operation.document
         var extensions = operation.extensions
         if automaticPersistedOperationPhase != nil {
             var _extensions = extensions ?? [:]
@@ -75,12 +75,6 @@ private struct Body: Encodable {
         self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
         self.variables = AnyEncodable(operation.variables)
         self.extensions = extensions
-    }
-
-    private static func minify(_ sourceText: String) -> String {
-        sourceText.components(separatedBy: CharacterSet.whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
     }
 
     private static func hash(_ sourceText: String) -> String {

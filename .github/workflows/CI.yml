@@ -6,15 +6,17 @@ on:
     branches: [ "main" ]
 jobs:
   build-lint-test:
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
     - uses: swift-actions/setup-swift@v2
       with:
-        swift-version: "6.1.0"
+        swift-version: "6.0"
     - uses: actions/checkout@v4
+    - name: Toolchain
+      run: swift --version
     - name: Build
       run: swift build -v
     - name: Lint
-      run: swift package plugin --allow-writing-to-package-directory swiftlint
+      run: brew install swiftlint && swiftlint lint --strict
     - name: Test
       run: swift test -v

@@ -78,6 +78,7 @@ struct TypeCache {
 
 struct SchemaLoader {
     let configuration: Configuration
+    let urlSession: URLSession
 
     func load() async throws -> Schema {
         let (jsonString, typedSchema) = try await loadIntrospection()
@@ -94,11 +95,13 @@ struct SchemaLoader {
         switch configuration.input.schemaSource {
         case .introspectionEndpoint(
             let endpoint,
+            let headers,
             let includeDeprecatedFields,
             let includeDeprecatedEnumValues
         ):
             try await loadSchemaFromIntrospectionEndpoint(
                 endpoint: endpoint,
+                headers: headers,
                 includeDeprecatedFields: includeDeprecatedFields,
                 includeDeprecatedEnumValues: includeDeprecatedEnumValues
             )
@@ -119,14 +122,16 @@ struct SchemaLoader {
 
     private func loadSchemaFromIntrospectionEndpoint(
         endpoint: URL,
+        headers: [String: String],
         includeDeprecatedFields: Bool = false,
         includeDeprecatedEnumValues: Bool = false
     ) async throws -> (String?, __Schema) {
         let data = try await IntrospectionRunner(
             endpoint: endpoint,
+            headers: headers,
             includeDeprecatedFields: includeDeprecatedFields,
             includeDeprecatedEnumValues: includeDeprecatedEnumValues,
-            urlSession: .shared
+            urlSession: urlSession
         ).run()
         let __schema = try JSONDecoder().decode(IntrospectionResponse.self, from: data).data.__schema
         var schemaString: String?
@@ -158,10 +163,8 @@ struct SchemaLoader {
             includeDeprecatedFields: includeDeprecatedFields,
             includeDeprecatedEnumValues: includeDeprecatedEnumValues
         ).query
-        let jsonSchemaString = GraphQLJS.convertSDLSchema(
-            sdlSchemaString,
-            introspectionQuery: introspectionQuery
-        )
+        let jsonSchemaString = GraphQLJS(sourceText: sdlSchemaString)
+            .convertedSDLSchema(introspectionQuery: introspectionQuery)
         if jsonSchemaString == "undefined" {
             throw Codegen.Error(description: "Failed to parse schema SDL")
         }

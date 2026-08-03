@@ -28,8 +28,8 @@ struct DefaultEncodersWriter {
         )
     }
 
-    func write() async throws {
-        try await content().write(to: url)
+    func write(using fileOutput: FileOutput) async throws {
+        try await content().write(to: url, using: fileOutput)
     }
 
     private func content() -> String {
@@ -112,7 +112,7 @@ struct DefaultEncodersWriter {
                 automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
                 minifyDocument: Bool
             ) {
-                let query = minifyDocument ? Body.minify(Operation.document) : Operation.document
+                let query = minifyDocument ? Operation.minifiedDocument : Operation.document
                 var extensions = operation.extensions
                 if automaticPersistedOperationPhase != nil {
                     var _extensions = extensions ?? [:]
@@ -126,12 +126,6 @@ struct DefaultEncodersWriter {
                 self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
                 self.variables = AnyEncodable(operation.variables)
                 self.extensions = extensions
-            }
-
-            private static func minify(_ sourceText: String) -> String {
-                sourceText.components(separatedBy: CharacterSet.whitespacesAndNewlines)
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
             }
 
             private static func hash(_ sourceText: String) -> String {
@@ -262,16 +256,11 @@ struct DefaultEncodersWriter {
                 minifyDocument: Bool
             ) {
                 self.operationName = Operation.operationName
-                self.query = minifyDocument ? Body.minify(Operation.document) : Operation.document
+                self.query = minifyDocument ? Operation.minifiedDocument : Operation.document
                 self.variables = AnyEncodable(operation.variables)
                 self.extensions = operation.extensions
             }
 
-            private static func minify(_ sourceText: String) -> String {
-                sourceText.components(separatedBy: CharacterSet.whitespacesAndNewlines)
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
-            }
         }
         """
     }
@@ -313,7 +302,7 @@ struct DefaultEncodersWriter {
                 automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
                 minifyDocument: Bool
             ) {
-                let query = minifyDocument ? Body.minify(Operation.document) : Operation.document
+                let query = minifyDocument ? Operation.minifiedDocument : Operation.document
                 var extensions = operation.extensions
                 if automaticPersistedOperationPhase != nil {
                     var _extensions = extensions ?? [:]
@@ -327,12 +316,6 @@ struct DefaultEncodersWriter {
                 self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
                 self.variables = AnyEncodable(operation.variables)
                 self.extensions = extensions
-            }
-
-            private static func minify(_ sourceText: String) -> String {
-                sourceText.components(separatedBy: CharacterSet.whitespacesAndNewlines)
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
             }
 
             private static func hash(_ sourceText: String) -> String {
@@ -420,16 +403,11 @@ struct DefaultEncodersWriter {
                 minifyDocument: Bool
             ) {
                 self.operationName = Operation.operationName
-                self.query = minifyDocument ? Body.minify(Operation.document) : Operation.document
+                self.query = minifyDocument ? Operation.minifiedDocument : Operation.document
                 self.variables = AnyEncodable(operation.variables)
                 self.extensions = operation.extensions
             }
 
-            private static func minify(_ sourceText: String) -> String {
-                sourceText.components(separatedBy: CharacterSet.whitespacesAndNewlines)
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
-            }
         }
         """
     }

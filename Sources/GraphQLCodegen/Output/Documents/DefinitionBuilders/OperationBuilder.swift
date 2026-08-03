@@ -118,7 +118,25 @@ struct OperationBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "document",
-                value: .assigned("\"\"\"\n\(expandedSourceText)\n\"\"\"", type: nil)
+                value: .assigned(SwiftSource(value: expandedSourceText).multilineStringLiteral, type: nil)
+            )
+            let resolvedSourceText = try OperationTextResolver(
+                operation: operation,
+                fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment)
+            ).expandSourceText(mapFragmentSpread: \.sourceText)
+            operationStruct.addProperty(
+                description: nil,
+                deprecation: nil,
+                isPublic: isPublic,
+                isStatic: true,
+                immutable: true,
+                name: "minifiedDocument",
+                value: .assigned(
+                    SwiftSource(
+                        value: GraphQLJS(sourceText: resolvedSourceText).canonicalized()
+                    ).multilineStringLiteral,
+                    type: nil
+                )
             )
         }
     }
@@ -185,13 +203,13 @@ struct OperationBuilder {
                                 switch variableDefinition.type.typeName {
                                 case .optional:
                                     if let defaultValue = variableDefinition.defaultValue {
-                                        ".value(.useDefault) /* \(defaultValue.description) */"
+                                        ".value(.useDefault) \(SwiftSource(value: defaultValue.description).blockComment)"
                                     } else {
                                         "nil"
                                     }
                                 case .list, .name:
                                     if let defaultValue = variableDefinition.defaultValue {
-                                        ".useDefault /* \(defaultValue.description) */"
+                                        ".useDefault \(SwiftSource(value: defaultValue.description).blockComment)"
                                     } else {
                                         nil
                                     }

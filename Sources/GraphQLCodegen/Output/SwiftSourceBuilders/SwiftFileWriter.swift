@@ -5,7 +5,7 @@ struct SwiftFileWriter {
     private var imports: [String] = []
     private var types: [SwiftTypeBuildable] = []
 
-    func write(to file: URL, configuration: Configuration) async throws {
+    func write(to file: URL, configuration: Configuration, using fileOutput: FileOutput) async throws {
         var lines: [String] = []
         if let header {
             lines.append(header)
@@ -16,7 +16,7 @@ struct SwiftFileWriter {
             lines.append(contentsOf: type.build(configuration: configuration))
             lines.append("")
         }
-        try await FileOutput.default.write(lines, to: file)
+        try await fileOutput.write(lines, to: file)
     }
 
     mutating func setHeader(_ header: String?) {

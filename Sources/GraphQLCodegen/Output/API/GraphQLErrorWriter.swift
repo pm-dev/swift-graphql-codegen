@@ -10,7 +10,7 @@ struct GraphQLErrorWriter {
         return "\(header)\n\n"
     }
 
-    func write() async throws {
+    func write(using fileOutput: FileOutput) async throws {
         try await """
         \(header)/// https://spec.graphql.org/October2021/#sec-Errors
         \(accessLevel)struct GraphQLError: Decodable, Sendable {
@@ -50,7 +50,8 @@ struct GraphQLErrorWriter {
             to: configuration.output.api.directory.appending(
                 path: "GraphQLError.swift",
                 directoryHint: .notDirectory
-            )
+            ),
+            using: fileOutput
         )
     }
 }

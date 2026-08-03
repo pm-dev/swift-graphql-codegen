@@ -28,8 +28,8 @@ struct GraphQLRequestWriter {
         )
     }
 
-    func write() async throws {
-        try await content().write(to: url)
+    func write(using fileOutput: FileOutput) async throws {
+        try await content().write(to: url, using: fileOutput)
     }
 
     private func content() -> String {

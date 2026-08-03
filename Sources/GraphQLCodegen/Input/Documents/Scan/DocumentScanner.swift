@@ -8,12 +8,17 @@ struct DocumentScanner {
     let directories: [URL]
 
     func scan() throws -> DocumentScan {
-        try directories
+        let scan = try directories
+            .sorted { $0.path < $1.path }
             .map(scanDirectory)
             .reduce(into: DocumentScan()) { result, scan in
                 result.documentFileURLs.append(contentsOf: scan.documentFileURLs)
                 result.generatedFileURLs.append(contentsOf: scan.generatedFileURLs)
             }
+        return DocumentScan(
+            documentFileURLs: scan.documentFileURLs.sorted { $0.path < $1.path },
+            generatedFileURLs: scan.generatedFileURLs.sorted { $0.path < $1.path }
+        )
     }
 
     private func scanDirectory(_ directory: URL) throws -> DocumentScan {

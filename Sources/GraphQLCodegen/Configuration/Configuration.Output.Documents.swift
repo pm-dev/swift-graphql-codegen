@@ -8,7 +8,7 @@ extension Configuration.Output {
         /// Places generated swift documents in an explicity directory
         case directory(URL)
     }
-    
+
     /// Options controlling generated code for your GraphQL documents. Each `.graphql` document
     /// will have a corresponding `.graphql.swift` file generated. Document files may contain any
     /// number of operation definitions and/or fragment definitions.

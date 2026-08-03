@@ -8,6 +8,7 @@ extension Configuration.Input {
         /// - Parameters:
         ///   - url: The URL of the GraphQL endpoint. Make sure the GraphQL endpoint has introspection enabled.
         ///   Refer to the spec for more info on introspection.
+        ///   - headers: Additional HTTP headers, such as authorization, to send to this endpoint.
         ///   - includeDeprecatedFields: Pass `true` if the GraphQL schema should include fields that have been
         ///   deprecated by the server. When deprecated fields are included, your GraphQL operations may query against these fields,
         ///   but they will be annotated with a Swift warning. Pass `false` to exclude deprecated fields. When deprecated fields are excluded
@@ -18,6 +19,7 @@ extension Configuration.Input {
         ///   values are excluded, your code will not be able to reference those values.
         case introspectionEndpoint(
             url: URL,
+            headers: [String: String] = [:],
             includeDeprecatedFields: Bool = true,
             includeDeprecatedEnumValues: Bool = true
         )

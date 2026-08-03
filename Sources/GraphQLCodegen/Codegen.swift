@@ -6,55 +6,71 @@ public struct Codegen: Sendable {
     }
 
     private let configuration: Configuration
+    private let urlSession: URLSession
 
-    public init(_ configuration: Configuration) {
+    public init(_ configuration: Configuration, urlSession: URLSession = .shared) {
         self.configuration = configuration
+        self.urlSession = urlSession
     }
 
     public func run() async throws {
         // Input
         let start = Date()
-        let schema = try await SchemaLoader(configuration: configuration).load()
+        let schema = try await SchemaLoader(configuration: configuration, urlSession: urlSession).load()
         let documents = try DocumentsLoader(configuration: configuration).load()
 
         // Validation
         if configuration.validation {
-            try await DocumentsValidator(
+            try DocumentsValidator(
                 schema: schema,
                 documents: documents
             ).validate()
         }
 
         // Resolution
-        let resolvedDocuments = try await DocumentsResolver(
+        let resolvedDocuments = try DocumentsResolver(
             schema: schema,
             documents: documents
         ).resolve()
 
         // Output
-        try await DocumentsWriter(
-            configuration: configuration,
-            resolvedDocuments: resolvedDocuments
-        ).write()
-        try await SchemaWriter(
-            configuration: configuration,
-            schema: schema,
-            resolvedDocuments: resolvedDocuments
-        ).write()
-        try await APIWriter(
-            configuration: configuration,
-            hasMutation: resolvedDocuments.hasMutation,
-            hasSubscription: resolvedDocuments.hasSubscription
-        ).write()
-        switch configuration.output.documents.operations.persistedOperations {
-        case .registered(let manifestURL):
-            try await PersistedOperationManifestWriter(
-                manifestURL: manifestURL,
-                documents: documents
-            ).write()
-        case .automatic, .none: break
+        let fileOutput = FileOutput()
+        do {
+            try await DocumentsWriter(
+                configuration: configuration,
+                resolvedDocuments: resolvedDocuments
+            ).write(using: fileOutput)
+            try await SchemaWriter(
+                configuration: configuration,
+                schema: schema,
+                resolvedDocuments: resolvedDocuments
+            ).write(using: fileOutput)
+            try await APIWriter(
+                configuration: configuration,
+                hasMutation: resolvedDocuments.hasMutation,
+                hasSubscription: resolvedDocuments.hasSubscription
+            ).write(using: fileOutput)
+            switch configuration.output.documents.operations.persistedOperations {
+            case .registered(let manifestURL):
+                try await PersistedOperationManifestWriter(
+                    manifestURL: manifestURL,
+                    documents: documents
+                ).write(using: fileOutput)
+            case .automatic, .none: break
+            }
+        } catch {
+            let generationError = error
+            do {
+                try await fileOutput.discard()
+            } catch {
+                throw Codegen.Error(description: """
+                Failed to generate output: \(generationError)
+                Failed to discard staged output: \(error)
+                """)
+            }
+            throw generationError
         }
-        try await FileOutput.default.execute()
-        print("Codgen completed in \((Date().timeIntervalSince(start) * 1000).rounded() / 1000) seconds")
+        try await fileOutput.execute()
+        print("Codegen completed in \((Date().timeIntervalSince(start) * 1000).rounded() / 1000) seconds")
     }
 }
