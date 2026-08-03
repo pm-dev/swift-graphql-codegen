@@ -81,7 +81,7 @@ struct DocumentsLoader {
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
-                    let resolvedText = GraphQLJS(
+                    let resolvedText = try GraphQLJS(
                         sourceText: try OperationTextResolver(
                             operation: operation,
                             fragmentLookup: fragmentLookup

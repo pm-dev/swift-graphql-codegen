@@ -1,4 +1,4 @@
-@preconcurrency import JavaScriptCore
+import Foundation
 
 struct DocumentValidator {
     struct Error: Decodable {
@@ -26,12 +26,9 @@ struct DocumentValidator {
     let schemaJSONString: String
 
     func validate() throws -> [Error] {
-        let errorsJSONString = GraphQLJS(sourceText: documentText).validated(schemaJSONString: schemaJSONString)
-        if errorsJSONString == "[]" {
-            return []
-        } else if errorsJSONString.hasPrefix("{") {
-            return [try JSONDecoder().decode(Error.self, from: Data(errorsJSONString.utf8))]
-        }
-        return try JSONDecoder().decode([Error].self, from: Data(errorsJSONString.utf8))
+        let errorsJSON = try GraphQLJS(sourceText: documentText).validated(
+            schemaJSONString: schemaJSONString
+        )
+        return try JSONDecoder().decode([Error].self, from: errorsJSON)
     }
 }
