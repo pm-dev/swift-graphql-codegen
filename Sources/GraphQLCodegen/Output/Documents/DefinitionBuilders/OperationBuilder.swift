@@ -35,7 +35,7 @@ struct OperationBuilder {
     mutating func buildable() throws -> SwiftTypeBuildable {
         try startOperationStruct()
         addOperationNameProperty()
-        try addDocumentProperty()
+        addDocumentProperty()
         addHashProperty()
         addVariablesProperty()
         addExtensionsProperty()
@@ -103,15 +103,10 @@ struct OperationBuilder {
         )
     }
 
-    private mutating func addDocumentProperty() throws {
+    private mutating func addDocumentProperty() {
         switch configuration.output.documents.operations.persistedOperations {
         case .registered: break
         case .automatic, .none:
-            let expandedSourceText = try OperationTextResolver(
-                fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment),
-                operationAST: operation.ast,
-                operationSourceText: operation.sourceText
-            ).expandSourceText { $0.sourceText }
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
@@ -119,7 +114,7 @@ struct OperationBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "document",
-                value: .assigned(SwiftSource(value: expandedSourceText).multilineStringLiteral, type: nil)
+                value: .assigned(SwiftSource(value: operation.documentText).multilineStringLiteral, type: nil)
             )
             operationStruct.addProperty(
                 description: nil,
@@ -139,7 +134,27 @@ struct OperationBuilder {
     }
 
     private mutating func addHashProperty() {
-        if case .registered = configuration.output.documents.operations.persistedOperations {
+        switch configuration.output.documents.operations.persistedOperations {
+        case .automatic:
+            operationStruct.addProperty(
+                description: nil,
+                deprecation: nil,
+                isPublic: isPublic,
+                isStatic: true,
+                immutable: true,
+                name: "documentHash",
+                value: .assigned("\"\(operation.documentHash)\"", type: nil)
+            )
+            operationStruct.addProperty(
+                description: nil,
+                deprecation: nil,
+                isPublic: isPublic,
+                isStatic: true,
+                immutable: true,
+                name: "minifiedDocumentHash",
+                value: .assigned("\"\(operation.canonicalHash)\"", type: nil)
+            )
+        case .registered:
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
@@ -147,8 +162,9 @@ struct OperationBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "hash",
-                value: .assigned("\"\(operation.hash)\"", type: nil)
+                value: .assigned("\"\(operation.canonicalHash)\"", type: nil)
             )
+        case .none: break
         }
     }
 

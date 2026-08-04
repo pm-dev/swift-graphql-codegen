@@ -35,23 +35,22 @@ struct DefaultEncodersWriter {
     private func content() -> String {
         if enableGETQueries {
             switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: GETWithAutomaticPersistedOperations()
-            case .registered: GETWithRegisteredPersistedOperations()
-            case .none: GETWithNoPersistedOperations()
+            case .automatic: getWithAutomaticPersistedOperations()
+            case .registered: getWithRegisteredPersistedOperations()
+            case .none: getWithNoPersistedOperations()
             }
         } else {
             switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: POSTWithAutomaticPersistedOperations()
-            case .registered: POSTWithRegisteredPersistedOperations()
-            case .none: POSTWithNoPersistedOperations()
+            case .automatic: postWithAutomaticPersistedOperations()
+            case .registered: postWithRegisteredPersistedOperations()
+            case .none: postWithNoPersistedOperations()
             }
         }
     }
 
-    private func GETWithAutomaticPersistedOperations() -> String {
+    private func getWithAutomaticPersistedOperations() -> String {
         """
-        \(header)import CryptoKit
-        import Foundation
+        \(header)import Foundation
 
         /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
         /// using the spec described at:
@@ -74,7 +73,7 @@ struct DefaultEncodersWriter {
                     URLQueryItem(name: "query", value: body.query),
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(data: try encoder.encode(extensions), encoding: .utf8)!
+                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
                 ]
             }\(subscriptionSupportWithAutomaticPersistedOperations())
@@ -115,37 +114,25 @@ struct DefaultEncodersWriter {
                 let query = minifyDocument ? Operation.minifiedDocument : Operation.document
                 var extensions = operation.extensions
                 if automaticPersistedOperationPhase != nil {
-                    var _extensions = extensions ?? [:]
-                    _extensions["persistedQuery"] = AnyEncodable([
+                    var persistedExtensions = extensions ?? [:]
+                    persistedExtensions["persistedQuery"] = AnyEncodable([
                         "version": AnyEncodable(1),
-                        "sha256Hash": AnyEncodable(Body.hash(query))
+                        "sha256Hash": AnyEncodable(
+                            minifyDocument ? Operation.minifiedDocumentHash : Operation.documentHash
+                        )
                     ])
-                    extensions = _extensions
+                    extensions = persistedExtensions
                 }
                 self.operationName = Operation.operationName
                 self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
                 self.variables = AnyEncodable(operation.variables)
                 self.extensions = extensions
             }
-
-            private static func hash(_ sourceText: String) -> String {
-                let digits = Array("0123456789abcdef".utf8)
-                let capacity = 2 * SHA256.Digest.byteCount
-                return String(unsafeUninitializedCapacity: capacity) { ptr -> Int in
-                    var p = ptr.baseAddress!
-                    for byte in SHA256.hash(data: Data(sourceText.utf8)) {
-                        p[0] = digits[Int(byte >> 4)]
-                        p[1] = digits[Int(byte & 0x0f)]
-                        p += 2
-                    }
-                    return capacity
-                }
-            }
         }
         """
     }
 
-    private func GETWithRegisteredPersistedOperations() -> String {
+    private func getWithRegisteredPersistedOperations() -> String {
         """
         \(header)import Foundation
 
@@ -161,7 +148,7 @@ struct DefaultEncodersWriter {
                     URLQueryItem(name: "operationName", value: body.operationName),
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(data: try encoder.encode(extensions), encoding: .utf8)!
+                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
                 ]
             }\(subscriptionSupportWithRegisteredPersistedOperations())
@@ -197,7 +184,7 @@ struct DefaultEncodersWriter {
         """
     }
 
-    private func GETWithNoPersistedOperations() -> String {
+    private func getWithNoPersistedOperations() -> String {
         """
         \(header)import Foundation
 
@@ -220,7 +207,7 @@ struct DefaultEncodersWriter {
                     URLQueryItem(name: "query", value: body.query),
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(data: try encoder.encode(extensions), encoding: .utf8)!
+                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
                 ]
             }\(subscriptionSupportWithNoPersistedOperations())
@@ -265,10 +252,9 @@ struct DefaultEncodersWriter {
         """
     }
 
-    private func POSTWithAutomaticPersistedOperations() -> String {
+    private func postWithAutomaticPersistedOperations() -> String {
         """
-        \(header)import CryptoKit
-        import Foundation
+        \(header)import Foundation
 
         /// A HTTPBodyEncoder that encodes an operation into json formatted data
         /// as specified by the spec:
@@ -305,37 +291,25 @@ struct DefaultEncodersWriter {
                 let query = minifyDocument ? Operation.minifiedDocument : Operation.document
                 var extensions = operation.extensions
                 if automaticPersistedOperationPhase != nil {
-                    var _extensions = extensions ?? [:]
-                    _extensions["persistedQuery"] = AnyEncodable([
+                    var persistedExtensions = extensions ?? [:]
+                    persistedExtensions["persistedQuery"] = AnyEncodable([
                         "version": AnyEncodable(1),
-                        "sha256Hash": AnyEncodable(Body.hash(query))
+                        "sha256Hash": AnyEncodable(
+                            minifyDocument ? Operation.minifiedDocumentHash : Operation.documentHash
+                        )
                     ])
-                    extensions = _extensions
+                    extensions = persistedExtensions
                 }
                 self.operationName = Operation.operationName
                 self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
                 self.variables = AnyEncodable(operation.variables)
                 self.extensions = extensions
             }
-
-            private static func hash(_ sourceText: String) -> String {
-                let digits = Array("0123456789abcdef".utf8)
-                let capacity = 2 * SHA256.Digest.byteCount
-                return String(unsafeUninitializedCapacity: capacity) { ptr -> Int in
-                    var p = ptr.baseAddress!
-                    for byte in SHA256.hash(data: Data(sourceText.utf8)) {
-                        p[0] = digits[Int(byte >> 4)]
-                        p[1] = digits[Int(byte & 0x0f)]
-                        p += 2
-                    }
-                    return capacity
-                }
-            }
         }
         """
     }
 
-    private func POSTWithRegisteredPersistedOperations() -> String {
+    private func postWithRegisteredPersistedOperations() -> String {
         """
         \(header)import Foundation
 
@@ -369,7 +343,7 @@ struct DefaultEncodersWriter {
         """
     }
 
-    private func POSTWithNoPersistedOperations() -> String {
+    private func postWithNoPersistedOperations() -> String {
         """
         \(header)import Foundation
 
@@ -433,7 +407,7 @@ struct DefaultEncodersWriter {
                     URLQueryItem(name: "query", value: body.query),
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(data: try encoder.encode(extensions), encoding: .utf8)!
+                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
                 ]
             }
@@ -452,7 +426,7 @@ struct DefaultEncodersWriter {
                     URLQueryItem(name: "operationName", value: body.operationName),
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(data: try encoder.encode(extensions), encoding: .utf8)!
+                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
                 ]
             }
@@ -478,7 +452,7 @@ struct DefaultEncodersWriter {
                     URLQueryItem(name: "query", value: body.query),
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(data: try encoder.encode(extensions), encoding: .utf8)!
+                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
                 ]
             }

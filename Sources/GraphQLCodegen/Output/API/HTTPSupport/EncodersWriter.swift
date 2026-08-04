@@ -35,20 +35,20 @@ struct EncodersWriter {
     private func content() -> String {
         if enableGETQueries {
             switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: GETWithAutomaticPersistedOperations()
-            case .registered: GETWithRegisteredPersistedOperations()
-            case .none: GETWithNoPersistedOperations()
+            case .automatic: getWithAutomaticPersistedOperations()
+            case .registered: getWithRegisteredPersistedOperations()
+            case .none: getWithNoPersistedOperations()
             }
         } else {
             switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: POSTWithAutomaticPersistedOperations()
-            case .registered: POSTWithRegisteredPersistedOperations()
-            case .none: POSTWithNoPersistedOperations()
+            case .automatic: postWithAutomaticPersistedOperations()
+            case .registered: postWithRegisteredPersistedOperations()
+            case .none: postWithNoPersistedOperations()
             }
         }
     }
 
-    private func GETWithAutomaticPersistedOperations() -> String {
+    private func getWithAutomaticPersistedOperations() -> String {
         """
         \(header)import Foundation
 
@@ -72,11 +72,11 @@ struct EncodersWriter {
             ) throws -> [URLQueryItem]\(subscriptionSupportWithAutomaticPersistedOperations())
         }
 
-        \(HTTPBodyEncoderWithAutomaticPersistedOperations())
+        \(httpBodyEncoderWithAutomaticPersistedOperations())
         """
     }
 
-    private func GETWithRegisteredPersistedOperations() -> String {
+    private func getWithRegisteredPersistedOperations() -> String {
         """
         \(header)import Foundation
 
@@ -91,11 +91,11 @@ struct EncodersWriter {
             func encode<Query: GraphQLQuery>(query: Query) throws -> [URLQueryItem]\(subscriptionSupportWithRegisteredPersistedOperations())
         }
 
-        \(HTTPBodyEncoderWithRegisteredPersistedOperations())
+        \(httpBodyEncoderWithRegisteredPersistedOperations())
         """
     }
 
-    private func GETWithNoPersistedOperations() -> String {
+    private func getWithNoPersistedOperations() -> String {
         """
         \(header)import Foundation
 
@@ -114,35 +114,35 @@ struct EncodersWriter {
             ) throws -> [URLQueryItem]\(subscriptionSupportWithNoPersistedOperations())
         }
 
-        \(HTTPBodyEncoderWithNoPersistedOperations())
+        \(httpBodyEncoderWithNoPersistedOperations())
         """
     }
 
-    private func POSTWithAutomaticPersistedOperations() -> String {
+    private func postWithAutomaticPersistedOperations() -> String {
         """
         \(header)import Foundation
 
-        \(HTTPBodyEncoderWithAutomaticPersistedOperations())
+        \(httpBodyEncoderWithAutomaticPersistedOperations())
         """
     }
 
-    private func POSTWithRegisteredPersistedOperations() -> String {
+    private func postWithRegisteredPersistedOperations() -> String {
         """
         \(header)import Foundation
 
-        \(HTTPBodyEncoderWithRegisteredPersistedOperations())
+        \(httpBodyEncoderWithRegisteredPersistedOperations())
         """
     }
 
-    private func POSTWithNoPersistedOperations() -> String {
+    private func postWithNoPersistedOperations() -> String {
         """
         \(header)import Foundation
 
-        \(HTTPBodyEncoderWithNoPersistedOperations())
+        \(httpBodyEncoderWithNoPersistedOperations())
         """
     }
 
-    private func HTTPBodyEncoderWithAutomaticPersistedOperations() -> String {
+    private func httpBodyEncoderWithAutomaticPersistedOperations() -> String {
         """
         /// A `HTTPBodyEncoder` converts a GraphQL operation into the data to be set as the HTTP body
         /// of a POST request.
@@ -180,7 +180,7 @@ struct EncodersWriter {
         """
     }
 
-    private func HTTPBodyEncoderWithRegisteredPersistedOperations() -> String {
+    private func httpBodyEncoderWithRegisteredPersistedOperations() -> String {
         """
         /// A `HTTPBodyEncoder` converts a GraphQL operation into the data to be set as the HTTP body
         /// of a POST request.
@@ -198,7 +198,7 @@ struct EncodersWriter {
         """
     }
 
-    private func HTTPBodyEncoderWithNoPersistedOperations() -> String {
+    private func httpBodyEncoderWithNoPersistedOperations() -> String {
         """
         /// A `HTTPBodyEncoder` converts a GraphQL operation into the data to be set as the HTTP body
         /// of a POST request.

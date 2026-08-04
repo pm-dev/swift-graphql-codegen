@@ -111,8 +111,9 @@ struct DocumentsLoader {
                             Document.Operation(
                                 ast: operationAST,
                                 canonicalText: canonicalText,
-                                hash: hash(canonicalText),
-                                sourceText: operationSourceText
+                                canonicalHash: hash(canonicalText),
+                                documentText: expandedText,
+                                documentHash: hash(expandedText),
                             )
                         )
                     )

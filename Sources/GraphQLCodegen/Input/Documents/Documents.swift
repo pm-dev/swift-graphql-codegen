@@ -26,8 +26,9 @@ struct Document: Sendable {
     struct Operation: Sendable {
         let ast: AST.OperationDefinition
         let canonicalText: String
-        let hash: String
-        let sourceText: Substring
+        let canonicalHash: String
+        let documentText: String
+        let documentHash: String
     }
 
     struct Fragment {
