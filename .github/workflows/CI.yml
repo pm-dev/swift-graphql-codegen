@@ -1,22 +1,45 @@
 name: CI
+
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build-lint-test:
     runs-on: macos-latest
+    timeout-minutes: 30
+
     steps:
-    - uses: swift-actions/setup-swift@v3
-      with:
-        swift-version: "6.3"
-    - uses: actions/checkout@v4
-    - name: Toolchain
-      run: swift --version
-    - name: Build
-      run: swift build -v
-    - name: Lint
-      run: brew install swiftlint && swiftlint lint --strict
-    - name: Test
-      run: swift test -v
+      - uses: actions/checkout@v4
+
+      - uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: "6.3"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-swift-6.3-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-6.3-
+
+      - name: Build
+        run: swift build --build-tests -v
+
+      - name: Lint
+        run: |
+          brew install swiftlint
+          swiftlint lint --strict
+
+      - name: Test
+        run: swift test --skip-build -v
