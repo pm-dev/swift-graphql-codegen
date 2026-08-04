@@ -62,7 +62,13 @@ struct DocumentsLoader {
                     )
                 }
             }
-            documents.append(Document(url: documentURL, definitions: definitions))
+            documents.append(
+                Document(
+                    url: documentURL,
+                    definitions: definitions,
+                    relativePath: try relativePath(for: documentURL)
+                )
+            )
         }
         return Documents(
             previouslyGenerated: scan.generatedFileURLs,
@@ -101,9 +107,27 @@ struct DocumentsLoader {
                     updatedDefinitions.append(definition)
                 }
             }
-            updatedDocuments.append(Document(url: document.url, definitions: updatedDefinitions))
+            updatedDocuments.append(
+                Document(
+                    url: document.url,
+                    definitions: updatedDefinitions,
+                    relativePath: document.relativePath
+                )
+            )
         }
         return updatedDocuments
+    }
+
+    private func relativePath(for documentURL: URL) throws -> String {
+        let documentComponents = documentURL.standardizedFileURL.pathComponents
+        let sourceRoot = configuration.input.documentDirectories
+            .map(\.standardizedFileURL.pathComponents)
+            .filter { documentComponents.starts(with: $0) }
+            .max { $0.count < $1.count }
+        guard let sourceRoot else {
+            throw Codegen.Error(description: "Document is outside the configured input directories: \(documentURL)")
+        }
+        return documentComponents.dropFirst(sourceRoot.count).joined(separator: "/")
     }
 
     private func hash(_ sourceText: String) -> String {

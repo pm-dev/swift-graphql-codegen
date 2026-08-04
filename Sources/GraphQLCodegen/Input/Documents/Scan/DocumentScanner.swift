@@ -16,8 +16,8 @@ struct DocumentScanner {
                 result.generatedFileURLs.append(contentsOf: scan.generatedFileURLs)
             }
         return DocumentScan(
-            documentFileURLs: scan.documentFileURLs.sorted { $0.path < $1.path },
-            generatedFileURLs: scan.generatedFileURLs.sorted { $0.path < $1.path }
+            documentFileURLs: Set(scan.documentFileURLs).sorted { $0.path < $1.path },
+            generatedFileURLs: Set(scan.generatedFileURLs).sorted { $0.path < $1.path }
         )
     }
 

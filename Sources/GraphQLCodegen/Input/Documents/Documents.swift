@@ -38,15 +38,15 @@ struct Document: Sendable {
 
     let url: URL
     let definitions: [Definition]
+    let relativePath: String
 
     func outputURL(_ configuration: Configuration) -> URL {
-        let outputURL = url.appendingPathExtension("swift")
-        return switch configuration.output.documents.directory {
+        switch configuration.output.documents.directory {
         case .definition:
-            outputURL
+            url.appendingPathExtension("swift")
         case .directory(let outputDirectory):
             outputDirectory.appending(
-                path: outputURL.lastPathComponent,
+                path: relativePath + ".swift",
                 directoryHint: .notDirectory
             )
         }
