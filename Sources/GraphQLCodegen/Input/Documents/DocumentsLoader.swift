@@ -30,7 +30,7 @@ struct DocumentsLoader {
                         .operation(
                             Document.Operation(
                                 ast: operation,
-                                sourceText: documentText[operation.loc.range],
+                                sourceText: try documentText.substring(utf16Range: operation.loc.range),
                                 resolvedText: nil,
                                 hash: nil
                             )
@@ -58,7 +58,7 @@ struct DocumentsLoader {
                     fragmentLookup[fragment.name.value] = Document.Fragment(
                         file: documentURL,
                         ast: fragment,
-                        sourceText: documentText[fragment.loc.range]
+                        sourceText: try documentText.substring(utf16Range: fragment.loc.range)
                     )
                 }
             }
