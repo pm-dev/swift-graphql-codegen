@@ -277,11 +277,22 @@ actor FileOutput {
     }
 
     private func minimalRemovalRoots() -> [URL] {
-        urlsToRemove
-            .filter { candidate in
-                !urlsToRemove.contains { other in other != candidate && contains(other, candidate) }
+        let candidates = urlsToRemove
+            .map { url in
+                (url: url, components: url.standardizedFileURL.pathComponents)
             }
-            .sorted(by: pathOrder)
+            .sorted { lhs, rhs in
+                lhs.components.lexicographicallyPrecedes(rhs.components)
+            }
+        var roots: [(url: URL, components: [String])] = []
+        for candidate in candidates {
+            if let currentRoot = roots.last,
+               candidate.components.starts(with: currentRoot.components) {
+                continue
+            }
+            roots.append(candidate)
+        }
+        return roots.map(\.url).sorted(by: pathOrder)
     }
 
     private func contains(_ parent: URL, _ child: URL) -> Bool {
