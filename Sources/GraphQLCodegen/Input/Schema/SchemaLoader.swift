@@ -23,6 +23,19 @@ struct TypeASTCache {
             }
         }
     }
+
+    func inheritedInterfaces(_ directInterfaces: [__Schema.__TypeRef.Interface]) -> Set<String> {
+        var inherited: Set<String> = []
+        var remaining = directInterfaces.map(\.name)
+        while let name = remaining.popLast() {
+            guard inherited.insert(name).inserted,
+                  let interface = interfaces[name] else {
+                continue
+            }
+            remaining.append(contentsOf: interface.interfaces.map(\.name))
+        }
+        return inherited
+    }
 }
 
 struct TypeCache {
@@ -36,33 +49,17 @@ struct TypeCache {
     init(_ cache: TypeASTCache) {
         scalars = cache.scalars.mapValues { Schema.Scalar(ast: $0) }
         for (name, ast) in cache.objects {
-            var implements: Set<String> = []
-            var interfaces = ast.interfaces.map(\.name)
-            while let interface = interfaces.popLast() {
-                implements.insert(interface)
-                if let interface = cache.interfaces[interface] {
-                    interfaces.append(contentsOf: interface.interfaces.map(\.name))
-                }
-            }
             objects[name] = Schema.Object(
                 ast: ast,
                 fields: ast.fields.reduce(into: [:]) { fields, field in fields[field.name] = field },
-                implements: implements
+                implements: cache.inheritedInterfaces(ast.interfaces)
             )
         }
         for (name, ast) in cache.interfaces {
-            var implements: Set<String> = []
-            var _interfaces = ast.interfaces.map(\.name)
-            while let interface = _interfaces.popLast() {
-                implements.insert(interface)
-                if let interface = cache.interfaces[interface] {
-                    _interfaces.append(contentsOf: interface.interfaces.map(\.name))
-                }
-            }
             interfaces[name] = Schema.Interface(
                 ast: ast,
                 fields: ast.fields.reduce(into: [:]) { fields, field in fields[field.name] = field },
-                implements: implements
+                implements: cache.inheritedInterfaces(ast.interfaces)
             )
         }
         for (name, ast) in cache.unions {
