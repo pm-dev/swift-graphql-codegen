@@ -163,19 +163,9 @@ struct SchemaLoader {
             includeDeprecatedFields: includeDeprecatedFields,
             includeDeprecatedEnumValues: includeDeprecatedEnumValues
         ).query
-        let jsonSchemaString = GraphQLJS(sourceText: sdlSchemaString)
+        let jsonSchema = try GraphQLJS(sourceText: sdlSchemaString)
             .convertedSDLSchema(introspectionQuery: introspectionQuery)
-        if jsonSchemaString == "undefined" {
-            throw Codegen.Error(description: "Failed to parse schema SDL")
-        }
-        let data = Data(jsonSchemaString.utf8)
-        if let error = try? JSONDecoder().decode(DocumentValidator.Error.self, from: data) {
-            throw Codegen.Error(description: """
-            Failed to parse schema SDL
-            \(error.description)
-            """)
-        }
-        let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: data).__schema
-        return (configuration.validation ? jsonSchemaString : nil, __schema)
+        let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: jsonSchema.data).__schema
+        return (configuration.validation ? jsonSchema.text : nil, __schema)
     }
 }

@@ -133,7 +133,7 @@ struct OperationBuilder {
                 name: "minifiedDocument",
                 value: .assigned(
                     SwiftSource(
-                        value: GraphQLJS(sourceText: resolvedSourceText).canonicalized()
+                        value: try GraphQLJS(sourceText: resolvedSourceText).canonicalized()
                     ).multilineStringLiteral,
                     type: nil
                 )
