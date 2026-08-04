@@ -31,6 +31,10 @@ struct HeroQuery: GraphQLQuery {
     query Hero($episode:Episode!){hero(episode:$episode){__typename ...jedi ...droid}}fragment jedi on Jedi{...character lightSaberColor}fragment droid on Droid{...character primaryFunction operator}fragment character on Character{id name}
     """#
 
+    static let documentHash = "b677ac6b774c2f737e77bbc61b9f12e8337d5eb86231eba2010da1396c50fae5"
+
+    static let minifiedDocumentHash = "4e3cbd0a2b22a963217d4ed95e43cbc301eb0b46c36bfa1fdfd9cecfbda148b5"
+
     let variables: Variables
 
     let extensions: [String: AnyEncodable]?

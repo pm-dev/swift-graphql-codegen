@@ -93,10 +93,8 @@ struct GraphQLRequestWriter {
     private func defaultDecoderDeclaration() -> String {
         """
 
-            /// The decoding function to use by default for decoding the response of a GraphQLRequest.
-            /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
-            /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
+            /// The decoding function used by default for a GraphQL response.
+            \(accessLevel)static var defaultDecoder: @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
                 { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
             }
         """

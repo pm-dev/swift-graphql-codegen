@@ -25,14 +25,15 @@ struct Document: Sendable {
 
     struct Operation: Sendable {
         enum Persistence: Sendable {
-            case standard
+            case automatic(documentHash: String, minifiedDocumentHash: String)
             case registered(hash: String)
+            case standard
         }
 
         let ast: AST.OperationDefinition
         let canonicalText: String
+        let documentText: String
         let persistence: Persistence
-        let sourceText: Substring
     }
 
     struct Fragment {
