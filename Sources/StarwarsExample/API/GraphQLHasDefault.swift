@@ -1,6 +1,6 @@
 // @generated
 
-enum GraphQLHasDefault<T>: Encodable, Hashable where T: Encodable, T: Hashable {
+enum GraphQLHasDefault<T>: Encodable, Hashable where T: Encodable & Hashable & Sendable {
     case useDefault
     case value(T)
 
