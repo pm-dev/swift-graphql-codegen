@@ -5,7 +5,7 @@ struct DocumentsResolver {
     let documents: Documents
 
     func resolve() throws -> ResolvedDocuments {
-        let usedFragments = usedFragments()
+        let usedFragments = try usedFragments()
         let resolvedFragments = try resolveFragments(usedFragments)
         let resolvedDocuments = try resolveDocuments(documents)
         let fulfilledFragments = fulfilledFragments(
@@ -23,7 +23,7 @@ struct DocumentsResolver {
         )
     }
 
-    private func usedFragments() -> [String: Document.Fragment] {
+    private func usedFragments() throws -> [String: Document.Fragment] {
         var selectionSets: [AST.SelectionSet] = []
         for document in documents.documents {
             for definition in document.definitions {
@@ -44,7 +44,7 @@ struct DocumentsResolver {
                 case .fragmentSpread(let fragmentSpread):
                     let fragmentSpreadName = fragmentSpread.name.value
                     if !usedFragments.keys.contains(fragmentSpreadName) {
-                        let fragment = documents.fragmentLookup[fragmentSpreadName]!
+                        let fragment = try documents.fragment(fragmentSpreadName)
                         usedFragments[fragmentSpreadName] = fragment
                         selectionSets.append(fragment.ast.selectionSet)
                     }
