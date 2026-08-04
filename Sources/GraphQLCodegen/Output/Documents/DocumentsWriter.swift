@@ -6,6 +6,7 @@ struct DocumentsWriter {
     let resolvedDocuments: ResolvedDocuments
 
     func write(using fileOutput: FileOutput) async throws {
+        try validateOutputURLs()
         switch configuration.output.documents.directory {
         case .definition: break
         case .directory(let url):
@@ -40,6 +41,24 @@ struct DocumentsWriter {
         let generated = resolvedDocuments.documents.map { $0.document.outputURL(configuration) }
         let removed = Set(resolvedDocuments.previouslyGenerated).subtracting(generated)
         await fileOutput.remove(at: removed)
+    }
+
+    private func validateOutputURLs() throws {
+        var sourceByOutputURL: [URL: URL] = [:]
+        for resolvedDocument in resolvedDocuments.documents {
+            let document = resolvedDocument.document
+            let outputURL = document.outputURL(configuration).standardizedFileURL
+            if let existingSource = sourceByOutputURL[outputURL] {
+                throw Codegen.Error(description: """
+                Multiple GraphQL documents resolve to the same generated output file:
+                Output: \(outputURL)
+                Sources:
+                \(existingSource)
+                \(document.url)
+                """)
+            }
+            sourceByOutputURL[outputURL] = document.url
+        }
     }
 
     private func buildOperation(
