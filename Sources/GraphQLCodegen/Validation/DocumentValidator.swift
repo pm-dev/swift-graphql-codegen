@@ -23,12 +23,11 @@ struct DocumentValidator {
     }
 
     let documentText: String
+    let graphQLJS: GraphQLJS
     let schemaJSONString: String
 
     func validate() throws -> [Error] {
-        let errorsJSON = try GraphQLJS(sourceText: documentText).validated(
-            schemaJSONString: schemaJSONString
-        )
+        let errorsJSON = try graphQLJS.validate(documentText, schemaJSON: schemaJSONString)
         return try JSONDecoder().decode([Error].self, from: errorsJSON)
     }
 }

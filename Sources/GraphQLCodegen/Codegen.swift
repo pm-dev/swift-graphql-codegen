@@ -16,14 +16,23 @@ public struct Codegen: Sendable {
     public func run() async throws {
         // Input
         let start = Date()
-        let schema = try await SchemaLoader(configuration: configuration, urlSession: urlSession).load()
-        let documents = try DocumentsLoader(configuration: configuration).load()
+        let graphQLJS = try GraphQLJS()
+        let schema = try await SchemaLoader(
+            configuration: configuration,
+            graphQLJS: graphQLJS,
+            urlSession: urlSession
+        ).load()
+        let documents = try DocumentsLoader(
+            configuration: configuration,
+            graphQLJS: graphQLJS
+        ).load()
 
         // Validation
         if configuration.validation {
             try DocumentsValidator(
                 schema: schema,
-                documents: documents
+                documents: documents,
+                graphQLJS: graphQLJS
             ).validate()
         }
 

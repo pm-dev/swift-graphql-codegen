@@ -45,12 +45,10 @@ struct GraphQLJS {
         }
     }()
 
-    let sourceText: String
-
     private let context: JSContext
     private let library: JSValue
 
-    init(sourceText: String) throws {
+    init() throws {
         let bundleContents = try Self.bundleContents.get()
         guard let context = JSContext() else {
             throw Error.contextCreationFailed
@@ -67,14 +65,16 @@ struct GraphQLJS {
         }
         self.context = context
         self.library = library
-        self.sourceText = sourceText
     }
 
-    func canonicalized() throws -> String {
+    func canonicalize(_ sourceText: String) throws -> String {
         try stringResult(function: "canonicalizeDocument", arguments: [sourceText])
     }
 
-    func convertedSDLSchema(introspectionQuery: String) throws -> (data: Data, text: String) {
+    func convertSDLSchema(
+        _ sourceText: String,
+        introspectionQuery: String
+    ) throws -> (data: Data, text: String) {
         let text = try stringResult(
             function: "convertSDLSchema",
             arguments: [sourceText, introspectionQuery]
@@ -82,15 +82,15 @@ struct GraphQLJS {
         return (Data(text.utf8), text)
     }
 
-    func parsed() throws -> Data {
+    func parse(_ sourceText: String) throws -> Data {
         Data(try stringResult(function: "parseGraphQL", arguments: [sourceText]).utf8)
     }
 
-    func validated(schemaJSONString: String) throws -> Data {
+    func validate(_ sourceText: String, schemaJSON: String) throws -> Data {
         Data(
             try stringResult(
                 function: "validateDocument",
-                arguments: [sourceText, schemaJSONString]
+                arguments: [sourceText, schemaJSON]
             ).utf8
         )
     }

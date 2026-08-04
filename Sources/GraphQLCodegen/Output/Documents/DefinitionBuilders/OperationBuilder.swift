@@ -108,7 +108,8 @@ struct OperationBuilder {
         case .registered: break
         case .automatic, .none:
             let expandedSourceText = try OperationTextResolver(
-                operation: operation,
+                operation: operation.ast,
+                sourceText: operation.sourceText,
                 fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment)
             ).expandSourceText { fragment in "\\(\(fragment.ast.name.value.capitalizedFirst).source)" }
             operationStruct.addProperty(
@@ -120,10 +121,6 @@ struct OperationBuilder {
                 name: "document",
                 value: .assigned(SwiftSource(value: expandedSourceText).multilineStringLiteral, type: nil)
             )
-            let resolvedSourceText = try OperationTextResolver(
-                operation: operation,
-                fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment)
-            ).expandSourceText(mapFragmentSpread: \.sourceText)
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
@@ -133,7 +130,7 @@ struct OperationBuilder {
                 name: "minifiedDocument",
                 value: .assigned(
                     SwiftSource(
-                        value: try GraphQLJS(sourceText: resolvedSourceText).canonicalized()
+                        value: operation.resolvedText
                     ).multilineStringLiteral,
                     type: nil
                 )
