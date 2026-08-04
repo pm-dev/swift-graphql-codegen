@@ -165,19 +165,7 @@ struct SchemaLoader {
         ).query
         let jsonSchema = try GraphQLJS(sourceText: sdlSchemaString)
             .convertedSDLSchema(introspectionQuery: introspectionQuery)
-        let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: jsonSchema).__schema
-        let schemaString: String?
-        if configuration.validation {
-            guard let value = String(bytes: jsonSchema, encoding: .utf8) else {
-                throw GraphQLJS.Error.unexpectedResult(
-                    function: "convertSDLSchema",
-                    expected: "UTF-8 JSON"
-                )
-            }
-            schemaString = value
-        } else {
-            schemaString = nil
-        }
-        return (schemaString, __schema)
+        let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: jsonSchema.data).__schema
+        return (configuration.validation ? jsonSchema.text : nil, __schema)
     }
 }

@@ -34,25 +34,28 @@ struct GraphQLJS {
         }
     }
 
+    private static let bundleContents: Result<String, Error> = {
+        guard let url = Bundle.module.url(forResource: "graphql.bundle", withExtension: "js") else {
+            return .failure(.bundleResourceMissing)
+        }
+        do {
+            return .success(try String(contentsOf: url, encoding: .utf8))
+        } catch {
+            return .failure(.bundleReadFailed(url, String(describing: error)))
+        }
+    }()
+
     let sourceText: String
 
     private let context: JSContext
     private let library: JSValue
 
     init(sourceText: String) throws {
-        guard let libraryURL = Bundle.module.url(forResource: "graphql.bundle", withExtension: "js") else {
-            throw Error.bundleResourceMissing
-        }
-        let libraryContents: String
-        do {
-            libraryContents = try String(contentsOf: libraryURL, encoding: .utf8)
-        } catch {
-            throw Error.bundleReadFailed(libraryURL, String(describing: error))
-        }
+        let bundleContents = try Self.bundleContents.get()
         guard let context = JSContext() else {
             throw Error.contextCreationFailed
         }
-        context.evaluateScript(libraryContents)
+        context.evaluateScript(bundleContents)
         if let exception = context.exception {
             throw Error.bundleEvaluationFailed(exception.toString() ?? "Unknown JavaScript exception")
         }
@@ -71,13 +74,12 @@ struct GraphQLJS {
         try stringResult(function: "canonicalizeDocument", arguments: [sourceText])
     }
 
-    func convertedSDLSchema(introspectionQuery: String) throws -> Data {
-        Data(
-            try stringResult(
-                function: "convertSDLSchema",
-                arguments: [sourceText, introspectionQuery]
-            ).utf8
+    func convertedSDLSchema(introspectionQuery: String) throws -> (data: Data, text: String) {
+        let text = try stringResult(
+            function: "convertSDLSchema",
+            arguments: [sourceText, introspectionQuery]
         )
+        return (Data(text.utf8), text)
     }
 
     func parsed() throws -> Data {
