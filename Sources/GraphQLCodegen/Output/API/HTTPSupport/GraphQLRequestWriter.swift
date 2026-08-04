@@ -35,55 +35,168 @@ struct GraphQLRequestWriter {
     private func content() -> String {
         if enableGETQueries {
             switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: GETWithAutomaticPersistedOperations()
-            case .registered: GETWithRegisteredPersistedOperations()
-            case .none: GETWithNoPersistedOperations()
+            case .automatic: getWithAutomaticPersistedOperations()
+            case .registered: getWithRegisteredPersistedOperations()
+            case .none: getWithNoPersistedOperations()
             }
         } else {
             switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: POSTWithAutomaticPersistedOperations()
-            case .registered: POSTWithRegisteredPersistedOperations()
-            case .none: POSTWithNoPersistedOperations()
+            case .automatic: postWithAutomaticPersistedOperations()
+            case .registered: postWithRegisteredPersistedOperations()
+            case .none: postWithNoPersistedOperations()
             }
         }
     }
 
-    private func GETWithAutomaticPersistedOperations() -> String {
+    private func requestDeclaration() -> String {
         """
-        \(header)import Foundation
-
         /// A `GraphQLRequest` represents a `URLRequest` for a GraphQL operation.
         \(accessLevel)struct GraphQLRequest<Operation: GraphQLOperation> {
 
-            /// The `URLRequest` used to execute a GraphQL request. This property
-            /// is not modified after initialization, but callers my mutate this property
-            /// to provide further customization such as setting authorization headers, timeouts, etc.
+            /// The `URLRequest` used to execute a GraphQL request. Callers may mutate this property
+            /// after initialization to set authorization headers, timeouts, and other request options.
             \(accessLevel)var urlRequest: URLRequest
 
             /// The GraphQL endpoint the request will be made to.
             \(accessLevel)let endpoint: URL
 
             /// The GraphQL operation executed in the request.
-            \(accessLevel)let operation: Operation
-
-            /// Whether the operation document text should be minified (stripped of unnecessary whitespace) when
-            /// sent
-            \(accessLevel)let minifyDocument: Bool
-
-            /// The object used to encode the operation into HTTP body data if this request
-            /// is sending the operation's hash and the server responds saying the hash is not recognized,
-            /// indicating the request should be sent again, but with the full operation document.
-            \(accessLevel)let persistedOperationBodyEncoder: HTTPBodyEncoder?
+            \(accessLevel)let operation: Operation\(requestStateProperties())
         }
+        """
+    }
 
-        extension GraphQLRequest {
+    private func requestStateProperties() -> String {
+        switch configuration.output.documents.operations.persistedOperations {
+        case .automatic:
+            """
 
-            /// The decoding function to use by default for decoding the response of a GraphQLRequest.
-            /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
-            /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
+
+                /// Whether the request uses the operation's precomputed canonical document.
+                \(accessLevel)let minifyDocument: Bool
+
+                /// The encoder used to retry an unknown persisted operation with its full document.
+                \(accessLevel)let persistedOperationBodyEncoder: HTTPBodyEncoder?
+            """
+        case .registered:
+            ""
+        case .none:
+            """
+
+
+                /// Whether the request uses the operation's precomputed canonical document.
+                \(accessLevel)let minifyDocument: Bool
+            """
+        }
+    }
+
+    private func defaultDecoderDeclaration() -> String {
+        """
+
+            /// The decoding function used by default for a GraphQL response.
+            \(accessLevel)static var defaultDecoder: @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
                 { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
             }
+        """
+    }
+
+    private func operationInitializer() -> String {
+        switch configuration.output.documents.operations.persistedOperations {
+        case .automatic: automaticOperationInitializer()
+        case .registered: registeredOperationInitializer()
+        case .none: operationInitializerWithoutPersistence()
+        }
+    }
+
+    private func automaticOperationInitializer() -> String {
+        """
+
+
+            /// Initializes a POST request for a GraphQL operation.
+            \(accessLevel)init(
+                operation: Operation,
+                endpoint: Foundation.URL,
+                automaticPersistedOperations: Bool = true,
+                minifyDocument: Bool = true,
+                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
+                accept: String = "application/graphql-response+json"
+            ) throws {
+                self.urlRequest = URLRequest(url: endpoint)
+                self.urlRequest.httpMethod = "POST"
+                self.urlRequest.httpBody = try bodyEncoder.encode(
+                    operation: operation,
+                    automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil,
+                    minifyDocument: minifyDocument
+                )
+                self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
+                self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
+                self.endpoint = endpoint
+                self.operation = operation
+                self.minifyDocument = minifyDocument
+                self.persistedOperationBodyEncoder = automaticPersistedOperations ? bodyEncoder : nil
+            }
+        """
+    }
+
+    private func registeredOperationInitializer() -> String {
+        """
+
+
+            /// Initializes a POST request for a registered GraphQL operation.
+            \(accessLevel)init(
+                operation: Operation,
+                endpoint: Foundation.URL,
+                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
+                accept: String = "application/graphql-response+json"
+            ) throws {
+                self.urlRequest = URLRequest(url: endpoint)
+                self.urlRequest.httpMethod = "POST"
+                self.urlRequest.httpBody = try bodyEncoder.encode(operation: operation)
+                self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
+                self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
+                self.endpoint = endpoint
+                self.operation = operation
+            }
+        """
+    }
+
+    private func operationInitializerWithoutPersistence() -> String {
+        """
+
+
+            /// Initializes a POST request for a GraphQL operation.
+            \(accessLevel)init(
+                operation: Operation,
+                endpoint: Foundation.URL,
+                minifyDocument: Bool = true,
+                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
+                accept: String = "application/graphql-response+json"
+            ) throws {
+                self.urlRequest = URLRequest(url: endpoint)
+                self.urlRequest.httpMethod = "POST"
+                self.urlRequest.httpBody = try bodyEncoder.encode(
+                    operation: operation,
+                    minifyDocument: minifyDocument
+                )
+                self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
+                self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
+                self.endpoint = endpoint
+                self.operation = operation
+                self.minifyDocument = minifyDocument
+            }
+        """
+    }
+
+    private func getWithAutomaticPersistedOperations() -> String {
+        requestContent(
+            querySupport: automaticQuerySupport(),
+            subscriptionSupport: subscriptionSupportGetWithAutomaticPersistedOperations()
+        )
+    }
+
+    private func automaticQuerySupport() -> String {
+        """
+
 
             /// Describes how the `GraphQLRequest` should encode a `GraphQLQuery` operation into its `URLRequest`
             \(accessLevel)enum QueryStrategy {
@@ -174,74 +287,20 @@ struct GraphQLRequestWriter {
                 self.operation = query
                 self.minifyDocument = minifyDocument
                 self.persistedOperationBodyEncoder = persistedOperationBodyEncoder
-            }\(subscriptionSupportGETWithAutomaticPersistedOperations())
-
-            /// Initializes a new `GraphQLRequest` with an operation
-            /// - Parameters:
-            ///   - operation: The GraphQLOperation operation the request is for.
-            ///   - endpoint: The GraphQL server endpoint.
-            ///   - automaticPersistedOperations: Whether automatic persisted operations is enabled.
-            ///   By default this is `true` meaning a subsequent request will be executed with the full
-            ///   query document if this initial request results in a "PersistedQueryNotFound" error.
-            ///   - minifyDocument: Whether the query document text should be minified
-            ///   (unnecessary whitespace removed) when sent. `true` by default.
-            ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
-            ///   - accept: The value to use in the "accept" header field. By default this is
-            ///   "application/graphql-response+json". This field is required by the spec:
-            ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
-            \(accessLevel)init(
-                operation: Operation,
-                endpoint: Foundation.URL,
-                automaticPersistedOperations: Bool = true,
-                minifyDocument: Bool = true,
-                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-                accept: String = "application/graphql-response+json"
-            ) throws {
-                self.urlRequest = URLRequest(url: endpoint)
-                self.urlRequest.httpMethod = "POST"
-                self.urlRequest.httpBody = try bodyEncoder.encode(
-                    operation: operation,
-                    automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil,
-                    minifyDocument: minifyDocument
-                )
-                self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
-                self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
-                self.endpoint = endpoint
-                self.operation = operation
-                self.minifyDocument = minifyDocument
-                self.persistedOperationBodyEncoder = automaticPersistedOperations ? bodyEncoder : nil
             }
-        }
         """
     }
 
-    private func GETWithRegisteredPersistedOperations() -> String {
+    private func getWithRegisteredPersistedOperations() -> String {
+        requestContent(
+            querySupport: registeredQuerySupport(),
+            subscriptionSupport: subscriptionSupportGetWithRegisteredPersistedOperations()
+        )
+    }
+
+    private func registeredQuerySupport() -> String {
         """
-        \(header)import Foundation
 
-        /// A `GraphQLRequest` represents a `URLRequest` for a GraphQL operation.
-        \(accessLevel)struct GraphQLRequest<Operation: GraphQLOperation> {
-
-            /// The `URLRequest` used to execute a GraphQL request. This property
-            /// is not modified after initialization, but callers my mutate this property
-            /// to provide further customization such as setting authorization headers, timeouts, etc.
-            \(accessLevel)var urlRequest: URLRequest
-
-            /// The GraphQL endpoint the request will be made to.
-            \(accessLevel)let endpoint: URL
-
-            /// The GraphQL operation executed in the request.
-            \(accessLevel)let operation: Operation
-        }
-
-        extension GraphQLRequest {
-
-            /// The decoding function to use by default for decoding the response of a GraphQLRequest.
-            /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
-            /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
-                { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
-            }
 
             /// Describes how the `GraphQLRequest` should encode a `GraphQLQuery` operation into its `URLRequest`.
             \(accessLevel)enum QueryStrategy {
@@ -281,65 +340,20 @@ struct GraphQLRequestWriter {
                 self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
                 self.endpoint = endpoint
                 self.operation = query
-            }\(subscriptionSupportGETWithRegisteredPersistedOperations())
-
-            /// Initializes a new `GraphQLRequest` with an operation
-            /// - Parameters:
-            ///   - operation: The GraphQLOperation operation the request is for.
-            ///   - endpoint: The GraphQL server endpoint.
-            ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
-            ///   - accept: The value to use in the "accept" header field. By default this is
-            ///   "application/graphql-response+json". This field is required by the spec:
-            ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
-            \(accessLevel)init(
-                operation: Operation,
-                endpoint: Foundation.URL,
-                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-                accept: String = "application/graphql-response+json"
-            ) throws {
-                self.urlRequest = URLRequest(url: endpoint)
-                self.urlRequest.httpMethod = "POST"
-                self.urlRequest.httpBody = try bodyEncoder.encode(operation: operation)
-                self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
-                self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
-                self.endpoint = endpoint
-                self.operation = operation
             }
-        }
         """
     }
 
-    private func GETWithNoPersistedOperations() -> String {
+    private func getWithNoPersistedOperations() -> String {
+        requestContent(
+            querySupport: querySupportWithoutPersistence(),
+            subscriptionSupport: subscriptionSupportGetWithNoPersistedOperations()
+        )
+    }
+
+    private func querySupportWithoutPersistence() -> String {
         """
-        \(header)import Foundation
 
-        /// A `GraphQLRequest` represents a `URLRequest` for a GraphQL operation.
-        \(accessLevel)struct GraphQLRequest<Operation: GraphQLOperation> {
-
-            /// The `URLRequest` used to execute a GraphQL request. This property
-            /// is not modified after initialization, but callers my mutate this property
-            /// to provide further customization such as setting authorization headers, timeouts, etc.
-            \(accessLevel)var urlRequest: URLRequest
-
-            /// The GraphQL endpoint the request will be made to.
-            \(accessLevel)let endpoint: URL
-
-            /// The GraphQL operation executed in the request.
-            \(accessLevel)let operation: Operation
-
-            /// Whether the operation document text should be minified (stripped of unnecessary whitespace) when
-            /// sent
-            \(accessLevel)let minifyDocument: Bool
-        }
-
-        extension GraphQLRequest {
-
-            /// The decoding function to use by default for decoding the response of a GraphQLRequest.
-            /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
-            /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
-                { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
-            }
 
             /// Describes how the `GraphQLRequest` should encode a `GraphQLQuery` operation into its `URLRequest`.
             \(accessLevel)enum QueryStrategy {
@@ -383,232 +397,37 @@ struct GraphQLRequestWriter {
                 self.endpoint = endpoint
                 self.operation = query
                 self.minifyDocument = minifyDocument
-            }\(subscriptionSupportGETWithNoPersistedOperations())
-
-            /// Initializes a new `GraphQLRequest` with an operation
-            /// - Parameters:
-            ///   - operation: The GraphQLOperation operation the request is for.
-            ///   - endpoint: The GraphQL server endpoint.
-            ///   - minifyDocument: Whether the query document text should be minified
-            ///   (unnecessary whitespace removed) when sent. `true` by default.
-            ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
-            ///   - accept: The value to use in the "accept" header field. By default this is
-            ///   "application/graphql-response+json". This field is required by the spec:
-            ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
-            \(accessLevel)init(
-                operation: Operation,
-                endpoint: Foundation.URL,
-                minifyDocument: Bool = true,
-                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-                accept: String = "application/graphql-response+json"
-            ) throws {
-                self.urlRequest = URLRequest(url: endpoint)
-                self.urlRequest.httpMethod = "POST"
-                self.urlRequest.httpBody = try bodyEncoder.encode(operation: operation, minifyDocument: minifyDocument)
-                self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
-                self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
-                self.endpoint = endpoint
-                self.operation = operation
-                self.minifyDocument = minifyDocument
             }
-        }
         """
     }
 
-    private func POSTWithAutomaticPersistedOperations() -> String {
+    private func postWithAutomaticPersistedOperations() -> String {
+        requestContent(subscriptionSupport: subscriptionSupportPostWithAutomaticPersistedOperations())
+    }
+
+    private func postWithRegisteredPersistedOperations() -> String {
+        requestContent(subscriptionSupport: subscriptionSupportPostWithRegisteredPersistedOperations())
+    }
+
+    private func postWithNoPersistedOperations() -> String {
+        requestContent(subscriptionSupport: subscriptionSupportPostWithNoPersistedOperations())
+    }
+
+    private func requestContent(
+        querySupport: String = "",
+        subscriptionSupport: String
+    ) -> String {
         """
         \(header)import Foundation
 
-        /// A `GraphQLRequest` represents a `URLRequest` for a GraphQL operation.
-        \(accessLevel)struct GraphQLRequest<Operation: GraphQLOperation> {
+        \(requestDeclaration())
 
-            /// The `URLRequest` used to execute a GraphQL request. This property
-            /// is not modified after initialization, but callers my mutate this property
-            /// to provide further customization such as setting authorization headers, timeouts, etc.
-            \(accessLevel)var urlRequest: URLRequest
-
-            /// The GraphQL endpoint the request will be made to.
-            \(accessLevel)let endpoint: URL
-
-            /// The GraphQL operation executed in the request.
-            \(accessLevel)let operation: Operation
-
-            /// Whether the operation document text should be minified (stripped of unnecessary whitespace) when
-            /// sent
-            \(accessLevel)let minifyDocument: Bool
-
-            /// The object used to encode the operation into HTTP body data if this request
-            /// is sending the operation's hash and the server responds saying the hash is not recognized,
-            /// indicating the request should be sent again, but with the full operation document.
-            \(accessLevel)let persistedOperationBodyEncoder: HTTPBodyEncoder?
-        }
-
-        extension GraphQLRequest {
-
-            /// The decoding function to use by default for decoding the response of a GraphQLRequest.
-            /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
-            /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
-                { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
-            }
-
-            /// Initializes a new `GraphQLRequest` with an operation
-            /// - Parameters:
-            ///   - operation: The GraphQLOperation operation the request is for.
-            ///   - endpoint: The GraphQL server endpoint.
-            ///   - automaticPersistedOperations: Whether automatic persisted operations is enabled.
-            ///   By default this is `true` meaning a subsequent request will be executed with the full
-            ///   query document if this initial request results in a "PersistedQueryNotFound" error.
-            ///   - minifyDocument: Whether the query document text should be minified
-            ///   (unnecessary whitespace removed) when sent. `true` by default.
-            ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
-            ///   - accept: The value to use in the "accept" header field. By default this is
-            ///   "application/graphql-response+json". This field is required by the spec:
-            ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
-            \(accessLevel)init(
-                operation: Operation,
-                endpoint: Foundation.URL,
-                automaticPersistedOperations: Bool = true,
-                minifyDocument: Bool = true,
-                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-                accept: String = "application/graphql-response+json"
-            ) throws {
-                self.urlRequest = URLRequest(url: endpoint)
-                self.urlRequest.httpMethod = "POST"
-                self.urlRequest.httpBody = try bodyEncoder.encode(
-                    operation: operation,
-                    automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil,
-                    minifyDocument: minifyDocument
-                )
-                self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
-                self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
-                self.endpoint = endpoint
-                self.operation = operation
-                self.minifyDocument = minifyDocument
-                self.persistedOperationBodyEncoder = automaticPersistedOperations ? bodyEncoder : nil
-            }\(subscriptionSupportPOSTWithAutomaticPersistedOperations())
+        extension GraphQLRequest {\(defaultDecoderDeclaration())\(querySupport)\(operationInitializer())\(subscriptionSupport)
         }
         """
     }
 
-    private func POSTWithRegisteredPersistedOperations() -> String {
-        """
-        \(header)import Foundation
-
-        /// A `GraphQLRequest` represents a `URLRequest` for a GraphQL operation.
-        \(accessLevel)struct GraphQLRequest<Operation: GraphQLOperation> {
-
-            /// The `URLRequest` used to execute a GraphQL request. This property
-            /// is not modified after initialization, but callers my mutate this property
-            /// to provide further customization such as setting authorization headers, timeouts, etc.
-            \(accessLevel)var urlRequest: URLRequest
-
-            /// The GraphQL endpoint the request will be made to.
-            \(accessLevel)let endpoint: URL
-
-            /// The GraphQL operation executed in the request.
-            \(accessLevel)let operation: Operation
-        }
-
-        extension GraphQLRequest {
-
-            /// The decoding function to use by default for decoding the response of a GraphQLRequest.
-            /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
-            /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
-                { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
-            }
-
-            /// Initializes a new `GraphQLRequest` with an operation
-            /// - Parameters:
-            ///   - operation: The GraphQLOperation operation the request is for.
-            ///   - endpoint: The GraphQL server endpoint.
-            ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
-            ///   - accept: The value to use in the "accept" header field. By default this is
-            ///   "application/graphql-response+json". This field is required by the spec:
-            ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
-            \(accessLevel)init(
-                operation: Operation,
-                endpoint: Foundation.URL,
-                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-                accept: String = "application/graphql-response+json"
-            ) throws {
-                self.urlRequest = URLRequest(url: endpoint)
-                self.urlRequest.httpMethod = "POST"
-                self.urlRequest.httpBody = try bodyEncoder.encode(operation: operation)
-                self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
-                self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
-                self.endpoint = endpoint
-                self.operation = operation
-            }\(subscriptionSupportPOSTWithRegisteredPersistedOperations())
-        }
-        """
-    }
-
-    private func POSTWithNoPersistedOperations() -> String {
-        """
-        \(header)import Foundation
-
-        /// A `GraphQLRequest` represents a `URLRequest` for a GraphQL operation.
-        \(accessLevel)struct GraphQLRequest<Operation: GraphQLOperation> {
-
-            /// The `URLRequest` used to execute a GraphQL request. This property
-            /// is not modified after initialization, but callers my mutate this property
-            /// to provide further customization such as setting authorization headers, timeouts, etc.
-            \(accessLevel)var urlRequest: URLRequest
-
-            /// The GraphQL endpoint the request will be made to.
-            \(accessLevel)let endpoint: URL
-
-            /// The GraphQL operation executed in the request.
-            \(accessLevel)let operation: Operation
-
-            /// Whether the operation document text should be minified (stripped of unnecessary whitespace) when
-            /// sent
-            \(accessLevel)let minifyDocument: Bool
-        }
-
-
-        extension GraphQLRequest {
-
-            /// The decoding function to use by default for decoding the response of a GraphQLRequest.
-            /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
-            /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-            \(accessLevel)static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
-                { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
-            }
-
-            /// Initializes a new `GraphQLRequest` with an operation
-            /// - Parameters:
-            ///   - operation: The GraphQLOperation operation the request is for.
-            ///   - endpoint: The GraphQL server endpoint.
-            ///   - minifyDocument: Whether the query document text should be minified
-            ///   (unnecessary whitespace removed) when sent. `true` by default.
-            ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
-            ///   - accept: The value to use in the "accept" header field. By default this is
-            ///   "application/graphql-response+json". This field is required by the spec:
-            ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
-            \(accessLevel)init(
-                operation: Operation,
-                endpoint: Foundation.URL,
-                minifyDocument: Bool = true,
-                bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-                accept: String = "application/graphql-response+json"
-            ) throws {
-                self.urlRequest = URLRequest(url: endpoint)
-                self.urlRequest.httpMethod = "POST"
-                self.urlRequest.httpBody = try bodyEncoder.encode(operation: operation, minifyDocument: minifyDocument)
-                self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
-                self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
-                self.endpoint = endpoint
-                self.operation = operation
-                self.minifyDocument = minifyDocument
-            }\(subscriptionSupportPOSTWithNoPersistedOperations())
-        }
-        """
-    }
-
-    private func subscriptionSupportGETWithAutomaticPersistedOperations() -> String {
+    private func subscriptionSupportGetWithAutomaticPersistedOperations() -> String {
         guard includeSubscriptionSupport else { return "" }
         return """
 
@@ -683,7 +502,7 @@ struct GraphQLRequestWriter {
         """
     }
 
-    private func subscriptionSupportGETWithRegisteredPersistedOperations() -> String {
+    private func subscriptionSupportGetWithRegisteredPersistedOperations() -> String {
         guard includeSubscriptionSupport else { return "" }
         return """
 
@@ -716,7 +535,7 @@ struct GraphQLRequestWriter {
         """
     }
 
-    private func subscriptionSupportGETWithNoPersistedOperations() -> String {
+    private func subscriptionSupportGetWithNoPersistedOperations() -> String {
         guard includeSubscriptionSupport else { return "" }
         return """
 
@@ -755,7 +574,7 @@ struct GraphQLRequestWriter {
         """
     }
 
-    private func subscriptionSupportPOSTWithAutomaticPersistedOperations() -> String {
+    private func subscriptionSupportPostWithAutomaticPersistedOperations() -> String {
         guard includeSubscriptionSupport else { return "" }
         return """
 
@@ -789,7 +608,7 @@ struct GraphQLRequestWriter {
         """
     }
 
-    private func subscriptionSupportPOSTWithRegisteredPersistedOperations() -> String {
+    private func subscriptionSupportPostWithRegisteredPersistedOperations() -> String {
         guard includeSubscriptionSupport else { return "" }
         return """
 
@@ -814,7 +633,7 @@ struct GraphQLRequestWriter {
         """
     }
 
-    private func subscriptionSupportPOSTWithNoPersistedOperations() -> String {
+    private func subscriptionSupportPostWithNoPersistedOperations() -> String {
         guard includeSubscriptionSupport else { return "" }
         return """
 

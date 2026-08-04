@@ -5,10 +5,10 @@ struct DocumentsResolver {
     let documents: Documents
 
     func resolve() throws -> ResolvedDocuments {
-        let usedFragments = usedFragments()
+        let usedFragments = try usedFragments()
         let resolvedFragments = try resolveFragments(usedFragments)
         let resolvedDocuments = try resolveDocuments(documents)
-        let fulfilledFragments = fulfilledFragments(
+        let fulfilledFragments = try fulfilledFragments(
             resolvedFragments: resolvedFragments,
             resolvedDocuments: resolvedDocuments
         )
@@ -23,7 +23,7 @@ struct DocumentsResolver {
         )
     }
 
-    private func usedFragments() -> [String: Document.Fragment] {
+    private func usedFragments() throws -> [String: Document.Fragment] {
         var selectionSets: [AST.SelectionSet] = []
         for document in documents.documents {
             for definition in document.definitions {
@@ -43,8 +43,8 @@ struct DocumentsResolver {
                     }
                 case .fragmentSpread(let fragmentSpread):
                     let fragmentSpreadName = fragmentSpread.name.value
-                    if !usedFragments.keys.contains(fragmentSpreadName) {
-                        let fragment = documents.fragmentLookup[fragmentSpreadName]!
+                    if usedFragments[fragmentSpreadName] == nil {
+                        let fragment = try documents.fragment(fragmentSpreadName)
                         usedFragments[fragmentSpreadName] = fragment
                         selectionSets.append(fragment.ast.selectionSet)
                     }
@@ -60,8 +60,7 @@ struct DocumentsResolver {
         _ usedFragments: [String: Document.Fragment]
     ) throws -> [String: ResolvedFragment] {
         var resolvedFragments: [String: ResolvedFragment] = [:]
-        for name in usedFragments.keys.sorted() {
-            let fragment = usedFragments[name]!
+        for (name, fragment) in usedFragments.sorted(by: { $0.key < $1.key }) {
             let selectionSet = try SelectionSetResolver(
                 onType: try schema.fragmentType(fragment.ast),
                 selectionSet: fragment.ast.selectionSet,
@@ -110,7 +109,7 @@ struct DocumentsResolver {
     private func fulfilledFragments(
         resolvedFragments: [String: ResolvedFragment],
         resolvedDocuments: [ResolvedDocument]
-    ) -> Set<String> {
+    ) throws -> Set<String> {
         var fulfilledFragments: Set<String> = []
         var selectionSets: [ResolvedSelectionSet] = resolvedFragments.values.map(\.resolvedSelectionSet)
         for resolvedDocument in resolvedDocuments {
@@ -132,7 +131,9 @@ struct DocumentsResolver {
                 case .fragmentSpread(let name, _):
                     let result = fulfilledFragments.insert(name)
                     if result.inserted {
-                        let fragment = resolvedFragments[name]!
+                        guard let fragment = resolvedFragments[name] else {
+                            throw Codegen.Error(description: "Resolved fragment is missing: \(name)")
+                        }
                         selectionSets.append(fragment.resolvedSelectionSet)
                     }
                 }
@@ -152,7 +153,7 @@ struct DocumentsResolver {
                 switch definition {
                 case .operation(let resolvedOperation):
                     usedTypes.formUnion(
-                        usedScalarTypes(
+                        try usedScalarTypes(
                             resolvedOperation.resolvedSelectionSet,
                             resolvedFragments: resolvedFragments,
                             seenFragmentSpreads: &seenFragmentSpreads
@@ -177,7 +178,7 @@ struct DocumentsResolver {
             case .SCALAR(let scalar): usedTypes.insert(scalar.ast.name)
             case .ENUM(let `enum`): usedTypes.insert(`enum`.ast.name)
             case .INPUT_OBJECT(let inputObject):
-                usedTypes.insert(inputObject.ast.name)
+                guard usedTypes.insert(inputObject.ast.name).inserted else { continue }
                 stack.append(contentsOf: try inputObject.ast.inputFields.map { try schema.inputType($0) })
             case .LIST(let innerType): stack.append(innerType)
             case .NON_NULL(let innerType): stack.append(innerType)
@@ -190,7 +191,7 @@ struct DocumentsResolver {
         _ selectionSet: ResolvedSelectionSet,
         resolvedFragments: [String: ResolvedFragment],
         seenFragmentSpreads: inout Set<String>
-    ) -> Set<String> {
+    ) throws -> Set<String> {
         var usedTypes: Set<String> = []
         var stack: [ResolvedSelectionSet] = [selectionSet]
         while let selectionSet = stack.popLast() {
@@ -199,7 +200,9 @@ struct DocumentsResolver {
                 case .fragmentSpread(let name, _):
                     let result = seenFragmentSpreads.insert(name)
                     if result.inserted {
-                        let resolvedFragment = resolvedFragments[name]!
+                        guard let resolvedFragment = resolvedFragments[name] else {
+                            throw Codegen.Error(description: "Resolved fragment is missing: \(name)")
+                        }
                         stack.append(resolvedFragment.resolvedSelectionSet)
                     }
                 case .field(let field, _):

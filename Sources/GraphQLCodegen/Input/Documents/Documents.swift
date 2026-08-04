@@ -25,9 +25,10 @@ struct Document: Sendable {
 
     struct Operation: Sendable {
         let ast: AST.OperationDefinition
-        let sourceText: Substring
-        let resolvedText: String?
-        let hash: String?
+        let canonicalText: String
+        let canonicalHash: String
+        let documentText: String
+        let documentHash: String
     }
 
     struct Fragment {
@@ -38,15 +39,15 @@ struct Document: Sendable {
 
     let url: URL
     let definitions: [Definition]
+    let relativePath: String
 
     func outputURL(_ configuration: Configuration) -> URL {
-        let outputURL = url.appendingPathExtension("swift")
-        return switch configuration.output.documents.directory {
+        switch configuration.output.documents.directory {
         case .definition:
-            outputURL
+            url.appendingPathExtension("swift")
         case .directory(let outputDirectory):
             outputDirectory.appending(
-                path: outputURL.lastPathComponent,
+                path: relativePath + ".swift",
                 directoryHint: .notDirectory
             )
         }

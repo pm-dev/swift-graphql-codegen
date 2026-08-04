@@ -4,9 +4,8 @@ import Foundation
 /// A `GraphQLRequest` represents a `URLRequest` for a GraphQL operation.
 struct GraphQLRequest<Operation: GraphQLOperation> {
 
-    /// The `URLRequest` used to execute a GraphQL request. This property
-    /// is not modified after initialization, but callers my mutate this property
-    /// to provide further customization such as setting authorization headers, timeouts, etc.
+    /// The `URLRequest` used to execute a GraphQL request. Callers may mutate this property
+    /// after initialization to set authorization headers, timeouts, and other request options.
     var urlRequest: URLRequest
 
     /// The GraphQL endpoint the request will be made to.
@@ -15,22 +14,16 @@ struct GraphQLRequest<Operation: GraphQLOperation> {
     /// The GraphQL operation executed in the request.
     let operation: Operation
 
-    /// Whether the operation document text should be minified (stripped of unnecessary whitespace) when
-    /// sent
+    /// Whether the request uses the operation's precomputed canonical document.
     let minifyDocument: Bool
 
-    /// The object used to encode the operation into HTTP body data if this request
-    /// is sending the operation's hash and the server responds saying the hash is not recognized,
-    /// indicating the request should be sent again, but with the full operation document.
+    /// The encoder used to retry an unknown persisted operation with its full document.
     let persistedOperationBodyEncoder: HTTPBodyEncoder?
 }
 
 extension GraphQLRequest {
-
-    /// The decoding function to use by default for decoding the response of a GraphQLRequest.
-    /// By default, a JSONDecoder is used to decode response data into a `Operation.Data` instance.
-    /// To customize this behavior, provide a custom decoder to the `URLSession.request` function.
-    static func defaultDecoder() -> @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
+    /// The decoding function used by default for a GraphQL response.
+    static var defaultDecoder: @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
         { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
     }
 
@@ -125,19 +118,7 @@ extension GraphQLRequest {
         self.persistedOperationBodyEncoder = persistedOperationBodyEncoder
     }
 
-    /// Initializes a new `GraphQLRequest` with an operation
-    /// - Parameters:
-    ///   - operation: The GraphQLOperation operation the request is for.
-    ///   - endpoint: The GraphQL server endpoint.
-    ///   - automaticPersistedOperations: Whether automatic persisted operations is enabled.
-    ///   By default this is `true` meaning a subsequent request will be executed with the full
-    ///   query document if this initial request results in a "PersistedQueryNotFound" error.
-    ///   - minifyDocument: Whether the query document text should be minified
-    ///   (unnecessary whitespace removed) when sent. `true` by default.
-    ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
-    ///   - accept: The value to use in the "accept" header field. By default this is
-    ///   "application/graphql-response+json". This field is required by the spec:
-    ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
+    /// Initializes a POST request for a GraphQL operation.
     init(
         operation: Operation,
         endpoint: Foundation.URL,

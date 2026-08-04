@@ -16,20 +16,30 @@ public struct Codegen: Sendable {
     public func run() async throws {
         // Input
         let start = Date()
-        let schema = try await SchemaLoader(configuration: configuration, urlSession: urlSession).load()
-        let documents = try DocumentsLoader(configuration: configuration).load()
+        let graphQLJS = try GraphQLJS()
+        let loadedSchema = try await SchemaLoader(
+            configuration: configuration,
+            graphQLJS: graphQLJS,
+            urlSession: urlSession
+        ).load()
+        let documents = try await DocumentsLoader(
+            configuration: configuration,
+            graphQLJS: graphQLJS
+        ).load()
 
         // Validation
         if configuration.validation {
-            try DocumentsValidator(
-                schema: schema,
-                documents: documents
+            try await DocumentsValidator(
+                schema: loadedSchema.schema,
+                schemaJSON: loadedSchema.validationJSON,
+                documents: documents,
+                graphQLJS: graphQLJS
             ).validate()
         }
 
         // Resolution
         let resolvedDocuments = try DocumentsResolver(
-            schema: schema,
+            schema: loadedSchema.schema,
             documents: documents
         ).resolve()
 
@@ -42,7 +52,7 @@ public struct Codegen: Sendable {
             ).write(using: fileOutput)
             try await SchemaWriter(
                 configuration: configuration,
-                schema: schema,
+                schema: loadedSchema.schema,
                 resolvedDocuments: resolvedDocuments
             ).write(using: fileOutput)
             try await APIWriter(

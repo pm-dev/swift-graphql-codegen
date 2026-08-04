@@ -13,7 +13,7 @@ extension URLSession {
     ///   - decoder: The function used to turn response data into an Operation.Data instance.
     func request<Operation: GraphQLOperation>(
         _ request: GraphQLRequest<Operation>,
-        decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder()
+        decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
     ) async throws -> GraphQLResponse<Operation.Data>.Success {
         let (data, response) = try await data(for: request.urlRequest)
         if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {

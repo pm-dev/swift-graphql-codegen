@@ -40,7 +40,7 @@ The code generator runs on macOS 14 or newer because it uses JavaScriptCore to e
 
 ## Upgrade Note: Generated HTTP Operations
 
-Generated HTTP support now requires `GraphQLOperation.minifiedDocument`. Regenerate the API and operation files together when upgrading. If your application defines a custom `GraphQLOperation` conformer, add a precomputed `minifiedDocument` that is lexically equivalent to `document` with ignored GraphQL characters removed. This is a source-breaking generated-API change intended for the next minor release.
+Generated HTTP support now requires `GraphQLOperation.minifiedDocument`. Automatic persisted operations also require `GraphQLOperation.documentHash` and `GraphQLOperation.minifiedDocumentHash`, the precomputed SHA-256 hashes of `document` and `minifiedDocument`. Generated operation documents now embed their fragment definitions directly, and generated fragment types no longer expose a `source` property. Regenerate the API and operation files together when upgrading. If your application defines a custom `GraphQLOperation` conformer, add the new properties with the same semantics. This is a source-breaking generated-API change intended for the next minor release.
 
 ---
 

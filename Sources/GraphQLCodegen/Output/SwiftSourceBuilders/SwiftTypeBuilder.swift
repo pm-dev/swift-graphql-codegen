@@ -92,9 +92,11 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
     }
 
     func build(configuration: Configuration) -> [String] {
-        precondition(started)
+        guard let declaration else {
+            preconditionFailure("A Swift type must be started before it can be built")
+        }
         let indentation = configuration.output.indentation.string
-        var lines = declaration!
+        var lines = declaration
         lines.append(contentsOf: contents.map { $0.isWhiteSpace ? "" : indentation + $0 })
         lines.append(contentsOf: buildInitializers(indentation: indentation))
         for nested in nestedTypes {

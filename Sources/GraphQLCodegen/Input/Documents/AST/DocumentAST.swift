@@ -337,7 +337,7 @@ enum AST {
             switch self {
             case .named(let namedType): return .optional(
                 .name(
-                    SourceTypeName.swiftNativeScalar(graphQLScalarName: namedType.name.value) ?? namedType.name.value
+                    SourceTypeName(nativeGraphQLScalarName: namedType.name.value)?.formatted() ?? namedType.name.value
                 )
             )
             case .list(let innerType): return .optional(.list(innerType.type.typeName))

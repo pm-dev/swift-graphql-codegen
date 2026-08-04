@@ -51,7 +51,7 @@ struct URLSessionWriter {
             ///   - decoder: The function used to turn response data into an Operation.Data instance.
             \(accessLevel)func request<Operation: GraphQLOperation>(
                 _ request: GraphQLRequest<Operation>,
-                decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder()
+                decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
             ) async throws -> GraphQLResponse<Operation.Data>.Success {
                 let (data, response) = try await data(for: request.urlRequest)
                 if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
@@ -113,7 +113,7 @@ struct URLSessionWriter {
             ///   - decoder: The function used to turn response data into an Operation.Data instance.
             \(accessLevel)func request<Operation: GraphQLOperation>(
                 _ request: GraphQLRequest<Operation>,
-                decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder()
+                decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
             ) async throws -> GraphQLResponse<Operation.Data>.Success {
                 let (data, response) = try await data(for: request.urlRequest)
                 if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
@@ -140,9 +140,9 @@ struct URLSessionWriter {
             ///   - request: The  request containing the `URLRequest` to be performed. The `URLRequest` must have `text/event-stream` set
             ///   in the "accept" header.
             ///   - decoder: The function used to turn response data into an Subscription.Data instance.
-            public func subscribe<Subscription: GraphQLSubscription>(
+            \(accessLevel)func subscribe<Subscription: GraphQLSubscription>(
                 _ request: GraphQLRequest<Subscription>,
-                decoder: @escaping @Sendable (Data) throws -> GraphQLResponse<Subscription.Data> = GraphQLRequest<Subscription>.defaultDecoder()
+                decoder: @escaping @Sendable (Data) throws -> GraphQLResponse<Subscription.Data> = GraphQLRequest<Subscription>.defaultDecoder
             ) async throws -> AsyncThrowingStream<GraphQLResponse<Subscription.Data>.Success, Error> {
                 let (asyncBytes, response) = try await bytes(for: request.urlRequest)
                 if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
@@ -150,16 +150,20 @@ struct URLSessionWriter {
                 }
                 return AsyncThrowingStream { continuation in
                     let task = Task {
-                        var buffer = ServerSentEventBuffer()
-                        for try await byte in asyncBytes {
-                            if let messageData = buffer.append(byte) {
-                                switch try decoder(messageData) {
-                                case .success(let success): continuation.yield(success)
-                                case .requestError(let requestError): throw requestError
+                        do {
+                            var buffer = ServerSentEventBuffer()
+                            for try await byte in asyncBytes {
+                                if let messageData = buffer.append(byte) {
+                                    switch try decoder(messageData) {
+                                    case .success(let success): continuation.yield(success)
+                                    case .requestError(let requestError): throw requestError
+                                    }
                                 }
                             }
+                            continuation.finish()
+                        } catch {
+                            continuation.finish(throwing: error)
                         }
-                        continuation.finish()
                     }
                     continuation.onTermination = { _ in
                         task.cancel()
