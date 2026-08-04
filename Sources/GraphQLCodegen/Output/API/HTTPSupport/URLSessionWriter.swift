@@ -150,16 +150,20 @@ struct URLSessionWriter {
                 }
                 return AsyncThrowingStream { continuation in
                     let task = Task {
-                        var buffer = ServerSentEventBuffer()
-                        for try await byte in asyncBytes {
-                            if let messageData = buffer.append(byte) {
-                                switch try decoder(messageData) {
-                                case .success(let success): continuation.yield(success)
-                                case .requestError(let requestError): throw requestError
+                        do {
+                            var buffer = ServerSentEventBuffer()
+                            for try await byte in asyncBytes {
+                                if let messageData = buffer.append(byte) {
+                                    switch try decoder(messageData) {
+                                    case .success(let success): continuation.yield(success)
+                                    case .requestError(let requestError): throw requestError
+                                    }
                                 }
                             }
+                            continuation.finish()
+                        } catch {
+                            continuation.finish(throwing: error)
                         }
-                        continuation.finish()
                     }
                     continuation.onTermination = { _ in
                         task.cancel()
