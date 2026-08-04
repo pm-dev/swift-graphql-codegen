@@ -5,6 +5,7 @@ struct ResolvedDocuments {
     let documents: [ResolvedDocument]
     let fragmentLookup: [String: ResolvedFragment]
     let usedTypes: Set<String>
+    let requiresIndirectNullable: Bool
     let fulfilledFragments: Set<String>
     let hasMutation: Bool
     let hasSubscription: Bool

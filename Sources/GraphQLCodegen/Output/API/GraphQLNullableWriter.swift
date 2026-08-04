@@ -1,5 +1,6 @@
 struct GraphQLNullableWriter {
     let configuration: Configuration
+    let requiresIndirectNullable: Bool
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -11,8 +12,9 @@ struct GraphQLNullableWriter {
     }
 
     func write(using fileOutput: FileOutput) async throws {
+        let indirect = requiresIndirectNullable ? "indirect " : ""
         try await """
-        \(header)\(accessLevel)indirect enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
+        \(header)\(accessLevel)\(indirect)enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
             case null
             case value(T)
 

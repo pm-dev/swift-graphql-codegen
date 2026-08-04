@@ -12,11 +12,13 @@ struct DocumentsResolver {
             resolvedFragments: resolvedFragments,
             resolvedDocuments: resolvedDocuments
         )
+        let usedTypes = try usedTypes(in: resolvedDocuments, resolvedFragments: resolvedFragments)
         return ResolvedDocuments(
             previouslyGenerated: documents.previouslyGenerated,
             documents: resolvedDocuments,
             fragmentLookup: resolvedFragments,
-            usedTypes: try usedTypes(in: resolvedDocuments, resolvedFragments: resolvedFragments),
+            usedTypes: usedTypes,
+            requiresIndirectNullable: try requiresIndirectNullable(in: usedTypes),
             fulfilledFragments: fulfilledFragments,
             hasMutation: hasOperationType(.mutation),
             hasSubscription: hasOperationType(.subscription)
@@ -184,6 +186,42 @@ struct DocumentsResolver {
             }
         }
         return usedTypes
+    }
+
+    private func requiresIndirectNullable(in usedTypes: Set<String>) throws -> Bool {
+        var visited: Set<String> = []
+        var visiting: Set<String> = []
+
+        func visit(_ inputObject: Schema.InputObject) throws -> Bool {
+            let name = inputObject.ast.name
+            if visiting.contains(name) {
+                return true
+            }
+            guard visited.insert(name).inserted else { return false }
+
+            visiting.insert(name)
+            defer { visiting.remove(name) }
+
+            for field in inputObject.ast.inputFields {
+                var type = try schema.inputType(field)
+                while case .NON_NULL(let innerType) = type {
+                    type = innerType
+                }
+                guard case .INPUT_OBJECT(let nestedInputObject) = type else { continue }
+                if try visit(nestedInputObject) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        for name in usedTypes {
+            guard let inputObject = schema.typeCache.inputObjects[name] else { continue }
+            if try visit(inputObject) {
+                return true
+            }
+        }
+        return false
     }
 
     private func usedScalarTypes(
