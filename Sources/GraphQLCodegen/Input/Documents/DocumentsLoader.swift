@@ -3,10 +3,7 @@ import Foundation
 
 struct DocumentsLoader {
     let configuration: Configuration
-
-    private var shouldResolve: Bool {
-        configuration.validation || shouldHash
-    }
+    let graphQLJS: GraphQLJS
 
     private var shouldHash: Bool {
         switch configuration.output.documents.operations.persistedOperations {
@@ -15,13 +12,16 @@ struct DocumentsLoader {
         }
     }
 
-    func load() throws -> Documents {
+    func load() async throws -> Documents {
         let scan = try DocumentScanner(directories: configuration.input.documentDirectories).scan()
         var documents: [Document] = []
         var fragmentLookup: [String: Document.Fragment] = [:]
         for documentURL in scan.documentFileURLs {
             let documentText = try String(contentsOf: documentURL, encoding: .utf8)
-            let ast = try DocumentASTParser(sourceText: documentText).parse()
+            let ast = try await DocumentASTParser(
+                graphQLJS: graphQLJS,
+                sourceText: documentText
+            ).parse()
             var definitions: [Document.Definition] = []
             for definition in ast.definitions {
                 switch definition {
@@ -72,7 +72,7 @@ struct DocumentsLoader {
         }
         return Documents(
             previouslyGenerated: scan.generatedFileURLs,
-            documents: shouldResolve ? try resolvedDocuments(documents, fragmentLookup: fragmentLookup) : documents,
+            documents: try await resolvedDocuments(documents, fragmentLookup: fragmentLookup),
             fragmentLookup: fragmentLookup
         )
     }
@@ -80,19 +80,19 @@ struct DocumentsLoader {
     private func resolvedDocuments(
         _ documents: [Document],
         fragmentLookup: [String: Document.Fragment]
-    ) throws -> [Document] {
+    ) async throws -> [Document] {
         var updatedDocuments: [Document] = []
         for document in documents {
             var updatedDefinitions: [Document.Definition] = []
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
-                    let resolvedText = try GraphQLJS(
-                        sourceText: try OperationTextResolver(
+                    let resolvedText = try await graphQLJS.canonicalize(
+                        try OperationTextResolver(
                             operation: operation,
                             fragmentLookup: fragmentLookup
                         ).expandSourceText { $0.sourceText }
-                    ).canonicalized()
+                    )
                     updatedDefinitions.append(
                         .operation(
                             Document.Operation(

@@ -75,6 +75,7 @@ struct TypeCache {
 
 struct SchemaLoader {
     let configuration: Configuration
+    let graphQLJS: GraphQLJS
     let urlSession: URLSession
 
     func load() async throws -> Schema {
@@ -109,7 +110,7 @@ struct SchemaLoader {
             let includeDeprecatedFields,
             let includeDeprecatedEnumValues
         ):
-            try loadSchemaFromSDLFile(
+            try await loadSchemaFromSDLFile(
                 schemaFile,
                 includeDeprecatedFields: includeDeprecatedFields,
                 includeDeprecatedEnumValues: includeDeprecatedEnumValues
@@ -154,14 +155,16 @@ struct SchemaLoader {
         _ schemaFile: URL,
         includeDeprecatedFields: Bool,
         includeDeprecatedEnumValues: Bool
-    ) throws -> (String?, __Schema) {
+    ) async throws -> (String?, __Schema) {
         let sdlSchemaString = try String(contentsOf: schemaFile, encoding: .utf8)
         let introspectionQuery = IntrospectionQuery(
             includeDeprecatedFields: includeDeprecatedFields,
             includeDeprecatedEnumValues: includeDeprecatedEnumValues
         ).query
-        let jsonSchema = try GraphQLJS(sourceText: sdlSchemaString)
-            .convertedSDLSchema(introspectionQuery: introspectionQuery)
+        let jsonSchema = try await graphQLJS.convertSDLSchema(
+            sdlSchemaString,
+            introspectionQuery: introspectionQuery
+        )
         let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: jsonSchema.data).__schema
         return (configuration.validation ? jsonSchema.text : nil, __schema)
     }
