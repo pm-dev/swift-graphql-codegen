@@ -12,9 +12,19 @@ struct HeroQuery: GraphQLQuery {
         ...droid
       }
     }
-    \(Jedi.source)
-    \(Droid.source)
-    \(Character.source)
+    fragment jedi on Jedi {
+      ...character
+      lightSaberColor
+    }
+    fragment droid on Droid {
+      ...character
+      primaryFunction
+      operator
+    }
+    fragment character on Character {
+      id
+      name
+    }
     """#
 
     static let minifiedDocument = #"""
@@ -67,13 +77,6 @@ struct HeroQuery: GraphQLQuery {
 
 struct Jedi: Decodable, Sendable, Hashable {
 
-    static let source = #"""
-    fragment jedi on Jedi {
-      ...character
-      lightSaberColor
-    }
-    """#
-
     var __character: Character
 
     var lightSaberColor: String
@@ -89,14 +92,6 @@ struct Jedi: Decodable, Sendable, Hashable {
 }
 
 struct Droid: Decodable, Sendable, Hashable {
-
-    static let source = #"""
-    fragment droid on Droid {
-      ...character
-      primaryFunction
-      operator
-    }
-    """#
 
     var __character: Character
 
@@ -117,13 +112,6 @@ struct Droid: Decodable, Sendable, Hashable {
 }
 
 struct Character: Decodable, Sendable, Hashable {
-
-    static let source = #"""
-    fragment character on Character {
-      id
-      name
-    }
-    """#
 
     var id: ID
 

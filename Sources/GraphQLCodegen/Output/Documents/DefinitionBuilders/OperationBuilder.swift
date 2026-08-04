@@ -111,7 +111,7 @@ struct OperationBuilder {
                 fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment),
                 operationAST: operation.ast,
                 operationSourceText: operation.sourceText
-            ).expandSourceText { fragment in "\\(\(fragment.ast.name.value.capitalizedFirst).source)" }
+            ).expandSourceText { $0.sourceText }
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,

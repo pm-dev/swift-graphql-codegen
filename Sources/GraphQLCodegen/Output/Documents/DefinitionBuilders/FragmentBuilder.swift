@@ -37,7 +37,6 @@ struct FragmentBuilder {
 
     mutating func buildable() throws -> SwiftTypeBuildable {
         startFragmentStruct()
-        addSourceProperty()
         if isFulfilled {
             try addSelectionSet()
         }
@@ -81,24 +80,5 @@ struct FragmentBuilder {
             structName: fragment.ast.name.value.capitalizedFirst,
             conformances: isFulfilled ? configuration.output.documents.fragments.conformances : []
         )
-    }
-
-    private mutating func addSourceProperty() {
-        switch configuration.output.documents.operations.persistedOperations {
-        case .registered: break
-        case .automatic, .none:
-            fragmentStruct.addProperty(
-                description: nil,
-                deprecation: nil,
-                isPublic: isPublic,
-                isStatic: true,
-                immutable: true,
-                name: "source",
-                value: .assigned(
-                    SwiftSource(value: String(fragment.sourceText)).multilineStringLiteral,
-                    type: nil
-                )
-            )
-        }
     }
 }
