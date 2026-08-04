@@ -140,7 +140,7 @@ struct URLSessionWriter {
             ///   - request: The  request containing the `URLRequest` to be performed. The `URLRequest` must have `text/event-stream` set
             ///   in the "accept" header.
             ///   - decoder: The function used to turn response data into an Subscription.Data instance.
-            public func subscribe<Subscription: GraphQLSubscription>(
+            \(accessLevel)func subscribe<Subscription: GraphQLSubscription>(
                 _ request: GraphQLRequest<Subscription>,
                 decoder: @escaping @Sendable (Data) throws -> GraphQLResponse<Subscription.Data> = GraphQLRequest<Subscription>.defaultDecoder()
             ) async throws -> AsyncThrowingStream<GraphQLResponse<Subscription.Data>.Success, Error> {
