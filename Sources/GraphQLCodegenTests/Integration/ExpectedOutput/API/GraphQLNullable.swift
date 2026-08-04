@@ -1,6 +1,6 @@
 // @generated
 
-enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
+indirect enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
     case null
     case value(T)
 

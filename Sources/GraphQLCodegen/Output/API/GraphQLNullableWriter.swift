@@ -12,7 +12,7 @@ struct GraphQLNullableWriter {
 
     func write(using fileOutput: FileOutput) async throws {
         try await """
-        \(header)\(accessLevel)enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
+        \(header)\(accessLevel)indirect enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
             case null
             case value(T)
 

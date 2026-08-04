@@ -177,7 +177,7 @@ struct DocumentsResolver {
             case .SCALAR(let scalar): usedTypes.insert(scalar.ast.name)
             case .ENUM(let `enum`): usedTypes.insert(`enum`.ast.name)
             case .INPUT_OBJECT(let inputObject):
-                usedTypes.insert(inputObject.ast.name)
+                guard usedTypes.insert(inputObject.ast.name).inserted else { continue }
                 stack.append(contentsOf: try inputObject.ast.inputFields.map { try schema.inputType($0) })
             case .LIST(let innerType): stack.append(innerType)
             case .NON_NULL(let innerType): stack.append(innerType)
