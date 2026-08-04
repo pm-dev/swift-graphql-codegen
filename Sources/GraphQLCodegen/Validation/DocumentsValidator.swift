@@ -28,21 +28,21 @@ struct DocumentsValidator {
     }
 
     let schema: Schema
+    let schemaJSON: String
     let documents: Documents
     let graphQLJS: GraphQLJS
 
     func validate() async throws {
         var documentErrors: [DocumentError] = []
-        let schemaJSONString = schema.jsonString!
         for document in documents.documents {
             var operationErrors: [OperationError] = []
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
                     let errors = try await DocumentValidator(
-                        documentText: operation.resolvedText!,
+                        documentText: operation.canonicalText,
                         graphQLJS: graphQLJS,
-                        schemaJSONString: schemaJSONString
+                        schemaJSON: schemaJSON
                     ).validate()
                     if !errors.isEmpty {
                         operationErrors.append(

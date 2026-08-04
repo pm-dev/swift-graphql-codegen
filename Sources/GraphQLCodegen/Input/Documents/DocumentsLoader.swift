@@ -2,40 +2,55 @@ import CryptoKit
 import Foundation
 
 struct DocumentsLoader {
+    private enum ParsedDefinition {
+        case fragment(String)
+        case operation(ast: AST.OperationDefinition, sourceText: Substring)
+    }
+
+    private struct ParsedDocument {
+        let definitions: [ParsedDefinition]
+        let relativePath: String
+        let url: URL
+    }
+
     let configuration: Configuration
     let graphQLJS: GraphQLJS
 
-    private var shouldHash: Bool {
-        switch configuration.output.documents.operations.persistedOperations {
-        case .registered: true
-        case .automatic, .none: false
-        }
-    }
-
     func load() async throws -> Documents {
         let scan = try DocumentScanner(directories: configuration.input.documentDirectories).scan()
-        var documents: [Document] = []
         var fragmentLookup: [String: Document.Fragment] = [:]
-        for documentURL in scan.documentFileURLs {
+        let parsedDocuments = try await parse(
+            scan.documentFileURLs,
+            fragmentLookup: &fragmentLookup
+        )
+        return Documents(
+            previouslyGenerated: scan.generatedFileURLs,
+            documents: try await prepare(parsedDocuments, fragmentLookup: fragmentLookup),
+            fragmentLookup: fragmentLookup
+        )
+    }
+
+    private func parse(
+        _ documentURLs: [URL],
+        fragmentLookup: inout [String: Document.Fragment]
+    ) async throws -> [ParsedDocument] {
+        var documents: [ParsedDocument] = []
+        documents.reserveCapacity(documentURLs.count)
+        for documentURL in documentURLs {
             let documentText = try String(contentsOf: documentURL, encoding: .utf8)
             let ast = try await DocumentASTParser(
                 graphQLJS: graphQLJS,
                 sourceText: documentText
             ).parse()
-            var definitions: [Document.Definition] = []
+            var definitions: [ParsedDefinition] = []
+            definitions.reserveCapacity(ast.definitions.count)
             for definition in ast.definitions {
                 switch definition {
                 case .operation(let operation):
-                    definitions.append(
-                        .operation(
-                            Document.Operation(
-                                ast: operation,
-                                sourceText: documentText[utf16Range: operation.loc.utf16Range],
-                                resolvedText: nil,
-                                hash: nil
-                            )
-                        )
-                    )
+                    definitions.append(.operation(
+                        ast: operation,
+                        sourceText: documentText[utf16Range: operation.loc.utf16Range]
+                    ))
                 case .fragment(let fragment):
                     if let existing = fragmentLookup[fragment.name.value] {
                         throw Codegen.Error(description: """
@@ -63,48 +78,46 @@ struct DocumentsLoader {
                 }
             }
             documents.append(
-                Document(
-                    url: documentURL,
+                ParsedDocument(
                     definitions: definitions,
-                    relativePath: try relativePath(for: documentURL)
+                    relativePath: try relativePath(for: documentURL),
+                    url: documentURL
                 )
             )
         }
-        return Documents(
-            previouslyGenerated: scan.generatedFileURLs,
-            documents: try await resolvedDocuments(documents, fragmentLookup: fragmentLookup),
-            fragmentLookup: fragmentLookup
-        )
+        return documents
     }
 
-    private func resolvedDocuments(
-        _ documents: [Document],
+    private func prepare(
+        _ documents: [ParsedDocument],
         fragmentLookup: [String: Document.Fragment]
     ) async throws -> [Document] {
         var updatedDocuments: [Document] = []
+        updatedDocuments.reserveCapacity(documents.count)
         for document in documents {
             var updatedDefinitions: [Document.Definition] = []
+            updatedDefinitions.reserveCapacity(document.definitions.count)
             for definition in document.definitions {
                 switch definition {
-                case .operation(let operation):
-                    let resolvedText = try await graphQLJS.canonicalize(
-                        try OperationTextResolver(
-                            operation: operation,
-                            fragmentLookup: fragmentLookup
-                        ).expandSourceText { $0.sourceText }
-                    )
+                case .operation(let operationAST, let operationSourceText):
+                    let expandedText = try OperationTextResolver(
+                        fragmentLookup: fragmentLookup,
+                        operationAST: operationAST,
+                        operationSourceText: operationSourceText
+                    ).expandSourceText { $0.sourceText }
+                    let canonicalText = try await graphQLJS.canonicalize(expandedText)
                     updatedDefinitions.append(
                         .operation(
                             Document.Operation(
-                                ast: operation.ast,
-                                sourceText: operation.sourceText,
-                                resolvedText: resolvedText,
-                                hash: shouldHash ? hash(resolvedText) : nil
+                                ast: operationAST,
+                                canonicalText: canonicalText,
+                                hash: hash(canonicalText),
+                                sourceText: operationSourceText
                             )
                         )
                     )
-                case .fragment:
-                    updatedDefinitions.append(definition)
+                case .fragment(let name):
+                    updatedDefinitions.append(.fragment(name))
                 }
             }
             updatedDocuments.append(
@@ -133,12 +146,12 @@ struct DocumentsLoader {
     private func hash(_ sourceText: String) -> String {
         let digits = Array("0123456789abcdef".utf8)
         let capacity = 2 * SHA256.Digest.byteCount
-        return String(unsafeUninitializedCapacity: capacity) { ptr -> Int in
-            var p = ptr.baseAddress!
+        return String(unsafeUninitializedCapacity: capacity) { buffer -> Int in
+            var index = 0
             for byte in SHA256.hash(data: Data(sourceText.utf8)) {
-                p[0] = digits[Int(byte >> 4)]
-                p[1] = digits[Int(byte & 0x0F)]
-                p += 2
+                buffer[index] = digits[Int(byte >> 4)]
+                buffer[index + 1] = digits[Int(byte & 0x0F)]
+                index += 2
             }
             return capacity
         }

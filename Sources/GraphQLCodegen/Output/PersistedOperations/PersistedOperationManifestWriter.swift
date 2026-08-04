@@ -12,8 +12,8 @@ struct PersistedOperationManifestWriter {
                 case .operation(let operation):
                     operations.append(
                         PersistedOperationManifest.Operation(
-                            id: operation.hash!,
-                            body: operation.resolvedText!,
+                            id: operation.hash,
+                            body: operation.canonicalText,
                             name: operation.ast.name?.value,
                             type: operation.ast.operation.rawValue
                         )

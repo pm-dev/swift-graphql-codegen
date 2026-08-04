@@ -24,10 +24,10 @@ struct DocumentValidator {
 
     let documentText: String
     let graphQLJS: GraphQLJS
-    let schemaJSONString: String
+    let schemaJSON: String
 
     func validate() async throws -> [Error] {
-        let errorsJSON = try await graphQLJS.validate(documentText, schemaJSON: schemaJSONString)
+        let errorsJSON = try await graphQLJS.validate(documentText, schemaJSON: schemaJSON)
         return try JSONDecoder().decode([Error].self, from: errorsJSON)
     }
 }

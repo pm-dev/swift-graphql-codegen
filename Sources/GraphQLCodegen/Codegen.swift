@@ -17,7 +17,7 @@ public struct Codegen: Sendable {
         // Input
         let start = Date()
         let graphQLJS = try GraphQLJS()
-        let schema = try await SchemaLoader(
+        let loadedSchema = try await SchemaLoader(
             configuration: configuration,
             graphQLJS: graphQLJS,
             urlSession: urlSession
@@ -30,7 +30,8 @@ public struct Codegen: Sendable {
         // Validation
         if configuration.validation {
             try await DocumentsValidator(
-                schema: schema,
+                schema: loadedSchema.schema,
+                schemaJSON: loadedSchema.validationJSON,
                 documents: documents,
                 graphQLJS: graphQLJS
             ).validate()
@@ -38,7 +39,7 @@ public struct Codegen: Sendable {
 
         // Resolution
         let resolvedDocuments = try DocumentsResolver(
-            schema: schema,
+            schema: loadedSchema.schema,
             documents: documents
         ).resolve()
 
@@ -51,7 +52,7 @@ public struct Codegen: Sendable {
             ).write(using: fileOutput)
             try await SchemaWriter(
                 configuration: configuration,
-                schema: schema,
+                schema: loadedSchema.schema,
                 resolvedDocuments: resolvedDocuments
             ).write(using: fileOutput)
             try await APIWriter(
