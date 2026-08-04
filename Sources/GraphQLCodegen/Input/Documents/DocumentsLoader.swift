@@ -2,115 +2,140 @@ import CryptoKit
 import Foundation
 
 struct DocumentsLoader {
+    private enum ParsedDefinition {
+        case fragment(String)
+        case operation(ast: AST.OperationDefinition, sourceText: Substring)
+    }
+
     private struct ParsedDocument {
-        let url: URL
-        let sourceText: String
-        let ast: AST.Document
+        let definitions: [ParsedDefinition]
         let relativePath: String
+        let url: URL
     }
 
     let configuration: Configuration
     let graphQLJS: GraphQLJS
 
-    private var shouldHash: Bool {
-        switch configuration.output.documents.operations.persistedOperations {
-        case .registered: true
-        case .automatic, .none: false
-        }
-    }
-
     func load() throws -> Documents {
         let scan = try DocumentScanner(directories: configuration.input.documentDirectories).scan()
-        var parsedDocuments: [ParsedDocument] = []
         var fragmentLookup: [String: Document.Fragment] = [:]
-        for documentURL in scan.documentFileURLs {
+        let parsedDocuments = try parse(
+            scan.documentFileURLs,
+            fragmentLookup: &fragmentLookup
+        )
+        return Documents(
+            previouslyGenerated: scan.generatedFileURLs,
+            documents: try prepare(parsedDocuments, fragmentLookup: fragmentLookup),
+            fragmentLookup: fragmentLookup
+        )
+    }
+
+    private func parse(
+        _ documentURLs: [URL],
+        fragmentLookup: inout [String: Document.Fragment]
+    ) throws -> [ParsedDocument] {
+        var documents: [ParsedDocument] = []
+        documents.reserveCapacity(documentURLs.count)
+        for documentURL in documentURLs {
             let documentText = try String(contentsOf: documentURL, encoding: .utf8)
             let ast = try DocumentASTParser(
                 graphQLJS: graphQLJS,
                 sourceText: documentText
             ).parse()
+            var definitions: [ParsedDefinition] = []
+            definitions.reserveCapacity(ast.definitions.count)
             for definition in ast.definitions {
-                guard case .fragment(let fragment) = definition else { continue }
-                if let existing = fragmentLookup[fragment.name.value] {
-                    throw Codegen.Error(description: """
-                    Duplicate fragment name found:
-                    Name: \(fragment.name.value)
-                    Files:
-                    \(existing.file)
-                    and
-                    \(documentURL)
+                switch definition {
+                case .operation(let operation):
+                    definitions.append(.operation(
+                        ast: operation,
+                        sourceText: documentText[utf16Range: operation.loc.utf16Range]
+                    ))
+                case .fragment(let fragment):
+                    if let existing = fragmentLookup[fragment.name.value] {
+                        throw Codegen.Error(description: """
+                        Duplicate fragment name found:
+                        Name: \(fragment.name.value)
+                        Files:
+                        \(existing.file)
+                        and
+                        \(documentURL)
 
-                    Note: The GraphQL spec requires fragment names to be unique within a document,
-                    however, this codegen requires fragment names to be univerally unique.
-                    This allows reusing fragments declared in other .graphql files.
-                    If you think this is the wrong decision, please open an issue on github
-                    and explain your use-case.
-                    https://spec.graphql.org/October2021/#sel-IALVDDFDABhCBrE77W
-                    """)
+                        Note: The GraphQL spec requires fragment names to be unique within a document,
+                        however, this codegen requires fragment names to be univerally unique.
+                        This allows reusing fragments declared in other .graphql files.
+                        If you think this is the wrong decision, please open an issue on github
+                        and explain your use-case.
+                        https://spec.graphql.org/October2021/#sel-IALVDDFDABhCBrE77W
+                        """)
+                    }
+                    definitions.append(.fragment(fragment.name.value))
+                    fragmentLookup[fragment.name.value] = Document.Fragment(
+                        file: documentURL,
+                        ast: fragment,
+                        sourceText: documentText[utf16Range: fragment.loc.utf16Range]
+                    )
                 }
-                fragmentLookup[fragment.name.value] = Document.Fragment(
-                    file: documentURL,
-                    ast: fragment,
-                    sourceText: documentText[utf16Range: fragment.loc.utf16Range]
-                )
             }
-            parsedDocuments.append(
+            documents.append(
                 ParsedDocument(
-                    url: documentURL,
-                    sourceText: documentText,
-                    ast: ast,
-                    relativePath: try relativePath(for: documentURL)
+                    definitions: definitions,
+                    relativePath: try relativePath(for: documentURL),
+                    url: documentURL
                 )
             )
         }
-        return Documents(
-            previouslyGenerated: scan.generatedFileURLs,
-            documents: try resolvedDocuments(parsedDocuments, fragmentLookup: fragmentLookup),
-            fragmentLookup: fragmentLookup
-        )
+        return documents
     }
 
-    private func resolvedDocuments(
+    private func prepare(
         _ documents: [ParsedDocument],
         fragmentLookup: [String: Document.Fragment]
     ) throws -> [Document] {
-        var resolvedDocuments: [Document] = []
+        var updatedDocuments: [Document] = []
+        updatedDocuments.reserveCapacity(documents.count)
         for document in documents {
-            var resolvedDefinitions: [Document.Definition] = []
-            for definition in document.ast.definitions {
+            var updatedDefinitions: [Document.Definition] = []
+            updatedDefinitions.reserveCapacity(document.definitions.count)
+            for definition in document.definitions {
                 switch definition {
-                case .operation(let operation):
-                    let sourceText = document.sourceText[utf16Range: operation.loc.utf16Range]
-                    let resolvedText = try graphQLJS.canonicalize(
-                        try OperationTextResolver(
-                            operation: operation,
-                            sourceText: sourceText,
-                            fragmentLookup: fragmentLookup
-                        ).expandSourceText { $0.sourceText }
-                    )
-                    resolvedDefinitions.append(
+                case .operation(let operationAST, let operationSourceText):
+                    let expandedText = try OperationTextResolver(
+                        fragmentLookup: fragmentLookup,
+                        operationAST: operationAST,
+                        operationSourceText: operationSourceText
+                    ).expandSourceText { $0.sourceText }
+                    let canonicalText = try graphQLJS.canonicalize(expandedText)
+                    let persistence: Document.Operation.Persistence =
+                        switch configuration.output.documents.operations.persistedOperations {
+                        case .registered:
+                            .registered(hash: hash(canonicalText))
+                        case .automatic, .none:
+                            .standard
+                        }
+                    updatedDefinitions.append(
                         .operation(
                             Document.Operation(
-                                ast: operation,
-                                sourceText: sourceText,
-                                resolvedText: resolvedText,
-                                hash: shouldHash ? hash(resolvedText) : nil
+                                ast: operationAST,
+                                canonicalText: canonicalText,
+                                persistence: persistence,
+                                sourceText: operationSourceText
                             )
                         )
                     )
-                case .fragment(let fragment):
-                    resolvedDefinitions.append(.fragment(fragment.name.value))
+                case .fragment(let name):
+                    updatedDefinitions.append(.fragment(name))
                 }
             }
-            resolvedDocuments.append(
+            updatedDocuments.append(
                 Document(
                     url: document.url,
-                    definitions: resolvedDefinitions,
+                    definitions: updatedDefinitions,
                     relativePath: document.relativePath
                 )
             )
         }
-        return resolvedDocuments
+        return updatedDocuments
     }
 
     private func relativePath(for documentURL: URL) throws -> String {
@@ -128,12 +153,12 @@ struct DocumentsLoader {
     private func hash(_ sourceText: String) -> String {
         let digits = Array("0123456789abcdef".utf8)
         let capacity = 2 * SHA256.Digest.byteCount
-        return String(unsafeUninitializedCapacity: capacity) { ptr -> Int in
-            var p = ptr.baseAddress!
+        return String(unsafeUninitializedCapacity: capacity) { buffer -> Int in
+            var index = 0
             for byte in SHA256.hash(data: Data(sourceText.utf8)) {
-                p[0] = digits[Int(byte >> 4)]
-                p[1] = digits[Int(byte & 0x0F)]
-                p += 2
+                buffer[index] = digits[Int(byte >> 4)]
+                buffer[index + 1] = digits[Int(byte & 0x0F)]
+                index += 2
             }
             return capacity
         }

@@ -108,9 +108,9 @@ struct OperationBuilder {
         case .registered: break
         case .automatic, .none:
             let expandedSourceText = try OperationTextResolver(
-                operation: operation.ast,
-                sourceText: operation.sourceText,
-                fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment)
+                fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment),
+                operationAST: operation.ast,
+                operationSourceText: operation.sourceText
             ).expandSourceText { fragment in "\\(\(fragment.ast.name.value.capitalizedFirst).source)" }
             operationStruct.addProperty(
                 description: nil,
@@ -130,7 +130,7 @@ struct OperationBuilder {
                 name: "minifiedDocument",
                 value: .assigned(
                     SwiftSource(
-                        value: operation.resolvedText
+                        value: operation.canonicalText
                     ).multilineStringLiteral,
                     type: nil
                 )
@@ -139,7 +139,7 @@ struct OperationBuilder {
     }
 
     private mutating func addHashProperty() {
-        if let hash = operation.hash {
+        if case .registered(let hash) = operation.persistence {
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
