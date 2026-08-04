@@ -4,6 +4,7 @@ struct APIWriter {
     let configuration: Configuration
     let hasMutation: Bool
     let hasSubscription: Bool
+    let requiresIndirectNullable: Bool
 
     private var HTTPSupportDirectory: URL {
         configuration.output.api.directory.appending(
@@ -19,7 +20,10 @@ struct APIWriter {
         try await GraphQLEnumWriter(configuration: configuration).write(using: fileOutput)
         try await GraphQLErrorWriter(configuration: configuration).write(using: fileOutput)
         try await GraphQLHasDefaultWriter(configuration: configuration).write(using: fileOutput)
-        try await GraphQLNullableWriter(configuration: configuration).write(using: fileOutput)
+        try await GraphQLNullableWriter(
+            configuration: configuration,
+            requiresIndirectNullable: requiresIndirectNullable
+        ).write(using: fileOutput)
         try await GraphQLResponseWriter(configuration: configuration).write(using: fileOutput)
         try await JSONValueWriter(configuration: configuration).write(using: fileOutput)
 

@@ -48,7 +48,8 @@ public struct Codegen: Sendable {
             try await APIWriter(
                 configuration: configuration,
                 hasMutation: resolvedDocuments.hasMutation,
-                hasSubscription: resolvedDocuments.hasSubscription
+                hasSubscription: resolvedDocuments.hasSubscription,
+                requiresIndirectNullable: resolvedDocuments.requiresIndirectNullable
             ).write(using: fileOutput)
             switch configuration.output.documents.operations.persistedOperations {
             case .registered(let manifestURL):
