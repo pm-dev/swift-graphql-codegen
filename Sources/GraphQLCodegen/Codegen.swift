@@ -30,7 +30,6 @@ public struct Codegen: Sendable {
         // Validation
         if case .enabled(let schemaJSON) = loadedSchema.validation {
             try DocumentsValidator(
-                schema: loadedSchema.schema,
                 schemaJSON: schemaJSON,
                 documents: documents,
                 graphQLJS: graphQLJS

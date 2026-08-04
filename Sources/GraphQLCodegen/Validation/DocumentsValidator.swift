@@ -27,7 +27,6 @@ struct DocumentsValidator {
         }
     }
 
-    let schema: Schema
     let schemaJSON: String
     let documents: Documents
     let graphQLJS: GraphQLJS
