@@ -43,7 +43,7 @@ struct DocumentsResolver {
                     }
                 case .fragmentSpread(let fragmentSpread):
                     let fragmentSpreadName = fragmentSpread.name.value
-                    if !usedFragments.keys.contains(fragmentSpreadName) {
+                    if usedFragments[fragmentSpreadName] == nil {
                         let fragment = try documents.fragment(fragmentSpreadName)
                         usedFragments[fragmentSpreadName] = fragment
                         selectionSets.append(fragment.ast.selectionSet)
