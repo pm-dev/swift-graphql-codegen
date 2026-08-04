@@ -1,7 +1,8 @@
 extension String {
-    subscript(_ range: Range<Int>) -> Substring {
+    subscript(utf16Range range: Range<Int>) -> Substring {
         self[
-            index(startIndex, offsetBy: range.startIndex)..<index(startIndex, offsetBy: range.endIndex)
+            String.Index(utf16Offset: range.lowerBound, in: self) ..<
+            String.Index(utf16Offset: range.upperBound, in: self)
         ]
     }
 
