@@ -22,14 +22,14 @@ public struct Codegen: Sendable {
             graphQLJS: graphQLJS,
             urlSession: urlSession
         ).load()
-        let documents = try await DocumentsLoader(
+        let documents = try DocumentsLoader(
             configuration: configuration,
             graphQLJS: graphQLJS
         ).load()
 
         // Validation
         if configuration.validation {
-            try await DocumentsValidator(
+            try DocumentsValidator(
                 schema: schema,
                 documents: documents,
                 graphQLJS: graphQLJS

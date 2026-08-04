@@ -12,13 +12,13 @@ struct DocumentsLoader {
         }
     }
 
-    func load() async throws -> Documents {
+    func load() throws -> Documents {
         let scan = try DocumentScanner(directories: configuration.input.documentDirectories).scan()
         var documents: [Document] = []
         var fragmentLookup: [String: Document.Fragment] = [:]
         for documentURL in scan.documentFileURLs {
             let documentText = try String(contentsOf: documentURL, encoding: .utf8)
-            let ast = try await DocumentASTParser(
+            let ast = try DocumentASTParser(
                 graphQLJS: graphQLJS,
                 sourceText: documentText
             ).parse()
@@ -72,7 +72,7 @@ struct DocumentsLoader {
         }
         return Documents(
             previouslyGenerated: scan.generatedFileURLs,
-            documents: try await resolvedDocuments(documents, fragmentLookup: fragmentLookup),
+            documents: try resolvedDocuments(documents, fragmentLookup: fragmentLookup),
             fragmentLookup: fragmentLookup
         )
     }
@@ -80,14 +80,14 @@ struct DocumentsLoader {
     private func resolvedDocuments(
         _ documents: [Document],
         fragmentLookup: [String: Document.Fragment]
-    ) async throws -> [Document] {
+    ) throws -> [Document] {
         var updatedDocuments: [Document] = []
         for document in documents {
             var updatedDefinitions: [Document.Definition] = []
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
-                    let resolvedText = try await graphQLJS.canonicalize(
+                    let resolvedText = try graphQLJS.canonicalize(
                         try OperationTextResolver(
                             operation: operation,
                             fragmentLookup: fragmentLookup

@@ -1,7 +1,7 @@
 import Foundation
 @preconcurrency import JavaScriptCore
 
-actor GraphQLJS {
+struct GraphQLJS {
     enum Error: Swift.Error, CustomStringConvertible {
         case bundleEvaluationFailed(String)
         case bundleReadFailed(URL, String)

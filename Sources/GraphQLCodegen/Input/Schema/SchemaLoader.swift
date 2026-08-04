@@ -110,7 +110,7 @@ struct SchemaLoader {
             let includeDeprecatedFields,
             let includeDeprecatedEnumValues
         ):
-            try await loadSchemaFromSDLFile(
+            try loadSchemaFromSDLFile(
                 schemaFile,
                 includeDeprecatedFields: includeDeprecatedFields,
                 includeDeprecatedEnumValues: includeDeprecatedEnumValues
@@ -155,13 +155,13 @@ struct SchemaLoader {
         _ schemaFile: URL,
         includeDeprecatedFields: Bool,
         includeDeprecatedEnumValues: Bool
-    ) async throws -> (String?, __Schema) {
+    ) throws -> (String?, __Schema) {
         let sdlSchemaString = try String(contentsOf: schemaFile, encoding: .utf8)
         let introspectionQuery = IntrospectionQuery(
             includeDeprecatedFields: includeDeprecatedFields,
             includeDeprecatedEnumValues: includeDeprecatedEnumValues
         ).query
-        let jsonSchema = try await graphQLJS.convertSDLSchema(
+        let jsonSchema = try graphQLJS.convertSDLSchema(
             sdlSchemaString,
             introspectionQuery: introspectionQuery
         )

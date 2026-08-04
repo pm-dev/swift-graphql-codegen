@@ -31,7 +31,7 @@ struct DocumentsValidator {
     let documents: Documents
     let graphQLJS: GraphQLJS
 
-    func validate() async throws {
+    func validate() throws {
         var documentErrors: [DocumentError] = []
         let schemaJSONString = schema.jsonString!
         for document in documents.documents {
@@ -39,7 +39,7 @@ struct DocumentsValidator {
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
-                    let errors = try await DocumentValidator(
+                    let errors = try DocumentValidator(
                         documentText: operation.resolvedText!,
                         graphQLJS: graphQLJS,
                         schemaJSONString: schemaJSONString
