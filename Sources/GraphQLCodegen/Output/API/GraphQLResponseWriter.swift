@@ -38,7 +38,7 @@ struct GraphQLResponseWriter {
                 let errors = try container.decodeIfPresent([GraphQLError].self, forKey: .errors)
                 let extensions = try container.decodeIfPresent([String: JSONValue].self, forKey: .extensions)
                 if let data = try container.decodeIfPresent(Data.self, forKey: .data) {
-                    guard errors == nil || !errors!.isEmpty else {
+                    guard errors?.isEmpty != true else {
                         throw DecodingError.dataCorruptedError(
                             forKey: .errors,
                             in: container,

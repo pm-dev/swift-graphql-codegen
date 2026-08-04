@@ -1,5 +1,10 @@
 import Foundation
 
+struct LoadedSchema {
+    let schema: Schema
+    let validationJSON: String
+}
+
 // Type names are guaranteed to be unique
 // https://spec.graphql.org/October2021/#sel-FAHTLABDBEmrR
 struct TypeASTCache {
@@ -78,18 +83,20 @@ struct SchemaLoader {
     let graphQLJS: GraphQLJS
     let urlSession: URLSession
 
-    func load() async throws -> Schema {
-        let (jsonString, typedSchema) = try await loadIntrospection()
-        return Schema(
-            jsonString: jsonString,
-            queryTypeRef: typedSchema.queryType,
-            mutationTypeRef: typedSchema.mutationType,
-            subscriptionTypeRef: typedSchema.subscriptionType,
-            typeCache: TypeCache(TypeASTCache(typedSchema))
+    func load() async throws -> LoadedSchema {
+        let (validationJSON, typedSchema) = try await loadIntrospection()
+        return LoadedSchema(
+            schema: Schema(
+                queryTypeRef: typedSchema.queryType,
+                mutationTypeRef: typedSchema.mutationType,
+                subscriptionTypeRef: typedSchema.subscriptionType,
+                typeCache: TypeCache(TypeASTCache(typedSchema))
+            ),
+            validationJSON: validationJSON
         )
     }
 
-    private func loadIntrospection() async throws -> (String?, __Schema) {
+    private func loadIntrospection() async throws -> (String, __Schema) {
         switch configuration.input.schemaSource {
         case .introspectionEndpoint(
             let endpoint,
@@ -123,7 +130,7 @@ struct SchemaLoader {
         headers: [String: String],
         includeDeprecatedFields: Bool = false,
         includeDeprecatedEnumValues: Bool = false
-    ) async throws -> (String?, __Schema) {
+    ) async throws -> (String, __Schema) {
         let data = try await IntrospectionRunner(
             endpoint: endpoint,
             headers: headers,
@@ -132,30 +139,25 @@ struct SchemaLoader {
             urlSession: urlSession
         ).run()
         let __schema = try JSONDecoder().decode(IntrospectionResponse.self, from: data).data.__schema
-        var schemaString: String?
-        if configuration.validation {
-            let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-            let schemaJSONData = try JSONSerialization.data(withJSONObject: obj["data"] as Any)
-            schemaString = String(data: schemaJSONData, encoding: .utf8)!
+        guard let response = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let schemaObject = response["data"] else {
+            throw Codegen.Error(description: "The introspection endpoint returned an invalid GraphQL response.")
         }
-        return (schemaString, __schema)
+        let schemaJSON = try JSONSerialization.data(withJSONObject: schemaObject)
+        return (try decodeUTF8(schemaJSON, source: endpoint), __schema)
     }
 
-    private func loadSchemaFromJSONFile(_ schemaFile: URL) throws -> (String?, __Schema) {
+    private func loadSchemaFromJSONFile(_ schemaFile: URL) throws -> (String, __Schema) {
         let data = try Data(contentsOf: schemaFile)
         let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: data).__schema
-        var schemaString: String?
-        if configuration.validation {
-            schemaString = String(data: data, encoding: .utf8)!
-        }
-        return (schemaString, __schema)
+        return (try decodeUTF8(data, source: schemaFile), __schema)
     }
 
     private func loadSchemaFromSDLFile(
         _ schemaFile: URL,
         includeDeprecatedFields: Bool,
         includeDeprecatedEnumValues: Bool
-    ) throws -> (String?, __Schema) {
+    ) throws -> (String, __Schema) {
         let sdlSchemaString = try String(contentsOf: schemaFile, encoding: .utf8)
         let introspectionQuery = IntrospectionQuery(
             includeDeprecatedFields: includeDeprecatedFields,
@@ -166,6 +168,13 @@ struct SchemaLoader {
             introspectionQuery: introspectionQuery
         )
         let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: jsonSchema.data).__schema
-        return (configuration.validation ? jsonSchema.text : nil, __schema)
+        return (jsonSchema.text, __schema)
+    }
+
+    private func decodeUTF8(_ data: Data, source: URL) throws -> String {
+        guard let string = String(data: data, encoding: .utf8) else {
+            throw Codegen.Error(description: "Schema source is not valid UTF-8: \(source)")
+        }
+        return string
     }
 }

@@ -2,7 +2,6 @@ import Foundation
 import OrderedCollections
 
 struct Schema {
-    let jsonString: String?
     let queryTypeRef: __Schema.__TypeRef.Object
     let mutationTypeRef: __Schema.__TypeRef.Object?
     let subscriptionTypeRef: __Schema.__TypeRef.Object?
