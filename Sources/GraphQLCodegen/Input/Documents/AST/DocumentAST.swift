@@ -2,11 +2,12 @@ import Foundation
 
 /// https://github.com/graphql/graphql-js/blob/16.x.x/src/language/ast.ts
 enum AST {
+    /// Verified against the bundled graphql-js parser: location offsets are UTF-16 code units.
     struct Location: Decodable, Hashable {
         let start: Int
         let end: Int
 
-        var range: Range<Int> {
+        var utf16Range: Range<Int> {
             start..<end
         }
     }
