@@ -13,7 +13,7 @@ struct PersistedOperationManifestWriter {
                     operations.append(
                         PersistedOperationManifest.Operation(
                             id: operation.hash!,
-                            body: operation.resolvedText!,
+                            body: operation.resolvedText,
                             name: operation.ast.name?.value,
                             type: operation.ast.operation.rawValue
                         )

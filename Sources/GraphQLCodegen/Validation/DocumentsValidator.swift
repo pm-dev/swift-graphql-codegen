@@ -40,7 +40,7 @@ struct DocumentsValidator {
                 switch definition {
                 case .operation(let operation):
                     let errors = try DocumentValidator(
-                        documentText: operation.resolvedText!,
+                        documentText: operation.resolvedText,
                         graphQLJS: graphQLJS,
                         schemaJSONString: schemaJSONString
                     ).validate()

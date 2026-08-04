@@ -2,6 +2,13 @@ import CryptoKit
 import Foundation
 
 struct DocumentsLoader {
+    private struct ParsedDocument {
+        let url: URL
+        let sourceText: String
+        let ast: AST.Document
+        let relativePath: String
+    }
+
     let configuration: Configuration
     let graphQLJS: GraphQLJS
 
@@ -14,7 +21,7 @@ struct DocumentsLoader {
 
     func load() throws -> Documents {
         let scan = try DocumentScanner(directories: configuration.input.documentDirectories).scan()
-        var documents: [Document] = []
+        var parsedDocuments: [ParsedDocument] = []
         var fragmentLookup: [String: Document.Fragment] = [:]
         for documentURL in scan.documentFileURLs {
             let documentText = try String(contentsOf: documentURL, encoding: .utf8)
@@ -22,100 +29,88 @@ struct DocumentsLoader {
                 graphQLJS: graphQLJS,
                 sourceText: documentText
             ).parse()
-            var definitions: [Document.Definition] = []
             for definition in ast.definitions {
-                switch definition {
-                case .operation(let operation):
-                    definitions.append(
-                        .operation(
-                            Document.Operation(
-                                ast: operation,
-                                sourceText: documentText[utf16Range: operation.loc.utf16Range],
-                                resolvedText: nil,
-                                hash: nil
-                            )
-                        )
-                    )
-                case .fragment(let fragment):
-                    if let existing = fragmentLookup[fragment.name.value] {
-                        throw Codegen.Error(description: """
-                        Duplicate fragment name found:
-                        Name: \(fragment.name.value)
-                        Files:
-                        \(existing.file)
-                        and
-                        \(documentURL)
+                guard case .fragment(let fragment) = definition else { continue }
+                if let existing = fragmentLookup[fragment.name.value] {
+                    throw Codegen.Error(description: """
+                    Duplicate fragment name found:
+                    Name: \(fragment.name.value)
+                    Files:
+                    \(existing.file)
+                    and
+                    \(documentURL)
 
-                        Note: The GraphQL spec requires fragment names to be unique within a document,
-                        however, this codegen requires fragment names to be univerally unique.
-                        This allows reusing fragments declared in other .graphql files.
-                        If you think this is the wrong decision, please open an issue on github
-                        and explain your use-case.
-                        https://spec.graphql.org/October2021/#sel-IALVDDFDABhCBrE77W
-                        """)
-                    }
-                    definitions.append(.fragment(fragment.name.value))
-                    fragmentLookup[fragment.name.value] = Document.Fragment(
-                        file: documentURL,
-                        ast: fragment,
-                        sourceText: documentText[utf16Range: fragment.loc.utf16Range]
-                    )
+                    Note: The GraphQL spec requires fragment names to be unique within a document,
+                    however, this codegen requires fragment names to be univerally unique.
+                    This allows reusing fragments declared in other .graphql files.
+                    If you think this is the wrong decision, please open an issue on github
+                    and explain your use-case.
+                    https://spec.graphql.org/October2021/#sel-IALVDDFDABhCBrE77W
+                    """)
                 }
+                fragmentLookup[fragment.name.value] = Document.Fragment(
+                    file: documentURL,
+                    ast: fragment,
+                    sourceText: documentText[utf16Range: fragment.loc.utf16Range]
+                )
             }
-            documents.append(
-                Document(
+            parsedDocuments.append(
+                ParsedDocument(
                     url: documentURL,
-                    definitions: definitions,
+                    sourceText: documentText,
+                    ast: ast,
                     relativePath: try relativePath(for: documentURL)
                 )
             )
         }
         return Documents(
             previouslyGenerated: scan.generatedFileURLs,
-            documents: try resolvedDocuments(documents, fragmentLookup: fragmentLookup),
+            documents: try resolvedDocuments(parsedDocuments, fragmentLookup: fragmentLookup),
             fragmentLookup: fragmentLookup
         )
     }
 
     private func resolvedDocuments(
-        _ documents: [Document],
+        _ documents: [ParsedDocument],
         fragmentLookup: [String: Document.Fragment]
     ) throws -> [Document] {
-        var updatedDocuments: [Document] = []
+        var resolvedDocuments: [Document] = []
         for document in documents {
-            var updatedDefinitions: [Document.Definition] = []
-            for definition in document.definitions {
+            var resolvedDefinitions: [Document.Definition] = []
+            for definition in document.ast.definitions {
                 switch definition {
                 case .operation(let operation):
+                    let sourceText = document.sourceText[utf16Range: operation.loc.utf16Range]
                     let resolvedText = try graphQLJS.canonicalize(
                         try OperationTextResolver(
                             operation: operation,
+                            sourceText: sourceText,
                             fragmentLookup: fragmentLookup
                         ).expandSourceText { $0.sourceText }
                     )
-                    updatedDefinitions.append(
+                    resolvedDefinitions.append(
                         .operation(
                             Document.Operation(
-                                ast: operation.ast,
-                                sourceText: operation.sourceText,
+                                ast: operation,
+                                sourceText: sourceText,
                                 resolvedText: resolvedText,
                                 hash: shouldHash ? hash(resolvedText) : nil
                             )
                         )
                     )
-                case .fragment:
-                    updatedDefinitions.append(definition)
+                case .fragment(let fragment):
+                    resolvedDefinitions.append(.fragment(fragment.name.value))
                 }
             }
-            updatedDocuments.append(
+            resolvedDocuments.append(
                 Document(
                     url: document.url,
-                    definitions: updatedDefinitions,
+                    definitions: resolvedDefinitions,
                     relativePath: document.relativePath
                 )
             )
         }
-        return updatedDocuments
+        return resolvedDocuments
     }
 
     private func relativePath(for documentURL: URL) throws -> String {

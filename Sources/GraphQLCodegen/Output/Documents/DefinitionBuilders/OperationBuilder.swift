@@ -108,7 +108,8 @@ struct OperationBuilder {
         case .registered: break
         case .automatic, .none:
             let expandedSourceText = try OperationTextResolver(
-                operation: operation,
+                operation: operation.ast,
+                sourceText: operation.sourceText,
                 fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment)
             ).expandSourceText { fragment in "\\(\(fragment.ast.name.value.capitalizedFirst).source)" }
             operationStruct.addProperty(
@@ -129,7 +130,7 @@ struct OperationBuilder {
                 name: "minifiedDocument",
                 value: .assigned(
                     SwiftSource(
-                        value: operation.resolvedText!
+                        value: operation.resolvedText
                     ).multilineStringLiteral,
                     type: nil
                 )

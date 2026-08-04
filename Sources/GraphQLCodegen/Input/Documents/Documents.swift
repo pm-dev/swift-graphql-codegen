@@ -26,7 +26,7 @@ struct Document: Sendable {
     struct Operation: Sendable {
         let ast: AST.OperationDefinition
         let sourceText: Substring
-        let resolvedText: String?
+        let resolvedText: String
         let hash: String?
     }
 

@@ -1,14 +1,15 @@
 import OrderedCollections
 
 struct OperationTextResolver {
-    let operation: Document.Operation
+    let operation: AST.OperationDefinition
+    let sourceText: Substring
     let fragmentLookup: [String: Document.Fragment]
 
     func expandSourceText(
         mapFragmentSpread: (Document.Fragment) -> Substring
     ) throws -> String {
         var text = """
-        \(operation.sourceText)
+        \(sourceText)
         """
         let fragmentSpreads = try fragmentSpreadsDeep().compactMap(mapFragmentSpread)
         if !fragmentSpreads.isEmpty {
@@ -21,7 +22,7 @@ struct OperationTextResolver {
     private func fragmentSpreadsDeep() throws -> [Document.Fragment] {
         var result: [Document.Fragment] = []
         var visited: Set<String> = []
-        var stack: [AST.SelectionSet] = [operation.ast.selectionSet]
+        var stack: [AST.SelectionSet] = [operation.selectionSet]
         while let current = stack.popLast() {
             for selection in current.selections {
                 switch selection {
@@ -33,7 +34,7 @@ struct OperationTextResolver {
                         guard let fragment = fragmentLookup[fragmentSpread.name.value] else {
                             throw Codegen.Error(description: """
                             Fragment spread '...\(fragmentSpread.name.value)' used in operation \
-                            \(operation.ast.name?.value ?? "")
+                            \(operation.name?.value ?? "")
                             but no definition was found for the fragment.
                             """)
                         }
