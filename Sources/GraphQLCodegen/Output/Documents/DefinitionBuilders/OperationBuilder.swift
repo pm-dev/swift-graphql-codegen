@@ -139,7 +139,7 @@ struct OperationBuilder {
     }
 
     private mutating func addHashProperty() {
-        if case .registered = configuration.output.documents.operations.persistedOperations {
+        if case .registered(let hash) = operation.persistence {
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
@@ -147,7 +147,7 @@ struct OperationBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "hash",
-                value: .assigned("\"\(operation.hash)\"", type: nil)
+                value: .assigned("\"\(hash)\"", type: nil)
             )
         }
     }

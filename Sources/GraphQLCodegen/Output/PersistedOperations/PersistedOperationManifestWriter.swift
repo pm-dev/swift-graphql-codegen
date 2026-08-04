@@ -10,9 +10,10 @@ struct PersistedOperationManifestWriter {
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
+                    guard case .registered(let hash) = operation.persistence else { continue }
                     operations.append(
                         PersistedOperationManifest.Operation(
-                            id: operation.hash,
+                            id: hash,
                             body: operation.canonicalText,
                             name: operation.ast.name?.value,
                             type: operation.ast.operation.rawValue

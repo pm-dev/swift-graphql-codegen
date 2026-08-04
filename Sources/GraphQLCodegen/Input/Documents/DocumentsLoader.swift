@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 struct DocumentsLoader {
@@ -105,11 +106,19 @@ struct DocumentsLoader {
                         operationSourceText: operationSourceText
                     ).expandSourceText { $0.sourceText }
                     let canonicalText = try graphQLJS.canonicalize(expandedText)
+                    let persistence: Document.Operation.Persistence =
+                        switch configuration.output.documents.operations.persistedOperations {
+                        case .registered:
+                            .registered(hash: hash(canonicalText))
+                        case .automatic, .none:
+                            .standard
+                        }
                     updatedDefinitions.append(
                         .operation(
                             Document.Operation(
                                 ast: operationAST,
                                 canonicalText: canonicalText,
+                                persistence: persistence,
                                 sourceText: operationSourceText
                             )
                         )
@@ -139,5 +148,19 @@ struct DocumentsLoader {
             throw Codegen.Error(description: "Document is outside the configured input directories: \(documentURL)")
         }
         return documentComponents.dropFirst(sourceRoot.count).joined(separator: "/")
+    }
+
+    private func hash(_ sourceText: String) -> String {
+        let digits = Array("0123456789abcdef".utf8)
+        let capacity = 2 * SHA256.Digest.byteCount
+        return String(unsafeUninitializedCapacity: capacity) { buffer -> Int in
+            var index = 0
+            for byte in SHA256.hash(data: Data(sourceText.utf8)) {
+                buffer[index] = digits[Int(byte >> 4)]
+                buffer[index + 1] = digits[Int(byte & 0x0F)]
+                index += 2
+            }
+            return capacity
+        }
     }
 }
