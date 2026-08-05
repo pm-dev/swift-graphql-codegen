@@ -17,17 +17,10 @@ let package = Package(
             name: "GraphQLCodegen",
             dependencies: [
                 .product(name: "OrderedCollections", package: "swift-collections"),
-                .target(name: "LetterCase"),
             ],
             resources: [
                 .copy("Resources/graphql.bundle.js"),
             ]
-        ),
-        .target(
-            // From https://github.com/rwbutler/LetterCase.
-            // See Sources/LetterCase/LICENSE for the upstream license.
-            name: "LetterCase",
-            exclude: ["LICENSE"]
         ),
         .testTarget(
             name: "GraphQLCodegenTests",

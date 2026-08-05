@@ -1,5 +1,3 @@
-import LetterCase
-
 struct SchemaEnumBuilder: SwiftTypeBuildable {
     let `enum`: Schema.Enum
     let configuration: Configuration
@@ -14,11 +12,8 @@ struct SchemaEnumBuilder: SwiftTypeBuildable {
         )
         for enumValue in `enum`.ast.enumValues {
             let caseName: String
-            if let caseConverstion = configuration.output.schema.enums.caseConversion {
-                caseName = enumValue.name.convert(
-                    from: caseConverstion.from.letterCase,
-                    to: caseConverstion.to.letterCase
-                )
+            if let caseConversion = configuration.output.schema.enums.caseConversion {
+                caseName = caseConversion.convert(enumValue.name)
             } else {
                 caseName = enumValue.name
             }
@@ -29,14 +24,5 @@ struct SchemaEnumBuilder: SwiftTypeBuildable {
             )
         }
         return builder.build(configuration: configuration)
-    }
-}
-
-extension Configuration.Output.Schema.Enums.CaseConversion.Case {
-    var letterCase: LetterCase {
-        switch self {
-        case .lowerCamel: .lowerCamel
-        case .macro: .macro
-        }
     }
 }
