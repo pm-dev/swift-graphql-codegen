@@ -29,7 +29,7 @@ actor FileOutput {
 
     private enum State {
         case staging
-        case recoveryRequired(CommitState)
+        case recoveryRequired
         case finished
     }
 
@@ -123,7 +123,7 @@ actor FileOutput {
                 finish()
                 throw commitError
             }
-            state = .recoveryRequired(commitState)
+            state = .recoveryRequired
             throw TransactionError(description: """
             Failed to commit generated output: \(commitError)
             Automatic recovery was incomplete. Recovery files were retained in the temporary directory.
