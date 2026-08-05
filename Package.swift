@@ -35,7 +35,6 @@ let package = Package(
                 .target(name: "GraphQLCodegen")
             ],
             exclude: [
-                "Integration/ExpectedOutput/",
                 "GraphQLCodegen.xctestplan",
             ]
         ),
