@@ -20,25 +20,25 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         }
     }
 
-    private var builder = SwiftTypeBuilder()
+    private var builder: SwiftTypeBuilder
 
-    func build(configuration: Configuration) -> [String] {
-        builder.build(configuration: configuration)
-    }
-
-    mutating func start(
+    init(
         description: String?,
         isPublic: Bool,
-        structName: String,
+        name: String,
         conformances: [String]
     ) {
-        builder.start(
+        builder = SwiftTypeBuilder(
             description: description,
             isPublic: isPublic,
             type: "struct",
-            name: identifier(structName),
+            name: identifier(name),
             conformances: conformances
         )
+    }
+
+    func build(configuration: Configuration) -> [String] {
+        builder.build(configuration: configuration)
     }
 
     mutating func addProperty(

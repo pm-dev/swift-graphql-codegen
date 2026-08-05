@@ -87,11 +87,10 @@ extension SwiftStructBuilder {
         switch fieldType {
         case .scalar: break
         case .map(let map):
-            var nestedStruct = SwiftStructBuilder()
-            nestedStruct.start(
+            var nestedStruct = SwiftStructBuilder(
                 description: nil,
                 isPublic: isPublic,
-                structName: responseKey.capitalizedFirst,
+                name: responseKey.capitalizedFirst,
                 conformances: conformances.elements
             )
             do {
@@ -144,13 +143,12 @@ extension SwiftStructBuilder {
         if hasFields {
             initializerBody.append("let container = try decoder.container(keyedBy: CodingKeys.self)")
         }
-        var codingKeysEnum = hasFields ? SwiftEnumBuilder() : nil
-        codingKeysEnum?.start(
+        var codingKeysEnum = hasFields ? SwiftEnumBuilder(
             description: nil,
             isPublic: false,
-            enumName: "CodingKeys",
+            name: "CodingKeys",
             conformances: ["CodingKey"]
-        )
+        ) : nil
         for (responseKey, selection) in selectionSet {
             switch selection {
             case .field(let field, let conditional):

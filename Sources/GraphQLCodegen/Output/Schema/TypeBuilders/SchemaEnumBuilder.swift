@@ -3,11 +3,10 @@ struct SchemaEnumBuilder: SwiftTypeBuildable {
     let configuration: Configuration
 
     func build(configuration: Configuration) -> [String] {
-        var builder = SwiftEnumBuilder()
-        builder.start(
+        var builder = SwiftEnumBuilder(
             description: `enum`.ast.description,
             isPublic: configuration.output.schema.accessLevel == .public,
-            enumName: `enum`.ast.name,
+            name: `enum`.ast.name,
             conformances: ["String"] + configuration.output.schema.enums.conformances
         )
         for enumValue in `enum`.ast.enumValues {

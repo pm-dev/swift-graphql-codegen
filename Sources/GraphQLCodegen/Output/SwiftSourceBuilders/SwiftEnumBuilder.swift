@@ -1,23 +1,23 @@
 struct SwiftEnumBuilder: SwiftTypeBuildable {
-    private var builder = SwiftTypeBuilder()
+    private var builder: SwiftTypeBuilder
 
-    func build(configuration: Configuration) -> [String] {
-        builder.build(configuration: configuration)
-    }
-
-    mutating func start(
+    init(
         description: String?,
         isPublic: Bool,
-        enumName: String,
+        name: String,
         conformances: [String]
     ) {
-        builder.start(
+        builder = SwiftTypeBuilder(
             description: description,
             isPublic: isPublic,
             type: "enum",
-            name: identifier(enumName),
+            name: identifier(name),
             conformances: conformances
         )
+    }
+
+    func build(configuration: Configuration) -> [String] {
+        builder.build(configuration: configuration)
     }
 
     mutating func addCase(

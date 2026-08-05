@@ -3,11 +3,10 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
 
     func build(configuration: Configuration) -> [String] {
         let isPublic = configuration.output.schema.accessLevel == .public
-        var builder = SwiftStructBuilder()
-        builder.start(
+        var builder = SwiftStructBuilder(
             description: inputObject.ast.description,
             isPublic: isPublic,
-            structName: inputObject.ast.name,
+            name: inputObject.ast.name,
             conformances: configuration.output.schema.inputObjects.conformances
         )
         for inputField in inputObject.ast.inputFields {

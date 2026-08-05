@@ -65,7 +65,7 @@ struct DocumentsWriter {
         _ operation: ResolvedOperation,
         in document: Document
     ) throws -> SwiftTypeBuildable {
-        var operation = OperationBuilder(
+        let operation = OperationBuilder(
             configuration: configuration,
             document: document,
             resolvedOperation: operation
@@ -80,7 +80,7 @@ struct DocumentsWriter {
         guard let resolvedFragment = resolvedDocuments.fragmentLookup[fragmentName] else {
             return nil // fragment not used
         }
-        var fragment = FragmentBuilder(
+        let fragment = FragmentBuilder(
             configuration: configuration,
             document: document,
             resolvedFragment: resolvedFragment,
