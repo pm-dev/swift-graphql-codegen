@@ -5,7 +5,6 @@ struct OperationBuilder {
     let configuration: Configuration
     let document: Document
     let resolvedOperation: ResolvedOperation
-    let resolvedDocuments: ResolvedDocuments
 
     private var operationStruct = SwiftStructBuilder()
 
@@ -23,13 +22,11 @@ struct OperationBuilder {
     init(
         configuration: Configuration,
         document: Document,
-        resolvedOperation: ResolvedOperation,
-        resolvedDocuments: ResolvedDocuments
+        resolvedOperation: ResolvedOperation
     ) {
         self.configuration = configuration
         self.document = document
         self.resolvedOperation = resolvedOperation
-        self.resolvedDocuments = resolvedDocuments
     }
 
     mutating func buildable() throws -> SwiftTypeBuildable {

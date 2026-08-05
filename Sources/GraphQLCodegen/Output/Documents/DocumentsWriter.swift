@@ -68,8 +68,7 @@ struct DocumentsWriter {
         var operation = OperationBuilder(
             configuration: configuration,
             document: document,
-            resolvedOperation: operation,
-            resolvedDocuments: resolvedDocuments
+            resolvedOperation: operation
         )
         return try operation.buildable()
     }
