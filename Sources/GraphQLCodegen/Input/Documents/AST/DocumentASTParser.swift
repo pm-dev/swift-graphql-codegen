@@ -4,8 +4,8 @@ struct DocumentASTParser {
     let graphQLJS: GraphQLJS
     let sourceText: String
 
-    func parse() throws -> AST.Document {
+    func parse() throws -> GraphQLAST.Document {
         let astJSON = try graphQLJS.parse(sourceText)
-        return try JSONDecoder().decode(AST.Document.self, from: astJSON)
+        return try JSONDecoder().decode(GraphQLAST.Document.self, from: astJSON)
     }
 }

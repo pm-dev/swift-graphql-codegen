@@ -1,7 +1,7 @@
 import OrderedCollections
 
 struct FieldResolver {
-    let fieldSelection: AST.Field
+    let fieldSelection: GraphQLAST.Field
     let fieldSchema: __Schema.__Field
     let schema: Schema
     let documents: Documents

@@ -2,7 +2,7 @@ import OrderedCollections
 
 struct OperationTextResolver {
     let fragmentLookup: [String: Document.Fragment]
-    let operationAST: AST.OperationDefinition
+    let operationAST: GraphQLAST.OperationDefinition
     let operationSourceText: Substring
 
     func expandSourceText(
@@ -22,7 +22,7 @@ struct OperationTextResolver {
     private func fragmentSpreadsDeep() throws -> [Document.Fragment] {
         var result: [Document.Fragment] = []
         var visited: Set<String> = []
-        var stack: [AST.SelectionSet] = [operationAST.selectionSet]
+        var stack: [GraphQLAST.SelectionSet] = [operationAST.selectionSet]
         while let current = stack.popLast() {
             for selection in current.selections {
                 switch selection {

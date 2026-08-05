@@ -26,7 +26,7 @@ struct DocumentsResolver {
     }
 
     private func usedFragments() throws -> [String: Document.Fragment] {
-        var selectionSets: [AST.SelectionSet] = []
+        var selectionSets: [GraphQLAST.SelectionSet] = []
         for document in documents.documents {
             for definition in document.definitions {
                 switch definition {
@@ -171,7 +171,7 @@ struct DocumentsResolver {
         return usedTypes
     }
 
-    private func usedInputTypes(_ variableDefinition: AST.VariableDefinition) throws -> Set<String> {
+    private func usedInputTypes(_ variableDefinition: GraphQLAST.VariableDefinition) throws -> Set<String> {
         var usedTypes = Set<String>()
         let inputType = try schema.inputType(variableDefinition)
         var stack: [Schema.Input] = [inputType]
@@ -265,7 +265,7 @@ struct DocumentsResolver {
         return usedTypes
     }
 
-    private func hasOperationType(_ type: AST.OperationType) -> Bool {
+    private func hasOperationType(_ type: GraphQLAST.OperationType) -> Bool {
         for document in documents.documents {
             for definition in document.definitions {
                 switch definition {

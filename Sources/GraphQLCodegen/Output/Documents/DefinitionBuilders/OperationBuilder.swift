@@ -278,7 +278,7 @@ struct OperationBuilder {
     }
 }
 
-extension AST.VariableDefinition {
+extension GraphQLAST.VariableDefinition {
     fileprivate var typeName: String {
         type.typeName.formatted(
             formatName: { defaultValue == nil ? $0 : "GraphQLHasDefault<\($0)>" },
