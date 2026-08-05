@@ -25,7 +25,8 @@ extension Configuration.Input {
         )
 
         /// Instructs codegen to load your GraphQL schema from a .json file on the local filesystem.
-        /// The json format should match what would be included in the "data" field of an introspection query.
+        /// The JSON must match the object returned in the `data` field by the introspection query bundled with
+        /// this version of the codegen.
         case JSONSchemaFile(URL)
 
         /// Instructs codegen to load your GraphQL schema from a  .graphqls file on the local filesystem.

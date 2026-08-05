@@ -30,6 +30,7 @@ struct IntrospectionQuery: Encodable {
               name
               description
               locations
+              isRepeatable
               args {
                 ...InputValue
               }
@@ -41,6 +42,7 @@ struct IntrospectionQuery: Encodable {
           kind
           name
           description
+          specifiedByURL
           fields(includeDeprecated: \(includeDeprecatedFields ? "true" : "false")) {
             name
             description
