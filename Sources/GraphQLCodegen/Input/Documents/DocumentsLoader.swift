@@ -118,8 +118,8 @@ struct DocumentsLoader {
                             Document.Operation(
                                 ast: operationAST,
                                 canonicalText: canonicalText,
-                                persistence: persistence,
-                                sourceText: operationSourceText
+                                documentText: expandedText,
+                                persistence: persistence
                             )
                         )
                     )

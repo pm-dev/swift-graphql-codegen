@@ -23,7 +23,7 @@ struct DefaultURLQueryEncoder: URLQueryEncoder {
             URLQueryItem(name: "query", value: body.query),
             URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
             URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                String(data: try encoder.encode(extensions), encoding: .utf8)!
+                String(decoding: try encoder.encode(extensions), as: UTF8.self)
             })
         ]
     }
@@ -64,30 +64,30 @@ private struct Body: Encodable {
         let query = minifyDocument ? Operation.minifiedDocument : Operation.document
         var extensions = operation.extensions
         if automaticPersistedOperationPhase != nil {
-            var _extensions = extensions ?? [:]
-            _extensions["persistedQuery"] = AnyEncodable([
+            var persistedExtensions = extensions ?? [:]
+            persistedExtensions["persistedQuery"] = AnyEncodable([
                 "version": AnyEncodable(1),
-                "sha256Hash": AnyEncodable(Body.hash(query))
+                "sha256Hash": AnyEncodable(persistedOperationHash(query))
             ])
-            extensions = _extensions
+            extensions = persistedExtensions
         }
         self.operationName = Operation.operationName
         self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
         self.variables = AnyEncodable(operation.variables)
         self.extensions = extensions
     }
+}
 
-    private static func hash(_ sourceText: String) -> String {
-        let digits = Array("0123456789abcdef".utf8)
-        let capacity = 2 * SHA256.Digest.byteCount
-        return String(unsafeUninitializedCapacity: capacity) { ptr -> Int in
-            var p = ptr.baseAddress!
-            for byte in SHA256.hash(data: Data(sourceText.utf8)) {
-                p[0] = digits[Int(byte >> 4)]
-                p[1] = digits[Int(byte & 0x0f)]
-                p += 2
-            }
-            return capacity
+private func persistedOperationHash(_ document: String) -> String {
+    let digits = Array("0123456789abcdef".utf8)
+    let capacity = 2 * SHA256.Digest.byteCount
+    return String(unsafeUninitializedCapacity: capacity) { buffer -> Int in
+        var next = buffer.baseAddress!
+        for byte in SHA256.hash(data: Data(document.utf8)) {
+            next[0] = digits[Int(byte >> 4)]
+            next[1] = digits[Int(byte & 0x0f)]
+            next += 2
         }
+        return capacity
     }
 }

@@ -26,13 +26,6 @@ struct GraphQLOperationWriter {
     }
 
     private func content() -> String {
-        switch configuration.output.documents.operations.persistedOperations {
-        case .registered: RegisteredPersistedOperations()
-        case .automatic, .none: NoRegisteredPersistedOperations()
-        }
-    }
-
-    private func NoRegisteredPersistedOperations() -> String {
         """
         \(header)/// A `GraphQLOperation` represents a GraphQL document containing a single operation.
         \(accessLevel)protocol GraphQLOperation: Sendable {
@@ -40,6 +33,38 @@ struct GraphQLOperationWriter {
             /// The optional name of the operation.
             /// https://spec.graphql.org/October2021/#sel-FAFRDCEAAAAFBBAAD-zM
             static var operationName: String? { get }
+        \(operationSourceRequirements())
+
+            /// The parameterized variables to execute the operation with.
+            /// https://spec.graphql.org/October2021/#sec-Language.Variables
+            var variables: Variables { get }
+
+            /// Metadata associated with the operation to include in the request.
+            var extensions: [String: AnyEncodable]? { get }
+
+            associatedtype Variables: Encodable, Sendable
+            associatedtype Data: Decodable, Sendable
+        }
+
+        \(accessLevel)protocol GraphQLQuery: GraphQLOperation {}\(mutationProtocol())\(subscriptionProtocol())
+        """
+    }
+
+    private func operationSourceRequirements() -> String {
+        switch configuration.output.documents.operations.persistedOperations {
+        case .registered:
+            """
+
+                /// The SHA-256 hash of the registered executable operation document.
+                static var hash: String { get }
+            """
+        case .automatic, .none:
+            operationDocumentRequirements()
+        }
+    }
+
+    private func operationDocumentRequirements() -> String {
+        """
 
             /// The executable string operated on by a GraphQL service, containing
             /// an operation definition and zero or more fragment definitions.
@@ -47,53 +72,8 @@ struct GraphQLOperationWriter {
             static var document: String { get }
 
             /// A precomputed, lexically equivalent document with ignored characters removed.
-            /// The generated HTTP encoders use this representation when `minifyDocument` is enabled,
-            /// avoiding an incomplete runtime rewrite of GraphQL source text. Generated operation types
-            /// provide this value; custom conformers must provide an equivalent canonical document.
+            /// The generated HTTP encoders use this representation when `minifyDocument` is enabled.
             static var minifiedDocument: String { get }
-
-            /// The parameterized variables to execute the operation with.
-            /// https://spec.graphql.org/October2021/#sec-Language.Variables
-            var variables: Variables { get }
-
-            /// Metadata associated with the operation to include in the request.
-            var extensions: [String: AnyEncodable]? { get }
-
-            associatedtype Variables: Encodable, Sendable
-            associatedtype Data: Decodable, Sendable
-        }
-
-        \(accessLevel)protocol GraphQLQuery: GraphQLOperation {}\(mutationProtocol())\(subscriptionProtocol())
-        """
-    }
-
-    private func RegisteredPersistedOperations() -> String {
-        """
-        \(header)/// A `GraphQLOperation` represents a GraphQL document containing a single operation.
-        \(accessLevel)protocol GraphQLOperation: Sendable {
-
-            /// The optional name of the operation.
-            /// https://spec.graphql.org/October2021/#sel-FAFRDCEAAAAFBBAAD-zM
-            static var operationName: String? { get }
-
-            /// A SHA-256 hash of the executable operation document. Registered persisted
-            /// operations was specified as a configuration option during codegen, indicating
-            /// the server does not support unknown operations and only registered document hashes
-            /// are accepted by the server.
-            static var hash: String { get }
-
-            /// The parameterized variables to execute the operation with.
-            /// https://spec.graphql.org/October2021/#sec-Language.Variables
-            var variables: Variables { get }
-
-            /// Metadata associated with the operation to include in the request.
-            var extensions: [String: AnyEncodable]? { get }
-
-            associatedtype Variables: Encodable, Sendable
-            associatedtype Data: Decodable, Sendable
-        }
-
-        \(accessLevel)protocol GraphQLQuery: GraphQLOperation {}\(mutationProtocol())\(subscriptionProtocol())
         """
     }
 

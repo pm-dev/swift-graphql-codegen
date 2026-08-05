@@ -13,9 +13,7 @@ protocol GraphQLOperation: Sendable {
     static var document: String { get }
 
     /// A precomputed, lexically equivalent document with ignored characters removed.
-    /// The generated HTTP encoders use this representation when `minifyDocument` is enabled,
-    /// avoiding an incomplete runtime rewrite of GraphQL source text. Generated operation types
-    /// provide this value; custom conformers must provide an equivalent canonical document.
+    /// The generated HTTP encoders use this representation when `minifyDocument` is enabled.
     static var minifiedDocument: String { get }
 
     /// The parameterized variables to execute the operation with.

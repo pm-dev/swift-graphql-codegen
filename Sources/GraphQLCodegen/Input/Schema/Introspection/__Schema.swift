@@ -16,11 +16,11 @@ struct __Schema: Decodable {
             let specifiedByURL: String?
 
             var isNativeSwiftType: Bool {
-                SourceTypeName.swiftNativeScalar(graphQLScalarName: name) != nil
+                SourceTypeName(nativeGraphQLScalarName: name) != nil
             }
 
             var swiftName: String {
-                SourceTypeName.swiftNativeScalar(graphQLScalarName: name) ?? name
+                SourceTypeName(nativeGraphQLScalarName: name)?.formatted() ?? name
             }
         }
 
@@ -106,7 +106,7 @@ struct __Schema: Decodable {
             let name: String
 
             var swiftName: String {
-                SourceTypeName.swiftNativeScalar(graphQLScalarName: name) ?? name
+                SourceTypeName(nativeGraphQLScalarName: name)?.formatted() ?? name
             }
 
             init(from decoder: Decoder) throws {

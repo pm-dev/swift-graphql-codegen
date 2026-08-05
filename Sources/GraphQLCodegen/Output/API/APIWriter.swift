@@ -6,7 +6,7 @@ struct APIWriter {
     let hasSubscription: Bool
     let requiresIndirectNullable: Bool
 
-    private var HTTPSupportDirectory: URL {
+    private var httpSupportDirectory: URL {
         configuration.output.api.directory.appending(
             path: "HTTPSupport",
             directoryHint: .isDirectory
@@ -29,7 +29,7 @@ struct APIWriter {
 
         // HTTP Support
         if configuration.output.api.HTTPSupport != nil {
-            await fileOutput.createDirectory(at: HTTPSupportDirectory)
+            await fileOutput.createDirectory(at: httpSupportDirectory)
             try await DefaultEncodersWriter(
                 hasSubscription: hasSubscription,
                 configuration: configuration
@@ -52,7 +52,7 @@ struct APIWriter {
                 configuration: configuration
             ).write(using: fileOutput)
         } else {
-            await fileOutput.remove(at: HTTPSupportDirectory)
+            await fileOutput.remove(at: httpSupportDirectory)
         }
     }
 }

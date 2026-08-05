@@ -51,7 +51,7 @@ struct URLSessionWriter {
             ///   - decoder: The function used to turn response data into an Operation.Data instance.
             \(accessLevel)func request<Operation: GraphQLOperation>(
                 _ request: GraphQLRequest<Operation>,
-                decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder()
+                decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
             ) async throws -> GraphQLResponse<Operation.Data>.Success {
                 let (data, response) = try await data(for: request.urlRequest)
                 if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
@@ -113,7 +113,7 @@ struct URLSessionWriter {
             ///   - decoder: The function used to turn response data into an Operation.Data instance.
             \(accessLevel)func request<Operation: GraphQLOperation>(
                 _ request: GraphQLRequest<Operation>,
-                decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder()
+                decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
             ) async throws -> GraphQLResponse<Operation.Data>.Success {
                 let (data, response) = try await data(for: request.urlRequest)
                 if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
@@ -142,7 +142,7 @@ struct URLSessionWriter {
             ///   - decoder: The function used to turn response data into an Subscription.Data instance.
             \(accessLevel)func subscribe<Subscription: GraphQLSubscription>(
                 _ request: GraphQLRequest<Subscription>,
-                decoder: @escaping @Sendable (Data) throws -> GraphQLResponse<Subscription.Data> = GraphQLRequest<Subscription>.defaultDecoder()
+                decoder: @escaping @Sendable (Data) throws -> GraphQLResponse<Subscription.Data> = GraphQLRequest<Subscription>.defaultDecoder
             ) async throws -> AsyncThrowingStream<GraphQLResponse<Subscription.Data>.Success, Error> {
                 let (asyncBytes, response) = try await bytes(for: request.urlRequest)
                 if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {

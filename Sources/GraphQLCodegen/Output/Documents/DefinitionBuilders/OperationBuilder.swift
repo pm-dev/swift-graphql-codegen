@@ -5,7 +5,6 @@ struct OperationBuilder {
     let configuration: Configuration
     let document: Document
     let resolvedOperation: ResolvedOperation
-    let resolvedDocuments: ResolvedDocuments
 
     private var operationStruct = SwiftStructBuilder()
 
@@ -23,19 +22,17 @@ struct OperationBuilder {
     init(
         configuration: Configuration,
         document: Document,
-        resolvedOperation: ResolvedOperation,
-        resolvedDocuments: ResolvedDocuments
+        resolvedOperation: ResolvedOperation
     ) {
         self.configuration = configuration
         self.document = document
         self.resolvedOperation = resolvedOperation
-        self.resolvedDocuments = resolvedDocuments
     }
 
     mutating func buildable() throws -> SwiftTypeBuildable {
         try startOperationStruct()
         addOperationNameProperty()
-        try addDocumentProperty()
+        addDocumentProperty()
         addHashProperty()
         addVariablesProperty()
         addExtensionsProperty()
@@ -103,15 +100,10 @@ struct OperationBuilder {
         )
     }
 
-    private mutating func addDocumentProperty() throws {
+    private mutating func addDocumentProperty() {
         switch configuration.output.documents.operations.persistedOperations {
         case .registered: break
         case .automatic, .none:
-            let expandedSourceText = try OperationTextResolver(
-                fragmentLookup: resolvedDocuments.fragmentLookup.mapValues(\.fragment),
-                operationAST: operation.ast,
-                operationSourceText: operation.sourceText
-            ).expandSourceText { $0.sourceText }
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
@@ -119,7 +111,7 @@ struct OperationBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "document",
-                value: .assigned(SwiftSource(value: expandedSourceText).multilineStringLiteral, type: nil)
+                value: .assigned(SwiftSource(value: operation.documentText).multilineStringLiteral, type: nil)
             )
             operationStruct.addProperty(
                 description: nil,
@@ -139,7 +131,8 @@ struct OperationBuilder {
     }
 
     private mutating func addHashProperty() {
-        if case .registered(let hash) = operation.persistence {
+        switch operation.persistence {
+        case .registered(let hash):
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
@@ -149,6 +142,7 @@ struct OperationBuilder {
                 name: "hash",
                 value: .assigned("\"\(hash)\"", type: nil)
             )
+        case .standard: break
         }
     }
 
