@@ -52,23 +52,13 @@ struct GraphQLOperationWriter {
 
     private func operationSourceRequirements() -> String {
         switch configuration.output.documents.operations.persistedOperations {
-        case .automatic:
-            operationDocumentRequirements() + """
-
-
-                /// The SHA-256 hash of `document`.
-                static var documentHash: String { get }
-
-                /// The SHA-256 hash of `minifiedDocument`.
-                static var minifiedDocumentHash: String { get }
-            """
         case .registered:
             """
 
                 /// The SHA-256 hash of the registered executable operation document.
                 static var hash: String { get }
             """
-        case .none:
+        case .automatic, .none:
             operationDocumentRequirements()
         }
     }

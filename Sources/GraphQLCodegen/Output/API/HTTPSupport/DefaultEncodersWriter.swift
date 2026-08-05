@@ -8,6 +8,24 @@ struct DefaultEncodersWriter {
         configuration.output.api.accessLevel == .public ? "public " : ""
     }
 
+    private var automaticPersistedOperationHashSource: String {
+        """
+        private func persistedOperationHash(_ document: String) -> String {
+            let digits = Array("0123456789abcdef".utf8)
+            let capacity = 2 * SHA256.Digest.byteCount
+            return String(unsafeUninitializedCapacity: capacity) { buffer -> Int in
+                var next = buffer.baseAddress!
+                for byte in SHA256.hash(data: Data(document.utf8)) {
+                    next[0] = digits[Int(byte >> 4)]
+                    next[1] = digits[Int(byte & 0x0f)]
+                    next += 2
+                }
+                return capacity
+            }
+        }
+        """
+    }
+
     private var header: String {
         guard let header = configuration.output.api.header else { return "" }
         return "\(header)\n"
@@ -50,7 +68,8 @@ struct DefaultEncodersWriter {
 
     private func getWithAutomaticPersistedOperations() -> String {
         """
-        \(header)import Foundation
+        \(header)import CryptoKit
+        import Foundation
 
         /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
         /// using the spec described at:
@@ -117,9 +136,7 @@ struct DefaultEncodersWriter {
                     var persistedExtensions = extensions ?? [:]
                     persistedExtensions["persistedQuery"] = AnyEncodable([
                         "version": AnyEncodable(1),
-                        "sha256Hash": AnyEncodable(
-                            minifyDocument ? Operation.minifiedDocumentHash : Operation.documentHash
-                        )
+                        "sha256Hash": AnyEncodable(persistedOperationHash(query))
                     ])
                     extensions = persistedExtensions
                 }
@@ -129,6 +146,8 @@ struct DefaultEncodersWriter {
                 self.extensions = extensions
             }
         }
+
+        \(automaticPersistedOperationHashSource)
         """
     }
 
@@ -254,7 +273,8 @@ struct DefaultEncodersWriter {
 
     private func postWithAutomaticPersistedOperations() -> String {
         """
-        \(header)import Foundation
+        \(header)import CryptoKit
+        import Foundation
 
         /// A HTTPBodyEncoder that encodes an operation into json formatted data
         /// as specified by the spec:
@@ -294,9 +314,7 @@ struct DefaultEncodersWriter {
                     var persistedExtensions = extensions ?? [:]
                     persistedExtensions["persistedQuery"] = AnyEncodable([
                         "version": AnyEncodable(1),
-                        "sha256Hash": AnyEncodable(
-                            minifyDocument ? Operation.minifiedDocumentHash : Operation.documentHash
-                        )
+                        "sha256Hash": AnyEncodable(persistedOperationHash(query))
                     ])
                     extensions = persistedExtensions
                 }
@@ -306,6 +324,8 @@ struct DefaultEncodersWriter {
                 self.extensions = extensions
             }
         }
+
+        \(automaticPersistedOperationHashSource)
         """
     }
 

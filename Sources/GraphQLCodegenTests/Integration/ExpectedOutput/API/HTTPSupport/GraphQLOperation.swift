@@ -16,12 +16,6 @@ protocol GraphQLOperation: Sendable {
     /// The generated HTTP encoders use this representation when `minifyDocument` is enabled.
     static var minifiedDocument: String { get }
 
-    /// The SHA-256 hash of `document`.
-    static var documentHash: String { get }
-
-    /// The SHA-256 hash of `minifiedDocument`.
-    static var minifiedDocumentHash: String { get }
-
     /// The parameterized variables to execute the operation with.
     /// https://spec.graphql.org/October2021/#sec-Language.Variables
     var variables: Variables { get }

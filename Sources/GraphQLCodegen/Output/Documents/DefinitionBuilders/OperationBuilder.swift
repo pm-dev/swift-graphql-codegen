@@ -135,25 +135,6 @@ struct OperationBuilder {
 
     private mutating func addHashProperty() {
         switch operation.persistence {
-        case .automatic(let documentHash, let minifiedDocumentHash):
-            operationStruct.addProperty(
-                description: nil,
-                deprecation: nil,
-                isPublic: isPublic,
-                isStatic: true,
-                immutable: true,
-                name: "documentHash",
-                value: .assigned("\"\(documentHash)\"", type: nil)
-            )
-            operationStruct.addProperty(
-                description: nil,
-                deprecation: nil,
-                isPublic: isPublic,
-                isStatic: true,
-                immutable: true,
-                name: "minifiedDocumentHash",
-                value: .assigned("\"\(minifiedDocumentHash)\"", type: nil)
-            )
         case .registered(let hash):
             operationStruct.addProperty(
                 description: nil,

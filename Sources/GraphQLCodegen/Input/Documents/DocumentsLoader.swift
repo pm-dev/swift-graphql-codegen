@@ -108,14 +108,9 @@ struct DocumentsLoader {
                     let canonicalText = try graphQLJS.canonicalize(expandedText)
                     let persistence: Document.Operation.Persistence =
                         switch configuration.output.documents.operations.persistedOperations {
-                        case .automatic:
-                            .automatic(
-                                documentHash: hash(expandedText),
-                                minifiedDocumentHash: hash(canonicalText)
-                            )
                         case .registered:
                             .registered(hash: hash(canonicalText))
-                        case .none:
+                        case .automatic, .none:
                             .standard
                         }
                     updatedDefinitions.append(

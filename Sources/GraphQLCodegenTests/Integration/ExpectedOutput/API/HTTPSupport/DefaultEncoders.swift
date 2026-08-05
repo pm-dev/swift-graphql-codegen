@@ -1,4 +1,5 @@
 // @generated
+import CryptoKit
 import Foundation
 
 /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
@@ -66,9 +67,7 @@ private struct Body: Encodable {
             var persistedExtensions = extensions ?? [:]
             persistedExtensions["persistedQuery"] = AnyEncodable([
                 "version": AnyEncodable(1),
-                "sha256Hash": AnyEncodable(
-                    minifyDocument ? Operation.minifiedDocumentHash : Operation.documentHash
-                )
+                "sha256Hash": AnyEncodable(persistedOperationHash(query))
             ])
             extensions = persistedExtensions
         }
@@ -76,5 +75,19 @@ private struct Body: Encodable {
         self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
         self.variables = AnyEncodable(operation.variables)
         self.extensions = extensions
+    }
+}
+
+private func persistedOperationHash(_ document: String) -> String {
+    let digits = Array("0123456789abcdef".utf8)
+    let capacity = 2 * SHA256.Digest.byteCount
+    return String(unsafeUninitializedCapacity: capacity) { buffer -> Int in
+        var next = buffer.baseAddress!
+        for byte in SHA256.hash(data: Data(document.utf8)) {
+            next[0] = digits[Int(byte >> 4)]
+            next[1] = digits[Int(byte & 0x0f)]
+            next += 2
+        }
+        return capacity
     }
 }
