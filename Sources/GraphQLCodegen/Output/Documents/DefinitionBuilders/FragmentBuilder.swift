@@ -6,8 +6,6 @@ struct FragmentBuilder {
     let resolvedFragment: ResolvedFragment
     let resolvedDocuments: ResolvedDocuments
 
-    private var fragmentStruct = SwiftStructBuilder()
-
     private var fragment: Document.Fragment {
         resolvedFragment.fragment
     }
@@ -23,27 +21,20 @@ struct FragmentBuilder {
         }
     }
 
-    init(
-        configuration: Configuration,
-        document: Document,
-        resolvedFragment: ResolvedFragment,
-        resolvedDocuments: ResolvedDocuments
-    ) {
-        self.configuration = configuration
-        self.document = document
-        self.resolvedFragment = resolvedFragment
-        self.resolvedDocuments = resolvedDocuments
-    }
-
-    mutating func buildable() throws -> SwiftTypeBuildable {
-        startFragmentStruct()
+    func buildable() throws -> SwiftTypeBuildable {
+        var fragmentStruct = SwiftStructBuilder(
+            description: nil,
+            isPublic: isPublic,
+            name: fragment.ast.name.value.capitalizedFirst,
+            conformances: isFulfilled ? configuration.output.documents.fragments.conformances : []
+        )
         if isFulfilled {
-            try addSelectionSet()
+            try addSelectionSet(to: &fragmentStruct)
         }
         return fragmentStruct
     }
 
-    private mutating func addSelectionSet() throws {
+    private func addSelectionSet(to fragmentStruct: inout SwiftStructBuilder) throws {
         do {
             try fragmentStruct.addSelectionSet(
                 resolvedFragment.resolvedSelectionSet,
@@ -71,14 +62,5 @@ struct FragmentBuilder {
             case .none: throw error
             }
         }
-    }
-
-    private mutating func startFragmentStruct() {
-        fragmentStruct.start(
-            description: nil,
-            isPublic: isPublic,
-            structName: fragment.ast.name.value.capitalizedFirst,
-            conformances: isFulfilled ? configuration.output.documents.fragments.conformances : []
-        )
     }
 }

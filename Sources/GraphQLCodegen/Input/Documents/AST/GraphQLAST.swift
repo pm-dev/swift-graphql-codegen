@@ -1,7 +1,10 @@
 import Foundation
 
+/// Mirrors the executable-document AST produced by the bundled graphql-js parser.
+///
+/// Keep this boundary model aligned with the executable definitions in:
 /// https://github.com/graphql/graphql-js/blob/16.x.x/src/language/ast.ts
-enum AST {
+enum GraphQLAST {
     /// Verified against the bundled graphql-js parser: location offsets are UTF-16 code units.
     struct Location: Decodable, Hashable {
         let start: Int

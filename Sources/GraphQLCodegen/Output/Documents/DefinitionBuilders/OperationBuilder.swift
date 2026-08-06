@@ -6,8 +6,6 @@ struct OperationBuilder {
     let document: Document
     let resolvedOperation: ResolvedOperation
 
-    private var operationStruct = SwiftStructBuilder()
-
     private var operation: Document.Operation {
         resolvedOperation.operation
     }
@@ -19,29 +17,19 @@ struct OperationBuilder {
         }
     }
 
-    init(
-        configuration: Configuration,
-        document: Document,
-        resolvedOperation: ResolvedOperation
-    ) {
-        self.configuration = configuration
-        self.document = document
-        self.resolvedOperation = resolvedOperation
-    }
-
-    mutating func buildable() throws -> SwiftTypeBuildable {
-        try startOperationStruct()
-        addOperationNameProperty()
-        addDocumentProperty()
-        addHashProperty()
-        addVariablesProperty()
-        addExtensionsProperty()
-        addVariablesStruct()
-        try addDataStruct()
+    func buildable() throws -> SwiftTypeBuildable {
+        var operationStruct = try makeOperationStruct()
+        addOperationNameProperty(to: &operationStruct)
+        addDocumentProperty(to: &operationStruct)
+        addHashProperty(to: &operationStruct)
+        addVariablesProperty(to: &operationStruct)
+        addExtensionsProperty(to: &operationStruct)
+        addVariablesStruct(to: &operationStruct)
+        try addDataStruct(to: &operationStruct)
         return operationStruct
     }
 
-    private mutating func startOperationStruct() throws {
+    private func makeOperationStruct() throws -> SwiftStructBuilder {
         let structName: String
         let operationType = operation.ast.operation.rawValue.capitalizedFirst
         if let name = operation.ast.name {
@@ -74,15 +62,15 @@ struct OperationBuilder {
                 conformances.append("GraphQLSubscription")
             }
         }
-        operationStruct.start(
+        return SwiftStructBuilder(
             description: nil,
             isPublic: isPublic,
-            structName: structName,
+            name: structName,
             conformances: conformances
         )
     }
 
-    private mutating func addOperationNameProperty() {
+    private func addOperationNameProperty(to operationStruct: inout SwiftStructBuilder) {
         let value =
             if let operationName = operation.ast.name?.value {
                 "\"\(operationName)\""
@@ -100,7 +88,7 @@ struct OperationBuilder {
         )
     }
 
-    private mutating func addDocumentProperty() {
+    private func addDocumentProperty(to operationStruct: inout SwiftStructBuilder) {
         switch configuration.output.documents.operations.persistedOperations {
         case .registered: break
         case .automatic, .none:
@@ -130,7 +118,7 @@ struct OperationBuilder {
         }
     }
 
-    private mutating func addHashProperty() {
+    private func addHashProperty(to operationStruct: inout SwiftStructBuilder) {
         switch operation.persistence {
         case .registered(let hash):
             operationStruct.addProperty(
@@ -146,7 +134,7 @@ struct OperationBuilder {
         }
     }
 
-    private mutating func addExtensionsProperty() {
+    private func addExtensionsProperty(to operationStruct: inout SwiftStructBuilder) {
         operationStruct.addProperty(
             description: nil,
             deprecation: nil,
@@ -161,7 +149,7 @@ struct OperationBuilder {
         )
     }
 
-    private mutating func addVariablesProperty() {
+    private func addVariablesProperty(to operationStruct: inout SwiftStructBuilder) {
         let variableDefinitions = operation.ast.variableDefinitions
         guard !variableDefinitions.isEmpty else {
             operationStruct.addProperty(
@@ -214,15 +202,14 @@ struct OperationBuilder {
         )
     }
 
-    private mutating func addVariablesStruct() {
+    private func addVariablesStruct(to operationStruct: inout SwiftStructBuilder) {
         let variableDefinitions = operation.ast.variableDefinitions
         guard !variableDefinitions.isEmpty else { return }
         let typeNames = variableDefinitions.map(\.typeName)
-        var variablesStruct = SwiftStructBuilder()
-        variablesStruct.start(
+        var variablesStruct = SwiftStructBuilder(
             description: nil,
             isPublic: isPublic,
-            structName: "Variables",
+            name: "Variables",
             conformances: configuration.output.documents.operations.variables.conformances
         )
         for (idx, variableDefinition) in variableDefinitions.enumerated() {
@@ -239,12 +226,11 @@ struct OperationBuilder {
         operationStruct.addNestedType(variablesStruct)
     }
 
-    private mutating func addDataStruct() throws {
-        var structBuilder = SwiftStructBuilder()
-        structBuilder.start(
+    private func addDataStruct(to operationStruct: inout SwiftStructBuilder) throws {
+        var structBuilder = SwiftStructBuilder(
             description: nil,
             isPublic: isPublic,
-            structName: "Data",
+            name: "Data",
             conformances: configuration.output.documents.operations.responseData.conformances
         )
         do {
@@ -278,7 +264,7 @@ struct OperationBuilder {
     }
 }
 
-extension AST.VariableDefinition {
+extension GraphQLAST.VariableDefinition {
     fileprivate var typeName: String {
         type.typeName.formatted(
             formatName: { defaultValue == nil ? $0 : "GraphQLHasDefault<\($0)>" },

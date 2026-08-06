@@ -98,56 +98,7 @@ struct DefaultEncodersWriter {
             }\(subscriptionSupportWithAutomaticPersistedOperations())
         }
 
-        /// A HTTPBodyEncoder that encodes an operation into json formatted data
-        /// as specified by the spec:
-        /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
-        \(accessLevel)struct JSONBodyEncoder: HTTPBodyEncoder {
-            \(accessLevel)init() {}
-            \(accessLevel)let contentType = "application/json"
-            \(accessLevel)func encode<Operation: GraphQLOperation>(
-                operation: Operation,
-                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-                minifyDocument: Bool
-            ) throws -> Data {
-                try JSONEncoder().encode(
-                    Body(
-                        operation: operation,
-                        automaticPersistedOperationPhase: automaticPersistedOperationPhase,
-                        minifyDocument: minifyDocument
-                    )
-                )
-            }
-        }
-
-        private struct Body: Encodable {
-            let operationName: String?
-            let query: String?
-            let variables: AnyEncodable?
-            let extensions: [String: AnyEncodable]?
-
-            init<Operation: GraphQLOperation>(
-                operation: Operation,
-                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-                minifyDocument: Bool
-            ) {
-                let query = minifyDocument ? Operation.minifiedDocument : Operation.document
-                var extensions = operation.extensions
-                if automaticPersistedOperationPhase != nil {
-                    var persistedExtensions = extensions ?? [:]
-                    persistedExtensions["persistedQuery"] = AnyEncodable([
-                        "version": AnyEncodable(1),
-                        "sha256Hash": AnyEncodable(persistedOperationHash(query))
-                    ])
-                    extensions = persistedExtensions
-                }
-                self.operationName = Operation.operationName
-                self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
-                self.variables = AnyEncodable(operation.variables)
-                self.extensions = extensions
-            }
-        }
-
-        \(automaticPersistedOperationHashSource)
+        \(httpBodyEncoderWithAutomaticPersistedOperations())
         """
     }
 
@@ -173,33 +124,7 @@ struct DefaultEncodersWriter {
             }\(subscriptionSupportWithRegisteredPersistedOperations())
         }
 
-        /// A HTTPBodyEncoder that encodes an operation into json formatted data
-        /// as specified by the spec:
-        /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
-        \(accessLevel)struct JSONBodyEncoder: HTTPBodyEncoder {
-            \(accessLevel)init() {}
-            \(accessLevel)let contentType = "application/json"
-            \(accessLevel)func encode<Operation: GraphQLOperation>(operation: Operation) throws -> Data {
-                try JSONEncoder().encode(Body(operation: operation))
-            }
-        }
-
-        private struct Body: Encodable {
-            let operationName: String?
-            let variables: AnyEncodable?
-            let extensions: [String: AnyEncodable]?
-
-            init<Operation: GraphQLOperation>(operation: Operation) {
-                var extensions = operation.extensions ?? [:]
-                extensions["persistedQuery"] = AnyEncodable([
-                    "version": AnyEncodable(1),
-                    "sha256Hash": AnyEncodable(Operation.hash)
-                ])
-                self.operationName = Operation.operationName
-                self.variables = AnyEncodable(operation.variables)
-                self.extensions = extensions
-            }
-        }
+        \(httpBodyEncoderWithRegisteredPersistedOperations())
         """
     }
 
@@ -232,42 +157,7 @@ struct DefaultEncodersWriter {
             }\(subscriptionSupportWithNoPersistedOperations())
         }
 
-        /// A HTTPBodyEncoder that encodes an operation into json formatted data
-        /// as specified by the spec:
-        /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
-        \(accessLevel)struct JSONBodyEncoder: HTTPBodyEncoder {
-            \(accessLevel)init() {}
-            \(accessLevel)let contentType = "application/json"
-            \(accessLevel)func encode<Operation: GraphQLOperation>(
-                operation: Operation,
-                minifyDocument: Bool
-            ) throws -> Data {
-                try JSONEncoder().encode(
-                    Body(
-                        operation: operation,
-                        minifyDocument: minifyDocument
-                    )
-                )
-            }
-        }
-
-        private struct Body: Encodable {
-            let operationName: String?
-            let query: String
-            let variables: AnyEncodable?
-            let extensions: [String: AnyEncodable]?
-
-            init<Operation: GraphQLOperation>(
-                operation: Operation,
-                minifyDocument: Bool
-            ) {
-                self.operationName = Operation.operationName
-                self.query = minifyDocument ? Operation.minifiedDocument : Operation.document
-                self.variables = AnyEncodable(operation.variables)
-                self.extensions = operation.extensions
-            }
-
-        }
+        \(httpBodyEncoderWithNoPersistedOperations())
         """
     }
 
@@ -276,6 +166,28 @@ struct DefaultEncodersWriter {
         \(header)import CryptoKit
         import Foundation
 
+        \(httpBodyEncoderWithAutomaticPersistedOperations())
+        """
+    }
+
+    private func postWithRegisteredPersistedOperations() -> String {
+        """
+        \(header)import Foundation
+
+        \(httpBodyEncoderWithRegisteredPersistedOperations())
+        """
+    }
+
+    private func postWithNoPersistedOperations() -> String {
+        """
+        \(header)import Foundation
+
+        \(httpBodyEncoderWithNoPersistedOperations())
+        """
+    }
+
+    private func httpBodyEncoderWithAutomaticPersistedOperations() -> String {
+        """
         /// A HTTPBodyEncoder that encodes an operation into json formatted data
         /// as specified by the spec:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
@@ -329,10 +241,8 @@ struct DefaultEncodersWriter {
         """
     }
 
-    private func postWithRegisteredPersistedOperations() -> String {
+    private func httpBodyEncoderWithRegisteredPersistedOperations() -> String {
         """
-        \(header)import Foundation
-
         /// A HTTPBodyEncoder that encodes an operation into json formatted data
         /// as specified by the spec:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
@@ -363,10 +273,8 @@ struct DefaultEncodersWriter {
         """
     }
 
-    private func postWithNoPersistedOperations() -> String {
+    private func httpBodyEncoderWithNoPersistedOperations() -> String {
         """
-        \(header)import Foundation
-
         /// A HTTPBodyEncoder that encodes an operation into json formatted data
         /// as specified by the spec:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-POST

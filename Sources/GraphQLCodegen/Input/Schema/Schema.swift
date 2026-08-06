@@ -49,7 +49,7 @@ struct Schema {
             }
         }
 
-        func field(_ field: AST.Field) throws -> __Schema.__Field {
+        func field(_ field: GraphQLAST.Field) throws -> __Schema.__Field {
             func error() -> Codegen.Error {
                 Codegen.Error(description: """
                 Selected field '\(field.name.value)' that doesn't exist on \(name).
@@ -171,16 +171,16 @@ struct Schema {
         }
     }
 
-    func fragmentType(_ inline: AST.InlineFragment) throws -> SelectionSet? {
+    func fragmentType(_ inline: GraphQLAST.InlineFragment) throws -> SelectionSet? {
         guard let typeCondition = inline.typeCondition else { return nil }
         return try fragmentType(typeCondition)
     }
 
-    func fragmentType(_ definition: AST.FragmentDefinition) throws -> SelectionSet {
+    func fragmentType(_ definition: GraphQLAST.FragmentDefinition) throws -> SelectionSet {
         try fragmentType(definition.typeCondition)
     }
 
-    private func fragmentType(_ type: AST.NamedType) throws -> SelectionSet {
+    private func fragmentType(_ type: GraphQLAST.NamedType) throws -> SelectionSet {
         let name = type.name.value
         if let objectType = typeCache.objects[name] {
             return .OBJECT(objectType)
@@ -199,7 +199,7 @@ struct Schema {
         }
     }
 
-    func inputType(_ variableDefinition: AST.VariableDefinition) throws -> Input {
+    func inputType(_ variableDefinition: GraphQLAST.VariableDefinition) throws -> Input {
         try inputType(variableDefinition.type)
     }
 
@@ -207,7 +207,7 @@ struct Schema {
         try inputType(inputValue.type)
     }
 
-    private func inputType(_ typeNode: AST.TypeNode) throws -> Input {
+    private func inputType(_ typeNode: GraphQLAST.TypeNode) throws -> Input {
         switch typeNode {
         case .named(let namedType): try inputType(namedType)
         case .list(let listType): .LIST(try inputType(listType.type))
@@ -215,7 +215,7 @@ struct Schema {
         }
     }
 
-    private func inputType(_ namedType: AST.NamedType) throws -> Input {
+    private func inputType(_ namedType: GraphQLAST.NamedType) throws -> Input {
         let name = namedType.name.value
         if let scalarType = typeCache.scalars[name] {
             return .SCALAR(scalarType)

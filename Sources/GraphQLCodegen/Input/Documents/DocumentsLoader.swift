@@ -4,7 +4,7 @@ import Foundation
 struct DocumentsLoader {
     private enum ParsedDefinition {
         case fragment(String)
-        case operation(ast: AST.OperationDefinition, sourceText: Substring)
+        case operation(ast: GraphQLAST.OperationDefinition, sourceText: Substring)
     }
 
     private struct ParsedDocument {

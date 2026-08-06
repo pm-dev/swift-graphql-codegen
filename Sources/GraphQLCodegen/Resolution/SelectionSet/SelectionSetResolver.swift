@@ -2,7 +2,7 @@ import OrderedCollections
 
 struct SelectionSetResolver {
     let onType: Schema.SelectionSet
-    let selectionSet: AST.SelectionSet
+    let selectionSet: GraphQLAST.SelectionSet
     let schema: Schema
     let documents: Documents
 
@@ -17,7 +17,7 @@ struct SelectionSetResolver {
     }
 
     private func collect(
-        selectionSet: AST.SelectionSet,
+        selectionSet: GraphQLAST.SelectionSet,
         onType: Schema.SelectionSet,
         inOptionalDirective: Bool
     ) throws -> ResolvedSelectionSet {

@@ -1,6 +1,13 @@
 import OrderedCollections
 
 struct DocumentsResolver {
+    private struct Usage {
+        var fulfilledFragments: Set<String> = []
+        var hasMutation = false
+        var hasSubscription = false
+        var usedTypes: Set<String> = []
+    }
+
     let schema: Schema
     let documents: Documents
 
@@ -8,25 +15,21 @@ struct DocumentsResolver {
         let usedFragments = try usedFragments()
         let resolvedFragments = try resolveFragments(usedFragments)
         let resolvedDocuments = try resolveDocuments(documents)
-        let fulfilledFragments = try fulfilledFragments(
-            resolvedFragments: resolvedFragments,
-            resolvedDocuments: resolvedDocuments
-        )
-        let usedTypes = try usedTypes(in: resolvedDocuments, resolvedFragments: resolvedFragments)
+        let usage = try usage(in: resolvedDocuments, resolvedFragments: resolvedFragments)
         return ResolvedDocuments(
             previouslyGenerated: documents.previouslyGenerated,
             documents: resolvedDocuments,
             fragmentLookup: resolvedFragments,
-            usedTypes: usedTypes,
-            requiresIndirectNullable: try requiresIndirectNullable(in: usedTypes),
-            fulfilledFragments: fulfilledFragments,
-            hasMutation: hasOperationType(.mutation),
-            hasSubscription: hasOperationType(.subscription)
+            usedTypes: usage.usedTypes,
+            requiresIndirectNullable: try requiresIndirectNullable(in: usage.usedTypes),
+            fulfilledFragments: usage.fulfilledFragments,
+            hasMutation: usage.hasMutation,
+            hasSubscription: usage.hasSubscription
         )
     }
 
     private func usedFragments() throws -> [String: Document.Fragment] {
-        var selectionSets: [AST.SelectionSet] = []
+        var selectionSets: [GraphQLAST.SelectionSet] = []
         for document in documents.documents {
             for definition in document.definitions {
                 switch definition {
@@ -108,85 +111,75 @@ struct DocumentsResolver {
         return resolvedDocuments
     }
 
-    private func fulfilledFragments(
-        resolvedFragments: [String: ResolvedFragment],
-        resolvedDocuments: [ResolvedDocument]
-    ) throws -> Set<String> {
-        var fulfilledFragments: Set<String> = []
-        var selectionSets: [ResolvedSelectionSet] = resolvedFragments.values.map(\.resolvedSelectionSet)
+    private func usage(
+        in resolvedDocuments: [ResolvedDocument],
+        resolvedFragments: [String: ResolvedFragment]
+    ) throws -> Usage {
+        var usage = Usage()
+        var selectionSets: [ResolvedSelectionSet] = []
         for resolvedDocument in resolvedDocuments {
             for definition in resolvedDocument.resolvedDefinitions {
                 switch definition {
                 case .operation(let resolvedOperation):
                     selectionSets.append(resolvedOperation.resolvedSelectionSet)
+                    for variableDefinition in resolvedOperation.operation.ast.variableDefinitions {
+                        try addUsedInputTypes(variableDefinition, to: &usage.usedTypes)
+                    }
+                    switch resolvedOperation.operation.ast.operation {
+                    case .mutation: usage.hasMutation = true
+                    case .query: break
+                    case .subscription: usage.hasSubscription = true
+                    }
                 case .fragment: break
                 }
             }
         }
+
         while let selectionSet = selectionSets.popLast() {
             for selection in selectionSet.values {
                 switch selection {
-                case .field(let field, _):
-                    if let selectionSet = field.type.unwrappedMap() {
-                        selectionSets.append(selectionSet)
-                    }
                 case .fragmentSpread(let name, _):
-                    let result = fulfilledFragments.insert(name)
-                    if result.inserted {
-                        guard let fragment = resolvedFragments[name] else {
-                            throw Codegen.Error(description: "Resolved fragment is missing: \(name)")
+                    guard usage.fulfilledFragments.insert(name).inserted else { continue }
+                    guard let resolvedFragment = resolvedFragments[name] else {
+                        throw Codegen.Error(description: "Resolved fragment is missing: \(name)")
+                    }
+                    selectionSets.append(resolvedFragment.resolvedSelectionSet)
+                case .field(let field, _):
+                    var fieldType: ResolvedFieldType? = field.type
+                    while let type = fieldType {
+                        switch type {
+                        case .scalar(let name, _):
+                            usage.usedTypes.insert(name)
+                            fieldType = nil
+                        case .map(let nestedSelectionSet):
+                            selectionSets.append(nestedSelectionSet)
+                            fieldType = nil
+                        case .optional(let innerType), .list(let innerType):
+                            fieldType = innerType
                         }
-                        selectionSets.append(fragment.resolvedSelectionSet)
                     }
                 }
             }
         }
-        return fulfilledFragments
+
+        return usage
     }
 
-    private func usedTypes(
-        in resolvedDocuments: [ResolvedDocument],
-        resolvedFragments: [String: ResolvedFragment]
-    ) throws -> Set<String> {
-        var seenFragmentSpreads: Set<String> = []
-        var usedTypes: Set<String> = []
-        for resolvedDocument in resolvedDocuments {
-            for definition in resolvedDocument.resolvedDefinitions {
-                switch definition {
-                case .operation(let resolvedOperation):
-                    usedTypes.formUnion(
-                        try usedScalarTypes(
-                            resolvedOperation.resolvedSelectionSet,
-                            resolvedFragments: resolvedFragments,
-                            seenFragmentSpreads: &seenFragmentSpreads
-                        )
-                    )
-                    for variable in resolvedOperation.operation.ast.variableDefinitions {
-                        try usedTypes.formUnion(usedInputTypes(variable))
-                    }
-                case .fragment: break
-                }
-            }
-        }
-        return usedTypes
-    }
-
-    private func usedInputTypes(_ variableDefinition: AST.VariableDefinition) throws -> Set<String> {
-        var usedTypes = Set<String>()
-        let inputType = try schema.inputType(variableDefinition)
-        var stack: [Schema.Input] = [inputType]
-        while let type = stack.popLast() {
-            switch type {
+    private func addUsedInputTypes(
+        _ variableDefinition: GraphQLAST.VariableDefinition,
+        to usedTypes: inout Set<String>
+    ) throws {
+        var inputTypes = [try schema.inputType(variableDefinition)]
+        while let inputType = inputTypes.popLast() {
+            switch inputType {
             case .SCALAR(let scalar): usedTypes.insert(scalar.ast.name)
             case .ENUM(let `enum`): usedTypes.insert(`enum`.ast.name)
             case .INPUT_OBJECT(let inputObject):
                 guard usedTypes.insert(inputObject.ast.name).inserted else { continue }
-                stack.append(contentsOf: try inputObject.ast.inputFields.map { try schema.inputType($0) })
-            case .LIST(let innerType): stack.append(innerType)
-            case .NON_NULL(let innerType): stack.append(innerType)
+                inputTypes.append(contentsOf: try inputObject.ast.inputFields.map { try schema.inputType($0) })
+            case .LIST(let innerType), .NON_NULL(let innerType): inputTypes.append(innerType)
             }
         }
-        return usedTypes
     }
 
     private func requiresIndirectNullable(in usedTypes: Set<String>) throws -> Bool {
@@ -220,61 +213,6 @@ struct DocumentsResolver {
             guard let inputObject = schema.typeCache.inputObjects[name] else { continue }
             if try visit(inputObject) {
                 return true
-            }
-        }
-        return false
-    }
-
-    private func usedScalarTypes(
-        _ selectionSet: ResolvedSelectionSet,
-        resolvedFragments: [String: ResolvedFragment],
-        seenFragmentSpreads: inout Set<String>
-    ) throws -> Set<String> {
-        var usedTypes: Set<String> = []
-        var stack: [ResolvedSelectionSet] = [selectionSet]
-        while let selectionSet = stack.popLast() {
-            for selection in selectionSet.values {
-                switch selection {
-                case .fragmentSpread(let name, _):
-                    let result = seenFragmentSpreads.insert(name)
-                    if result.inserted {
-                        guard let resolvedFragment = resolvedFragments[name] else {
-                            throw Codegen.Error(description: "Resolved fragment is missing: \(name)")
-                        }
-                        stack.append(resolvedFragment.resolvedSelectionSet)
-                    }
-                case .field(let field, _):
-                    var currentType: ResolvedFieldType? = field.type
-                    while let type = currentType {
-                        switch type {
-                        case .scalar(let typeName, _):
-                            usedTypes.insert(typeName)
-                            currentType = nil
-                        case .map(let map):
-                            stack.append(map)
-                            currentType = nil
-                        case .optional(let innerType):
-                            currentType = innerType
-                        case .list(let innerType):
-                            currentType = innerType
-                        }
-                    }
-                }
-            }
-        }
-        return usedTypes
-    }
-
-    private func hasOperationType(_ type: AST.OperationType) -> Bool {
-        for document in documents.documents {
-            for definition in document.definitions {
-                switch definition {
-                case .operation(let operation):
-                    if operation.ast.operation == type {
-                        return true
-                    }
-                case .fragment: break
-                }
             }
         }
         return false

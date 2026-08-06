@@ -29,7 +29,7 @@ struct Document: Sendable {
             case standard
         }
 
-        let ast: AST.OperationDefinition
+        let ast: GraphQLAST.OperationDefinition
         let canonicalText: String
         let documentText: String
         let persistence: Persistence
@@ -37,7 +37,7 @@ struct Document: Sendable {
 
     struct Fragment {
         let file: URL
-        let ast: AST.FragmentDefinition
+        let ast: GraphQLAST.FragmentDefinition
         let sourceText: Substring
     }
 

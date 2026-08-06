@@ -1,3 +1,6 @@
+/// Mirrors the schema introspection response produced by `IntrospectionQuery`.
+///
+/// Keep this boundary model aligned with:
 /// https://spec.graphql.org/October2021/#sec-Schema-Introspection.Schema-Introspection-Schema
 struct __Schema: Decodable {
     enum __Type: Decodable {
@@ -65,13 +68,6 @@ struct __Schema: Decodable {
         private enum CodingKeys: CodingKey {
             case kind
             case ofType
-        }
-
-        var isOptional: Bool {
-            switch self {
-            case .NON_NULL: false
-            default: true
-            }
         }
 
         init(from decoder: Decoder) throws {
@@ -224,13 +220,6 @@ struct __Schema: Decodable {
             }
         }
 
-        var isOptional: Bool {
-            switch self {
-            case .NON_NULL: false
-            default: true
-            }
-        }
-
         init(from decoder: Decoder) throws {
             func _container() throws -> SingleValueDecodingContainer {
                 try decoder.singleValueContainer()
@@ -254,7 +243,7 @@ struct __Schema: Decodable {
         let description: String?
         let locations: [__DirectiveLocation]
         let args: [__InputValue]
-        let isRepeatable: Bool?
+        let isRepeatable: Bool
     }
 
     enum __DirectiveLocation: String, Decodable {

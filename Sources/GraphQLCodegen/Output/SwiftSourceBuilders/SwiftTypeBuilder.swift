@@ -8,27 +8,23 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         var arguments: [String] = []
         var body: [String] = []
     }
-    private var isPublic = false
+    private let declaration: [String]
+    private let isPublic: Bool
     private var propertyInitializer = Initializer()
     private var initializers: [Initializer] = []
-    private var declaration: [String]?
     private var contents: [String] = []
     private var nestedTypes: [SwiftTypeBuildable] = []
-    private var started: Bool {
-        declaration != nil
-    }
 
-    mutating func start(
+    init(
         description: String?,
         isPublic: Bool,
         type: String,
         name: String,
         conformances: [String]
     ) {
-        precondition(!started)
         var lines: [String] = []
         if let description {
-            lines.append(contentsOf: _comment(description))
+            lines.append(contentsOf: description.documentationCommentLines)
         }
         var line = "\(isPublic ? "public " : "")\(type) \(name)"
         if !conformances.isEmpty {
@@ -36,12 +32,11 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         }
         line.append(" {")
         lines.append(line)
-        declaration = lines
+        self.declaration = lines
         self.isPublic = isPublic
     }
 
     mutating func addNestedType(_ builder: SwiftTypeBuildable) {
-        precondition(started)
         nestedTypes.append(builder)
     }
 
@@ -50,7 +45,6 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         body: [String],
         isThrowing: Bool
     ) {
-        precondition(started)
         initializers.append(
             Initializer(
                 isThrowing: isThrowing,
@@ -61,40 +55,31 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
     }
 
     mutating func addPropertyInitializerArguments(_ lines: [String]) {
-        precondition(started)
         propertyInitializer.arguments.append(contentsOf: lines)
     }
 
     mutating func addPropertyInitializerBody(_ lines: [String], isThrowing: Bool) {
-        precondition(started)
         propertyInitializer.body.append(contentsOf: lines)
         propertyInitializer.isThrowing = propertyInitializer.isThrowing || isThrowing
     }
 
     mutating func addComment(_ comment: String) {
-        precondition(started)
-        contents.append(contentsOf: _comment(comment))
+        contents.append(contentsOf: comment.documentationCommentLines)
     }
 
     mutating func addDeprecation(_ deprecationReason: String?) {
-        precondition(started)
         contents.append(_deprecation(deprecationReason))
     }
 
     mutating func addLine(_ line: String) {
-        precondition(started)
         contents.append(line)
     }
 
     mutating func addEmptyLine() {
-        precondition(started)
         contents.append("")
     }
 
     func build(configuration: Configuration) -> [String] {
-        guard let declaration else {
-            preconditionFailure("A Swift type must be started before it can be built")
-        }
         let indentation = configuration.output.indentation.string
         var lines = declaration
         lines.append(contentsOf: contents.map { $0.isWhiteSpace ? "" : indentation + $0 })
@@ -151,10 +136,6 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         return lines
     }
 
-    private func _comment(_ comment: String) -> [String] {
-        comment.components(separatedBy: .newlines).map { line in "/// " + line }
-    }
-
     private func _deprecation(_ deprecationReason: String?) -> String {
         var line = "@available(*, deprecated"
         if let deprecationReason, !deprecationReason.isEmpty {
@@ -167,6 +148,10 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
 }
 
 extension String {
+    fileprivate var documentationCommentLines: [String] {
+        components(separatedBy: .newlines).map { line in "/// " + line }
+    }
+
     fileprivate var isWhiteSpace: Bool {
         rangeOfCharacter(from: .whitespaces.inverted) == nil
     }
