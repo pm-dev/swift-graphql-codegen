@@ -45,12 +45,12 @@ extension Configuration.Output {
             )
         }
 
-        public var directory: DocumentOutputLocation
-        public var header: String?
-        public var importedModules: [String]
-        public var operations: Operations
-        public var fragments: Fragments
-        public var accessLevel: AccessLevel
-        public var memberwiseInitializer: Bool
+        public let directory: DocumentOutputLocation
+        public let header: String?
+        public let importedModules: [String]
+        public let operations: Operations
+        public let fragments: Fragments
+        public let accessLevel: AccessLevel
+        public let memberwiseInitializer: Bool
     }
 }

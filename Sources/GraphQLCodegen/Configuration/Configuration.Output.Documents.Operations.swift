@@ -32,11 +32,11 @@ extension Configuration.Output.Documents {
             )
         }
 
-        public var immutableExtensions: Bool
-        public var immutableVariables: Bool
-        public var conformances: [String]
-        public var variables: Variables
-        public var persistedOperations: PersistedOperations?
-        public var responseData: ResponseData
+        public let immutableExtensions: Bool
+        public let immutableVariables: Bool
+        public let conformances: [String]
+        public let variables: Variables
+        public let persistedOperations: PersistedOperations?
+        public let responseData: ResponseData
     }
 }

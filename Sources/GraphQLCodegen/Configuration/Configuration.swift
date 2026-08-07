@@ -26,11 +26,14 @@ public struct Configuration: Sendable {
         ).checkConfiguration()
     }
 
-    public var input: Input
-    public var validation: Bool
-    public var output: Output
+    public let input: Input
+    public let validation: Bool
+    public let output: Output
 
     private func checkConfiguration() throws -> Self {
+        if case .spaces(let count) = output.indentation, count < 0 {
+            throw Codegen.Error(description: "The indentation space count must not be negative.")
+        }
         switch output.documents.operations.persistedOperations {
         case .registered(let manifestJSONFileOutput):
             try verifyLocalURL(

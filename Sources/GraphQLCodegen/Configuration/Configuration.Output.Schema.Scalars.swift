@@ -31,8 +31,8 @@ extension Configuration.Output.Schema {
             )
         }
 
-        public var directoryName: String?
-        public var header: String?
-        public var importedModules: [String]
+        public let directoryName: String?
+        public let header: String?
+        public let importedModules: [String]
     }
 }

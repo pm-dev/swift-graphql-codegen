@@ -30,10 +30,10 @@ extension Configuration.Output.Schema {
             )
         }
 
-        public var directoryName: String?
-        public var header: String?
-        public var importedModules: [String]
-        public var immutable: Bool
-        public var conformances: [String]
+        public let directoryName: String?
+        public let header: String?
+        public let importedModules: [String]
+        public let immutable: Bool
+        public let conformances: [String]
     }
 }

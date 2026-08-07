@@ -20,7 +20,7 @@ extension Configuration {
             )
         }
 
-        public var schemaSource: SchemaSource
-        public var documentDirectories: [URL]
+        public let schemaSource: SchemaSource
+        public let documentDirectories: [URL]
     }
 }

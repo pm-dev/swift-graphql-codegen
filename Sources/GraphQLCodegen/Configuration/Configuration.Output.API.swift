@@ -28,9 +28,9 @@ extension Configuration.Output {
             )
         }
 
-        public var directory: URL
-        public var header: String?
-        public var accessLevel: AccessLevel
-        public var HTTPSupport: HTTPSupport?
+        public let directory: URL
+        public let header: String?
+        public let accessLevel: AccessLevel
+        public let HTTPSupport: HTTPSupport?
     }
 }
