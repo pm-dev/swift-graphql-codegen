@@ -57,16 +57,16 @@ struct APIWriter {
         )
     }
 
-    func write(using fileOutput: FileOutput) async throws {
+    func write(using fileOutput: FileOutput) throws {
         let destinationPath = configuration.output.api.directory
-        await fileOutput.createDirectory(at: destinationPath)
+        fileOutput.createDirectory(at: destinationPath)
         if configuration.output.api.HTTPSupport != nil {
-            await fileOutput.createDirectory(at: httpSupportDirectory)
+            fileOutput.createDirectory(at: httpSupportDirectory)
         } else {
-            await fileOutput.remove(at: httpSupportDirectory)
+            fileOutput.remove(at: httpSupportDirectory)
         }
         for output in outputs {
-            try await output.write(using: fileOutput)
+            try output.write(using: fileOutput)
         }
     }
 }

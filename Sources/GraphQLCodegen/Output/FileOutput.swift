@@ -1,6 +1,6 @@
 import Foundation
 
-actor FileOutput {
+final class FileOutput {
     struct TransactionError: Swift.Error, CustomStringConvertible {
         let description: String
     }
@@ -27,36 +27,25 @@ actor FileOutput {
         var published: [StagedFile] = []
     }
 
-    private enum State {
-        case staging
-        case recoveryRequired
-        case finished
-    }
-
     private let temporaryDirectory = FileManager.default.temporaryDirectory
     private var directoriesToCreate: Set<URL> = []
     private var urlsToRemove: Set<URL> = []
     private var urlsToSave: Set<URL> = []
     private var stagedFiles: [StagedFile] = []
-    private var state = State.staging
 
     func createDirectory(at destination: URL) {
-        requireStaging()
         directoriesToCreate.insert(destination)
     }
 
     func remove(at url: URL) {
-        requireStaging()
         urlsToRemove.insert(url)
     }
 
     func remove(at urls: any Sequence<URL>) {
-        requireStaging()
         urlsToRemove.formUnion(urls)
     }
 
     func save(at url: URL) {
-        requireStaging()
         urlsToSave.insert(url)
     }
 
@@ -66,14 +55,12 @@ actor FileOutput {
     }
 
     func write(_ data: Data, to url: URL) throws {
-        requireStaging()
         let tempURL = temporaryURL()
         try data.write(to: tempURL)
         stagedFiles.append(StagedFile(temporaryURL: tempURL, finalURL: url, kind: .generated))
     }
 
     func execute() throws {
-        requireStaging()
         var commitState = CommitState()
         do {
             try urlsToSave.sorted(by: pathOrder).forEach { url in
@@ -115,15 +102,12 @@ actor FileOutput {
             }
 
             removeCommittedBackups(commitState.backups)
-            finish()
         } catch {
             let commitError = error
             let recoveryFailures = rollback(commitState)
             if recoveryFailures.isEmpty {
-                finish()
                 throw commitError
             }
-            state = .recoveryRequired
             throw TransactionError(description: """
             Failed to commit generated output: \(commitError)
             Automatic recovery was incomplete. Recovery files were retained in the temporary directory.
@@ -133,7 +117,6 @@ actor FileOutput {
     }
 
     func discard() throws {
-        requireStaging()
         var failures: [String] = []
         for stagedFile in stagedFiles where fileExists(at: stagedFile.temporaryURL) {
             if let failure = recoveryFailure(
@@ -149,7 +132,6 @@ actor FileOutput {
             \(failures.joined(separator: "\n"))
             """)
         }
-        finish()
     }
 
     private func rollback(_ commitState: CommitState) -> [String] {
@@ -312,24 +294,10 @@ actor FileOutput {
     private func temporaryURL() -> URL {
         temporaryDirectory.appendingPathComponent(UUID().uuidString)
     }
-
-    private func requireStaging() {
-        guard case .staging = state else {
-            preconditionFailure("FileOutput can only stage changes before commit or discard")
-        }
-    }
-
-    private func finish() {
-        directoriesToCreate.removeAll()
-        urlsToRemove.removeAll()
-        urlsToSave.removeAll()
-        stagedFiles.removeAll()
-        state = .finished
-    }
 }
 
 extension String {
-    func write(to url: URL, using fileOutput: FileOutput) async throws {
-        try await fileOutput.write(Data(utf8), to: url)
+    func write(to url: URL, using fileOutput: FileOutput) throws {
+        try fileOutput.write(Data(utf8), to: url)
     }
 }

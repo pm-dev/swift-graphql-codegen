@@ -49,10 +49,10 @@ struct CodegenOutputPlan {
         try GeneratedTypeNameValidator(outputPlan: self).validate()
     }
 
-    func write(using fileOutput: FileOutput) async throws {
-        try await documentsWriter.write(using: fileOutput)
-        try await schemaWriter.write(using: fileOutput)
-        try await apiWriter.write(using: fileOutput)
-        try await manifestWriter?.write(using: fileOutput)
+    func write(using fileOutput: FileOutput) throws {
+        try documentsWriter.write(using: fileOutput)
+        try schemaWriter.write(using: fileOutput)
+        try apiWriter.write(using: fileOutput)
+        try manifestWriter?.write(using: fileOutput)
     }
 }

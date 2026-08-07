@@ -12,12 +12,12 @@ protocol APIOutput: Sendable {
     var topLevelTypeNames: [SwiftTypeIdentifier] { get }
 
     /// Writes this output to its configured destination.
-    func write(using fileOutput: FileOutput) async throws
+    func write(using fileOutput: FileOutput) throws
 }
 
 extension APIOutput {
-    func write(using fileOutput: FileOutput) async throws {
-        try await source.write(
+    func write(using fileOutput: FileOutput) throws {
+        try source.write(
             to: configuration.output.api.directory.appending(
                 path: relativePath,
                 directoryHint: .notDirectory
