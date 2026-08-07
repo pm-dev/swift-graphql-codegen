@@ -320,16 +320,16 @@ struct ServerSentEventTests {
         let process = Process()
         process.executableURL = executableURL
         process.arguments = arguments
-        let output = Pipe()
-        process.standardError = output
-        process.standardOutput = output
+        let outputPipe = Pipe()
+        process.standardError = outputPipe
+        process.standardOutput = outputPipe
         try process.run()
-        let data = output.fileHandleForReading.readDataToEndOfFile()
+        let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
+        let output = try #require(String(bytes: data, encoding: .utf8))
         return (
             status: process.terminationStatus,
-            output: String(decoding: data, as: UTF8.self)
+            output: output
         )
     }
-
 }
