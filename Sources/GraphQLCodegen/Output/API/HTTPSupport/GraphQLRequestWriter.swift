@@ -5,15 +5,13 @@ struct GraphQLRequestWriter: APIOutput {
     let configuration: Configuration
     let relativePath = "HTTPSupport/GraphQLRequest.swift"
 
-    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLRequest")]
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.foundation, "Data"),
-        .init(.foundation, "JSONDecoder"),
-        .init(.foundation, "URL"),
-        .init(.foundation, "URLRequest"),
-        .init(.swift, "Bool"),
-        .init(.swift, "String"),
-    ]
+    var topLevelTypeNames: [SwiftTypeIdentifier] {
+        var typeNames = [SwiftTypeIdentifier(swiftName: "GraphQLRequest")]
+        if case .automatic = configuration.output.documents.operations.persistedOperations {
+            typeNames.append(SwiftTypeIdentifier(swiftName: "PersistedOperationRetry"))
+        }
+        return typeNames
+    }
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

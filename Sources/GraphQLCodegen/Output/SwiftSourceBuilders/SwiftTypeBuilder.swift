@@ -20,8 +20,7 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         isPublic: Bool,
         type: String,
         name: String,
-        conformances: [String],
-        typeScope: SwiftTypeScope
+        conformances: [String]
     ) {
         var lines: [String] = []
         if let description {
@@ -29,7 +28,7 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         }
         var line = "\(isPublic ? "public " : "")\(type) \(name)"
         if !conformances.isEmpty {
-            line.append(": " + conformances.map(typeScope.conformance).joined(separator: ", "))
+            line.append(": " + conformances.joined(separator: ", "))
         }
         line.append(" {")
         lines.append(line)

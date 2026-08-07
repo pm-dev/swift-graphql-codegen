@@ -5,24 +5,6 @@ struct DefaultEncodersWriter: APIOutput {
     let configuration: Configuration
     let relativePath = "HTTPSupport/DefaultEncoders.swift"
 
-    var typeReferences: Set<SwiftTypeReference> {
-        var references: Set<SwiftTypeReference> = [
-            .init(.foundation, "Data"),
-            .init(.foundation, "JSONEncoder"),
-            .init(.foundation, "URLQueryItem"),
-            .init(.swift, "Array"),
-            .init(.swift, "Bool"),
-            .init(.swift, "Encodable"),
-            .init(.swift, "Int"),
-            .init(.swift, "String"),
-            .init(.swift, "UTF8"),
-        ]
-        if case .automatic = configuration.output.documents.operations.persistedOperations {
-            references.insert(.init(.cryptoKit, "SHA256"))
-        }
-        return references
-    }
-
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [SwiftTypeIdentifier(swiftName: "JSONBodyEncoder")]
         if configuration.output.api.HTTPSupport?.enableGETQueries == true {

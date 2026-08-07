@@ -5,7 +5,6 @@ struct FragmentBuilder {
     let document: Document
     let resolvedFragment: ResolvedFragment
     let typeName: SwiftTypeIdentifier
-    let typeScope: SwiftTypeScope
     let includesSelectionSet: Bool
 
     private var fragment: Document.Fragment {
@@ -24,8 +23,7 @@ struct FragmentBuilder {
             description: nil,
             isPublic: isPublic,
             name: typeName.source,
-            conformances: includesSelectionSet ? configuration.output.documents.fragments.conformances : [],
-            typeScope: typeScope
+            conformances: includesSelectionSet ? configuration.output.documents.fragments.conformances : []
         )
         if includesSelectionSet {
             try addSelectionSet(to: &fragmentStruct)
@@ -40,8 +38,7 @@ struct FragmentBuilder {
                 immutable: configuration.output.documents.fragments.immutable,
                 isPublic: isPublic,
                 conformances: OrderedSet(configuration.output.documents.fragments.conformances),
-                configuration: configuration,
-                typeScope: typeScope
+                configuration: configuration
             )
         } catch {
             switch error as? SelectionSetError {

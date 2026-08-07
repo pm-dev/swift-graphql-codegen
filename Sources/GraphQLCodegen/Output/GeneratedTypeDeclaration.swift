@@ -36,5 +36,4 @@ struct GeneratedTypeDeclaration {
 
     let name: SwiftTypeIdentifier
     let origin: Origin
-    let conformances: [String]
 }

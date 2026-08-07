@@ -3,15 +3,6 @@ struct JSONValueWriter: APIOutput {
 
     let relativePath = "JSONValue.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "JSONValue")]
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.swift, "Bool"),
-        .init(.swift, "Decodable"),
-        .init(.swift, "Decoder"),
-        .init(.swift, "DecodingError"),
-        .init(.swift, "Double"),
-        .init(.swift, "Sendable"),
-        .init(.swift, "String"),
-    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

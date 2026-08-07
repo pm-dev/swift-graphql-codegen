@@ -5,28 +5,19 @@ protocol APIOutput: Sendable {
     /// Generated file path relative to the API output directory.
     var relativePath: String { get }
 
-    /// Unqualified generated Swift source.
+    /// Generated Swift source.
     var source: String { get }
 
     /// Top-level Swift types this output writes.
     var topLevelTypeNames: [SwiftTypeIdentifier] { get }
 
-    /// System types referenced by the generated source.
-    var typeReferences: Set<SwiftTypeReference> { get }
-
-    /// Writes this output, qualifying type references only when a declaration in `typeScope` shadows them.
-    func write(using fileOutput: FileOutput, typeScope: SwiftTypeScope) async throws
+    /// Writes this output to its configured destination.
+    func write(using fileOutput: FileOutput) async throws
 }
 
 extension APIOutput {
-    var moduleQualifiers: Set<SwiftTypeIdentifier> {
-        Set(typeReferences.map { reference in
-            SwiftTypeIdentifier(swiftName: reference.module.rawValue)
-        })
-    }
-
-    func write(using fileOutput: FileOutput, typeScope: SwiftTypeScope) async throws {
-        try await typeScope.qualify(source, references: typeReferences).write(
+    func write(using fileOutput: FileOutput) async throws {
+        try await source.write(
             to: configuration.output.api.directory.appending(
                 path: relativePath,
                 directoryHint: .notDirectory

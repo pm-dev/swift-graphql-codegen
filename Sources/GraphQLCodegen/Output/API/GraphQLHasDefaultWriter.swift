@@ -3,12 +3,6 @@ struct GraphQLHasDefaultWriter: APIOutput {
 
     let relativePath = "GraphQLHasDefault.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLHasDefault")]
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.swift, "Encodable"),
-        .init(.swift, "Encoder"),
-        .init(.swift, "Hashable"),
-        .init(.swift, "Sendable"),
-    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

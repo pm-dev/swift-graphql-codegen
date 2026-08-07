@@ -3,14 +3,6 @@ struct GraphQLEnumWriter: APIOutput {
 
     let relativePath = "GraphQLEnum.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLEnum")]
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.swift, "Decodable"),
-        .init(.swift, "Decoder"),
-        .init(.swift, "Hashable"),
-        .init(.swift, "RawRepresentable"),
-        .init(.swift, "Sendable"),
-        .init(.swift, "String"),
-    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

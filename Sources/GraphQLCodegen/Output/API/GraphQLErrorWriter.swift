@@ -3,14 +3,6 @@ struct GraphQLErrorWriter: APIOutput {
 
     let relativePath = "GraphQLError.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLError")]
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.swift, "Decodable"),
-        .init(.swift, "Decoder"),
-        .init(.swift, "DecodingError"),
-        .init(.swift, "Int"),
-        .init(.swift, "Sendable"),
-        .init(.swift, "String"),
-    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

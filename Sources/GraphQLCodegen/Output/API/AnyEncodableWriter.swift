@@ -3,12 +3,6 @@ struct AnyEncodableWriter: APIOutput {
 
     let relativePath = "AnyEncodable.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "AnyEncodable")]
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.swift, "Encodable"),
-        .init(.swift, "Encoder"),
-        .init(.swift, "Sendable"),
-        .init(.swift, "Void"),
-    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

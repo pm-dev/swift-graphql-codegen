@@ -1,6 +1,5 @@
 struct SchemaScalarBuilder: SwiftTypeBuildable {
     let scalar: Schema.Scalar
-    let typeScope: SwiftTypeScope
 
     func build(configuration: Configuration) -> [String] {
         var lines: [String] = []
@@ -14,8 +13,7 @@ struct SchemaScalarBuilder: SwiftTypeBuildable {
         }
         let isPublic = configuration.output.schema.accessLevel == .public
         let typeName = SwiftTypeIdentifier(swiftName: scalar.ast.name).source
-        let string = typeScope.reference(.init(.swift, "String"))
-        lines.append("\(isPublic ? "public " : "")typealias \(typeName) = \(string)")
+        lines.append("\(isPublic ? "public " : "")typealias \(typeName) = String")
         return lines
     }
 }

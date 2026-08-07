@@ -5,16 +5,14 @@ struct SwiftEnumBuilder: SwiftTypeBuildable {
         description: String?,
         isPublic: Bool,
         name: String,
-        conformances: [String],
-        typeScope: SwiftTypeScope
+        conformances: [String]
     ) {
         builder = SwiftTypeBuilder(
             description: description,
             isPublic: isPublic,
             type: "enum",
             name: identifier(name),
-            conformances: conformances,
-            typeScope: typeScope
+            conformances: conformances
         )
     }
 

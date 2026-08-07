@@ -7,16 +7,15 @@ struct GeneratedTypeNameValidator {
     }
 
     private let outputPlan: CodegenOutputPlan
-    private let topLevelTypeNames: Set<SwiftTypeIdentifier>
+    private let schemaTypeNames: Set<SwiftTypeIdentifier>
 
     init(outputPlan: CodegenOutputPlan) {
         self.outputPlan = outputPlan
-        self.topLevelTypeNames = Set(outputPlan.topLevelDeclarations.map(\.name))
+        self.schemaTypeNames = Set(outputPlan.schemaWriter.topLevelDeclarations.map(\.name))
     }
 
     func validate() throws {
         try validateTopLevelDeclarations()
-        try validateSchemaScopes()
         try validateDocumentScopes()
     }
 
@@ -33,44 +32,7 @@ struct GeneratedTypeNameValidator {
                     conflictingDeclaration: conflictingDeclaration
                 )
             }
-            try validateReservedTypeName(
-                typeName: declaration.name,
-                reservedTypeNames: outputPlan.reservedTopLevelTypeNames,
-                source: declaration.origin.description,
-                resolution: declaration.origin.resolution,
-                documentURL: nil
-            )
             declarationByTypeName[declaration.name] = declaration
-        }
-    }
-
-    private func validateSchemaScopes() throws {
-        for typePlan in outputPlan.schemaWriter.typePlans {
-            guard case .inputObject(let inputObject) = typePlan,
-                  !inputObject.ast.inputFields.isEmpty else {
-                continue
-            }
-            let conformances = outputPlan.schemaWriter.conformances(for: typePlan)
-            guard conformances.contains(where: {
-                SwiftConformanceName(source: $0).usesCodingKeys
-            }) else {
-                continue
-            }
-            let name = inputObject.ast.name
-            let codingKeys = NestedTypeSource(
-                description: "Generated CodingKeys for schema type: \(name)",
-                responseKey: nil
-            )
-            let declarations = [SwiftTypeIdentifier.codingKeys: codingKeys]
-            for inputField in inputObject.ast.inputFields {
-                let references = typeReferences(in: inputField.type.swiftName)
-                try validateReferences(
-                    references,
-                    shadowedBy: declarations,
-                    source: "Schema input field: \(inputField.name)",
-                    documentURL: nil
-                )
-            }
         }
     }
 
@@ -80,11 +42,11 @@ struct GeneratedTypeNameValidator {
                 switch definition {
                 case .operation(let operation, _):
                     try validate(operation, in: documentPlan.document)
-                case .fragment(let fragment, let includesSelectionSet, let declaration):
+                case .fragment(let fragment, let includesSelectionSet, _):
                     guard includesSelectionSet else { continue }
                     try validateSelectionSet(
                         fragment.resolvedSelectionSet,
-                        conformances: declaration.conformances,
+                        conformances: configuration.output.documents.fragments.conformances,
                         visibleNestedTypes: [:],
                         in: documentPlan.document.url
                     )
@@ -107,25 +69,13 @@ struct GeneratedTypeNameValidator {
                 responseKey: nil
             )
         }
-        try validateNestedTypeNames(
-            operationTypes,
-            against: configuration.output.documents.operations.responseData.conformances,
-            in: document.url
-        )
-        if !variableDefinitions.isEmpty {
-            try validateNestedTypeNames(
-                operationTypes,
-                against: configuration.output.documents.operations.variables.conformances,
-                in: document.url
+        for variableDefinition in variableDefinitions {
+            try validateReferences(
+                generatedTypeReferences(in: variableDefinition.type.typeName),
+                shadowedBy: operationTypes,
+                source: "Operation variable: \(variableDefinition.variable.name.value)",
+                documentURL: document.url
             )
-            for variableDefinition in variableDefinitions {
-                try validateReferences(
-                    typeReferences(in: variableDefinition.type.typeName),
-                    shadowedBy: operationTypes,
-                    source: "Operation variable: \(variableDefinition.variable.name.value)",
-                    documentURL: document.url
-                )
-            }
         }
         try validateSelectionSet(
             operation.resolvedSelectionSet,
@@ -142,9 +92,6 @@ struct GeneratedTypeNameValidator {
         in documentURL: URL
     ) throws {
         let typePlan = SelectionSetTypePlan(selectionSet: selectionSet, conformances: conformances)
-        let includesDecodable = conformances.contains { conformance in
-            SwiftConformanceName(source: conformance).includesDecodable
-        }
         var localTypes: [SwiftTypeIdentifier: NestedTypeSource] = [:]
         for declaration in typePlan.declarations {
             switch declaration.origin {
@@ -177,40 +124,19 @@ struct GeneratedTypeNameValidator {
                 )
             }
         }
-        try validateModuleQualifiers(
-            in: localTypes,
-            conformances: conformances,
-            documentURL: documentURL
-        )
-        let typesVisibleInScope = visibleNestedTypes.merging(localTypes) { _, local in local }
-        try validateNestedTypeNames(typesVisibleInScope, against: conformances, in: documentURL)
-        try validateStandardLibraryConformances(
-            conformances,
-            shadowedBy: typesVisibleInScope,
-            documentURL: documentURL
-        )
-        if includesDecodable, typePlan.hasFragments {
-            try validateQualifiableReference(
-                .init(.swift, "Decoder"),
-                shadowedBy: typesVisibleInScope,
-                source: "Generated Decodable initializer",
+        if localTypes[.codingKeys] != nil, schemaTypeNames.contains(.codingKey) {
+            throw schemaTypeReferenceConflictError(
+                schemaTypeName: .codingKey,
+                source: "Generated CodingKeys conformance",
                 documentURL: documentURL
             )
-            if !typePlan.fields.isEmpty {
-                try validateQualifiableReference(
-                    .init(.swift, "CodingKey"),
-                    shadowedBy: typesVisibleInScope,
-                    source: "Generated CodingKeys conformance",
-                    documentURL: documentURL
-                )
-            }
         }
-
+        let typesVisibleInScope = visibleNestedTypes.merging(localTypes) { _, local in local }
         for (responseKey, selection) in selectionSet {
             switch selection {
             case .field(let field, _):
                 try validateReferences(
-                    typeReferences(in: field.type),
+                    generatedTypeReferences(in: field.type),
                     shadowedBy: typesVisibleInScope,
                     source: "Response key: \(responseKey)",
                     documentURL: documentURL
@@ -246,62 +172,14 @@ struct GeneratedTypeNameValidator {
         }
     }
 
-    private func validateNestedTypeNames(
-        _ nestedTypes: [SwiftTypeIdentifier: NestedTypeSource],
-        against conformances: [String],
-        in documentURL: URL
-    ) throws {
-        let reservedTypeNames = Set(lookupTypeNames(in: conformances))
-        for (typeName, source) in nestedTypes where reservedTypeNames.contains(typeName) {
-            try validateReservedTypeName(
-                typeName: typeName,
-                reservedTypeNames: reservedTypeNames,
-                source: source.description,
-                resolution: source.responseKey == nil ?
-                    "Change the conflicting conformance in codegen configuration." :
-                    "Use a GraphQL field alias that produces a distinct Swift type name.",
-                documentURL: documentURL
-            )
-        }
-    }
-
-    private func validateModuleQualifiers(
-        in declarations: [SwiftTypeIdentifier: NestedTypeSource],
-        conformances: [String],
-        documentURL: URL
-    ) throws {
-        let conformanceModules = conformances.compactMap { conformance in
-            SwiftConformanceName(source: conformance).moduleQualifier
-        }
-        let moduleQualifiers = Set(conformanceModules)
-        for (typeName, source) in declarations where moduleQualifiers.contains(typeName) {
-            try validateReservedTypeName(
-                typeName: typeName,
-                reservedTypeNames: moduleQualifiers,
-                source: source.description,
-                resolution: "Use a GraphQL field alias that does not shadow a generated module reference.",
-                documentURL: documentURL
-            )
-        }
-    }
-
     private func validateReferences(
         _ references: Set<SwiftTypeIdentifier>,
         shadowedBy declarations: [SwiftTypeIdentifier: NestedTypeSource],
         source: String,
-        documentURL: URL?
+        documentURL: URL
     ) throws {
         for reference in references {
             guard let conflictingSource = declarations[reference] else { continue }
-            if let reference = SwiftTypeReference(nativeScalarName: reference.unescaped) {
-                try validateQualifiableReference(
-                    reference,
-                    shadowedBy: declarations,
-                    source: source,
-                    documentURL: documentURL
-                )
-                continue
-            }
             throw generatedReferenceConflictError(
                 reference: reference,
                 source: source,
@@ -311,60 +189,14 @@ struct GeneratedTypeNameValidator {
         }
     }
 
-    private func validateStandardLibraryConformances(
-        _ conformances: [String],
-        shadowedBy declarations: [SwiftTypeIdentifier: NestedTypeSource],
-        documentURL: URL
-    ) throws {
-        for conformance in conformances {
-            guard let reference = SwiftConformanceName(
-                source: conformance
-            ).standardLibraryReference else {
-                continue
-            }
-            try validateQualifiableReference(
-                reference,
-                shadowedBy: declarations,
-                source: "Generated conformance: \(conformance)",
-                documentURL: documentURL
-            )
-        }
-    }
-
-    private func validateQualifiableReference(
-        _ reference: SwiftTypeReference,
-        shadowedBy declarations: [SwiftTypeIdentifier: NestedTypeSource],
-        source: String,
-        documentURL: URL?
-    ) throws {
-        let referenceIsShadowed = topLevelTypeNames.contains(reference.name) ||
-            declarations[reference.name] != nil
-        guard referenceIsShadowed,
-              let moduleSource = declarations[
-                  SwiftTypeIdentifier(swiftName: reference.module.rawValue)
-              ] else {
-            return
-        }
-        throw generatedReferenceConflictError(
-            reference: SwiftTypeIdentifier(swiftName: reference.module.rawValue),
-            source: source,
-            conflictingSource: moduleSource,
-            documentURL: documentURL
-        )
-    }
-
-    private func lookupTypeNames(in conformances: [String]) -> [SwiftTypeIdentifier] {
-        conformances.compactMap { conformance in
-            let conformance = SwiftConformanceName(source: conformance)
-            guard conformance.standardLibraryReference == nil else { return nil }
-            return conformance.lookupTypeName
-        }
-    }
-
-    private func typeReferences(in type: ResolvedFieldType) -> Set<SwiftTypeIdentifier> {
+    private func generatedTypeReferences(in type: ResolvedFieldType) -> Set<SwiftTypeIdentifier> {
         switch type {
         case .scalar(let typeName, let isEnum):
-            var references = Set([lookupTypeName(in: typeName)])
+            let typeName = lookupTypeName(in: typeName)
+            var references: Set<SwiftTypeIdentifier> = []
+            if schemaTypeNames.contains(typeName) {
+                references.insert(typeName)
+            }
             if isEnum {
                 references.insert(SwiftTypeIdentifier(swiftName: "GraphQLEnum"))
             }
@@ -372,14 +204,17 @@ struct GeneratedTypeNameValidator {
         case .map:
             return []
         case .list(let innerType), .optional(let innerType):
-            return typeReferences(in: innerType)
+            return generatedTypeReferences(in: innerType)
         }
     }
 
-    private func typeReferences(in type: SourceTypeName) -> Set<SwiftTypeIdentifier> {
+    private func generatedTypeReferences(in type: SourceTypeName) -> Set<SwiftTypeIdentifier> {
         var references: Set<SwiftTypeIdentifier> = []
         _ = type.formatted { name in
-            references.insert(lookupTypeName(in: name))
+            let typeName = lookupTypeName(in: name)
+            if schemaTypeNames.contains(typeName) {
+                references.insert(typeName)
+            }
             return name
         }
         return references
@@ -388,23 +223,6 @@ struct GeneratedTypeNameValidator {
     private func lookupTypeName(in source: String) -> SwiftTypeIdentifier {
         let name = source.split(separator: ".", maxSplits: 1).first.map(String.init) ?? source
         return SwiftTypeIdentifier(swiftName: name)
-    }
-
-    private func validateReservedTypeName(
-        typeName: SwiftTypeIdentifier,
-        reservedTypeNames: Set<SwiftTypeIdentifier>,
-        source: String,
-        resolution: String,
-        documentURL: URL?
-    ) throws {
-        guard reservedTypeNames.contains(typeName) else { return }
-        throw Codegen.Error(description: """
-        A generated Swift type uses a name reserved by generated code.
-        \(source)
-        Swift type name: \(typeName.source)\(documentURL.map { "\nFile: \($0)" } ?? "")
-
-        \(resolution)
-        """)
     }
 
     private func conflictingTopLevelDeclarationsError(
@@ -461,13 +279,14 @@ struct GeneratedTypeNameValidator {
         reference: SwiftTypeIdentifier,
         source: String,
         conflictingSource: NestedTypeSource,
-        documentURL: URL?
+        documentURL: URL
     ) -> Codegen.Error {
         Codegen.Error(description: """
         A generated nested Swift type shadows a type referenced by generated code.
         \(conflictingSource.description)
         Reference source: \(source)
-        Swift type name: \(reference.source)\(documentURL.map { "\nFile: \($0)" } ?? "")
+        Swift type name: \(reference.source)
+        File: \(documentURL)
 
         Use a GraphQL field alias or rename the referenced GraphQL definition so the generated names are distinct.
         """)
@@ -485,6 +304,19 @@ struct GeneratedTypeNameValidator {
         File: \(documentURL)
 
         Use a GraphQL field alias that does not shadow a generated Swift type.
+        """)
+    }
+
+    private func schemaTypeReferenceConflictError(
+        schemaTypeName: SwiftTypeIdentifier,
+        source: String,
+        documentURL: URL
+    ) -> Codegen.Error {
+        Codegen.Error(description: """
+        A generated schema type shadows a type referenced by generated code.
+        Schema type: \(schemaTypeName.source)
+        Reference source: \(source)
+        File: \(documentURL)
         """)
     }
 }

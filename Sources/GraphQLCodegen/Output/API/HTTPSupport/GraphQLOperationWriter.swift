@@ -9,6 +9,7 @@ struct GraphQLOperationWriter: APIOutput {
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [
             SwiftTypeIdentifier(swiftName: "GraphQLOperation"),
+            SwiftTypeIdentifier(swiftName: "GraphQLSingleResponseOperation"),
             SwiftTypeIdentifier(swiftName: "GraphQLQuery"),
         ]
         if hasMutation {
@@ -19,13 +20,6 @@ struct GraphQLOperationWriter: APIOutput {
         }
         return typeNames
     }
-
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.swift, "Decodable"),
-        .init(.swift, "Encodable"),
-        .init(.swift, "Sendable"),
-        .init(.swift, "String"),
-    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

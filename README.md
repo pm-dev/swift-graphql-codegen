@@ -444,9 +444,9 @@ Profile: Viewer { name }
 
 would produce `struct Profile` for both keys. An alias or fragment can be used to resolve this conflict.
 
-Before writing files, Codegen builds the concrete output plan and validates declarations in their actual Swift lexical scopes. Synthesized names such as `Data`, `Variables`, and `CodingKeys` are reserved only in scopes where Codegen will emit them. Generated schema and document types also cannot shadow generated API types, custom configured conformances, or automatic operation conformances such as `GraphQLQuery`.
+Before writing files, Codegen builds the concrete output plan and validates declarations in their actual Swift lexical scopes. This includes conflicts between response keys, fragments, generated schema types, and fixed operation declarations or references such as `Data`, `Variables`, and `CodingKey`.
 
-Swift standard-library and Foundation references are unqualified by default. Codegen adds a module qualifier only when a generated declaration would otherwise shadow that reference—for example, a generated `Decoder` type causes the affected reference to become `Swift.Decoder`. Resolve conflicts that cannot be qualified with a field alias, fragment, or a renamed schema type or operation.
+Configured conformances are emitted verbatim and are not included in collision validation. Codegen neither qualifies generated system type references nor validates collisions with Swift standard-library or Foundation types. Callers are responsible for avoiding those collisions with GraphQL aliases or fragment names and for qualifying configured types and conformances when necessary.
 
 ## Alternatives
 

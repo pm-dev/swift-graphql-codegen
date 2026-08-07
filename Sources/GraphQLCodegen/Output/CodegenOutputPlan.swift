@@ -5,7 +5,6 @@ struct CodegenOutputPlan {
     let schemaWriter: SchemaWriter
 
     let configuration: Configuration
-    let reservedTopLevelTypeNames: Set<SwiftTypeIdentifier>
     let topLevelDeclarations: [GeneratedTypeDeclaration]
 
     init(
@@ -38,18 +37,10 @@ struct CodegenOutputPlan {
         }
         let topLevelDeclarations = apiWriter.topLevelDeclarations +
             documentsWriter.topLevelDeclarations + schemaWriter.topLevelDeclarations
-        let apiTypeNames = Set(apiWriter.topLevelDeclarations.map(\.name))
-        let configuredTypeReferences = documentsWriter.conformanceTypeReferences
-            .union(schemaWriter.conformanceTypeReferences)
-            .subtracting(apiTypeNames)
         self.apiWriter = apiWriter
         self.configuration = configuration
         self.documentsWriter = documentsWriter
         self.manifestWriter = manifestWriter
-        self.reservedTopLevelTypeNames = apiWriter.moduleQualifiers
-            .union(documentsWriter.moduleQualifiers)
-            .union(schemaWriter.moduleQualifiers)
-            .union(configuredTypeReferences)
         self.schemaWriter = schemaWriter
         self.topLevelDeclarations = topLevelDeclarations
     }
@@ -59,10 +50,9 @@ struct CodegenOutputPlan {
     }
 
     func write(using fileOutput: FileOutput) async throws {
-        let typeScope = SwiftTypeScope(declarations: topLevelDeclarations.map(\.name))
-        try await documentsWriter.write(using: fileOutput, typeScope: typeScope)
-        try await schemaWriter.write(using: fileOutput, typeScope: typeScope)
-        try await apiWriter.write(using: fileOutput, typeScope: typeScope)
+        try await documentsWriter.write(using: fileOutput)
+        try await schemaWriter.write(using: fileOutput)
+        try await apiWriter.write(using: fileOutput)
         try await manifestWriter?.write(using: fileOutput)
     }
 }

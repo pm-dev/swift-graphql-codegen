@@ -6,7 +6,6 @@ struct OperationBuilder {
     let document: Document
     let resolvedOperation: ResolvedOperation
     let typeName: SwiftTypeIdentifier
-    let typeScope: SwiftTypeScope
 
     private var operation: Document.Operation {
         resolvedOperation.operation
@@ -32,12 +31,19 @@ struct OperationBuilder {
     }
 
     private func makeOperationStruct() -> SwiftStructBuilder {
-        SwiftStructBuilder(
+        var conformances = configuration.output.documents.operations.conformances
+        if configuration.output.api.HTTPSupport != nil {
+            switch operation.ast.operation {
+            case .query: conformances.append("GraphQLQuery")
+            case .mutation: conformances.append("GraphQLMutation")
+            case .subscription: conformances.append("GraphQLSubscription")
+            }
+        }
+        return SwiftStructBuilder(
             description: nil,
             isPublic: isPublic,
             name: typeName.source,
-            conformances: configuration.operationConformances(for: operation.ast.operation),
-            typeScope: typeScope
+            conformances: conformances
         )
     }
 
@@ -57,7 +63,7 @@ struct OperationBuilder {
             name: "operationName",
             value: .assigned(
                 value,
-                type: typeScope.reference(.init(.swift, "String")) + "?"
+                type: "String?"
             )
         )
     }
@@ -117,7 +123,7 @@ struct OperationBuilder {
             immutable: configuration.output.documents.operations.immutableExtensions,
             name: "extensions",
             value: .unassigned(
-                type: "[\(typeScope.reference(.init(.swift, "String"))): AnyEncodable]?",
+                type: "[String: AnyEncodable]?",
                 initialized: .direct(defaultValue: "nil")
             )
         )
@@ -135,13 +141,12 @@ struct OperationBuilder {
                 name: "variables",
                 value: .assigned(
                     "nil",
-                    type: typeScope.reference(.init(.swift, "Never")) + "?"
+                    type: "Never?"
                 )
             )
             return
         }
-        let nestedTypeScope = operationNestedTypeScope(hasVariables: true)
-        let typeNames = variableDefinitions.map { $0.typeName(in: nestedTypeScope) }
+        let typeNames = variableDefinitions.map(\.typeName)
         operationStruct.addProperty(
             description: nil,
             deprecation: nil,
@@ -183,14 +188,12 @@ struct OperationBuilder {
     private func addVariablesStruct(to operationStruct: inout SwiftStructBuilder) {
         let variableDefinitions = operation.ast.variableDefinitions
         guard !variableDefinitions.isEmpty else { return }
-        let nestedTypeScope = operationNestedTypeScope(hasVariables: true)
-        let typeNames = variableDefinitions.map { $0.typeName(in: nestedTypeScope) }
+        let typeNames = variableDefinitions.map(\.typeName)
         var variablesStruct = SwiftStructBuilder(
             description: nil,
             isPublic: isPublic,
             name: SwiftTypeIdentifier.variables.source,
-            conformances: configuration.output.documents.operations.variables.conformances,
-            typeScope: nestedTypeScope
+            conformances: configuration.output.documents.operations.variables.conformances
         )
         for (idx, variableDefinition) in variableDefinitions.enumerated() {
             variablesStruct.addProperty(
@@ -207,15 +210,11 @@ struct OperationBuilder {
     }
 
     private func addDataStruct(to operationStruct: inout SwiftStructBuilder) throws {
-        let nestedTypeScope = operationNestedTypeScope(
-            hasVariables: !operation.ast.variableDefinitions.isEmpty
-        )
         var structBuilder = SwiftStructBuilder(
             description: nil,
             isPublic: isPublic,
             name: SwiftTypeIdentifier.data.source,
-            conformances: configuration.output.documents.operations.responseData.conformances,
-            typeScope: nestedTypeScope
+            conformances: configuration.output.documents.operations.responseData.conformances
         )
         do {
             try structBuilder.addSelectionSet(
@@ -223,8 +222,7 @@ struct OperationBuilder {
                 immutable: configuration.output.documents.operations.responseData.immutable,
                 isPublic: isPublic,
                 conformances: OrderedSet(configuration.output.documents.operations.responseData.conformances),
-                configuration: configuration,
-                typeScope: nestedTypeScope
+                configuration: configuration
             )
         } catch {
             switch error as? SelectionSetError {
@@ -247,21 +245,10 @@ struct OperationBuilder {
         }
         operationStruct.addNestedType(structBuilder)
     }
-
-    private func operationNestedTypeScope(hasVariables: Bool) -> SwiftTypeScope {
-        var declarations = [SwiftTypeIdentifier.data]
-        if hasVariables {
-            declarations.append(.variables)
-        }
-        return typeScope.adding(declarations: declarations)
-    }
 }
 
 extension GraphQLAST.VariableDefinition {
-    fileprivate func typeName(in typeScope: SwiftTypeScope) -> String {
-        type.typeName.inputTypeName(
-            hasDefaultValue: defaultValue != nil,
-            typeScope: typeScope
-        )
+    fileprivate var typeName: String {
+        type.typeName.inputTypeName(hasDefaultValue: defaultValue != nil)
     }
 }

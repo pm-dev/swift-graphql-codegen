@@ -140,6 +140,57 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func rejectsSchemaTypesShadowedByFixedOperationTypes() async {
+        let collisions = [
+            (
+                document: "query Viewer { codingKey }",
+                schema: """
+                scalar CodingKey
+                type Query { codingKey: CodingKey! }
+                """
+            ),
+            (
+                document: "query Viewer { data }",
+                schema: """
+                enum Data { VALUE }
+                type Query { data: Data! }
+                """
+            ),
+            (
+                document: "query Viewer($variables: Variables!) { value(variables: $variables) }",
+                schema: """
+                input Variables { value: String! }
+                type Query { value(variables: Variables!): String! }
+                """
+            ),
+        ]
+
+        for collision in collisions {
+            await expectCodegenError(containing: "shadows a type referenced by generated code") {
+                try await runCodegen(document: collision.document, schema: collision.schema)
+            }
+        }
+    }
+
+    @Test
+    func preservesCallerControlledConformances() async throws {
+        let output = try await runCodegen(
+            document: """
+            query Viewer {
+              sendable: viewer { name }
+            }
+            """,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { name: String! }
+            """,
+            responseDataConformances: ["Swift.Decodable", "JSONValue", "@unchecked Swift.Sendable"]
+        )
+
+        #expect(output.contains("struct Sendable: Swift.Decodable, JSONValue, @unchecked Swift.Sendable"))
+    }
+
+    @Test
     func rejectsConflictingTopLevelTypeNames() async {
         await expectCodegenError(containing: "conflicting top-level Swift type names") {
             try await runCodegen(
@@ -155,9 +206,9 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
-    func rejectsGeneratedModuleQualifierNames() async {
-        for typeName in ["CryptoKit", "Foundation", "Swift"] {
-            await expectCodegenError(containing: "name reserved by generated code") {
+    func rejectsSchemaTypeNamedAfterGeneratedAPIType() async {
+        for typeName in ["GraphQLSingleResponseOperation", "PersistedOperationRetry"] {
+            await expectCodegenError(containing: "conflicting top-level Swift type names") {
                 try await runCodegen(
                     document: """
                     query Viewer { value }
@@ -168,35 +219,6 @@ struct GraphQLCodeGeneratorTests {
                     """
                 )
             }
-        }
-    }
-
-    @Test
-    func rejectsNestedSwiftTypeWhenTopLevelDecoderRequiresQualification() async {
-        await expectCodegenError(containing: "shadows a type referenced by generated code") {
-            try await runCodegen(
-                document: """
-                query Viewer {
-                  decoder
-                  swift: viewer {
-                    name
-                    ...details
-                  }
-                }
-                fragment details on Viewer { id }
-                """,
-                schema: """
-                scalar Decoder
-                type Query {
-                  decoder: Decoder!
-                  viewer: Viewer!
-                }
-                type Viewer {
-                  id: ID!
-                  name: String!
-                }
-                """
-            )
         }
     }
 
@@ -371,7 +393,8 @@ struct GraphQLCodeGeneratorTests {
     @discardableResult
     private func runCodegen(
         document: String,
-        schema: String
+        schema: String,
+        responseDataConformances: [String] = ["Decodable", "Sendable", "Hashable"]
     ) async throws -> String {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
             path: UUID().uuidString,
@@ -398,7 +421,12 @@ struct GraphQLCodeGeneratorTests {
                     schema: .schema(
                         directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory)
                     ),
-                    documents: .documents(directory: .directory(operationsDirectory)),
+                    documents: .documents(
+                        directory: .directory(operationsDirectory),
+                        operations: .operations(
+                            responseData: .responseData(conformances: responseDataConformances)
+                        )
+                    ),
                     api: .api(
                         directory: generatedDirectory.appending(path: "API", directoryHint: .isDirectory),
                         HTTPSupport: .httpSupport()
