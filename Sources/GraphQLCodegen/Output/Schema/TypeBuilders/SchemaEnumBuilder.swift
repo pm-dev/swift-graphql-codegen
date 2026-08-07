@@ -1,6 +1,5 @@
 struct SchemaEnumBuilder: SwiftTypeBuildable {
     let `enum`: Schema.Enum
-    let configuration: Configuration
 
     func build(configuration: Configuration) -> [String] {
         var builder = SwiftEnumBuilder(

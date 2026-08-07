@@ -87,7 +87,7 @@ struct SchemaWriter {
             var file = SwiftFileWriter()
             file.setHeader(configuration.output.schema.enums.header)
             file.setImports(configuration.output.schema.enums.importedModules)
-            file.addType(SchemaEnumBuilder(enum: `enum`, configuration: configuration))
+            file.addType(SchemaEnumBuilder(enum: `enum`))
             try file.write(
                 to: enumsDir.appending(path: "\(`enum`.ast.name).graphqls.swift", directoryHint: .notDirectory),
                 configuration: configuration,

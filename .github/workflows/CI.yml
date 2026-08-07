@@ -56,5 +56,10 @@ jobs:
           brew install swiftlint
           swiftlint lint --strict
 
+      - name: Unused code
+        run: |
+          brew install periphery
+          periphery scan --strict
+
       - name: Test
         run: swift test --skip-build -v
