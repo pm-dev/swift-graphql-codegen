@@ -37,16 +37,25 @@ Everything you need and nothing you don't. Swift GraphQL Codegen is a lightweigh
 
 The code generator runs on macOS 14 or newer because it uses JavaScriptCore to execute the bundled GraphQL reference implementation. The generated source uses portable Foundation APIs and can be included in iOS, macOS, tvOS, and watchOS applications, subject to the APIs enabled in your configuration.
 
+## Server-Sent Events trust requirement
+
+Only use the generated GraphQL subscription API with a trusted server. Its Foundation-based SSE parser accepts LF, CRLF, and CR line
+endings and bounds both complete event payloads and decoded results waiting for the consumer. The parser buffers bytes until an
+SSE line terminator arrives, however, so the server must not send an arbitrarily long unterminated line. This is an explicit trust
+boundary rather than protection against a malicious or compromised subscription endpoint.
+
 ---
 
 ## Table of Contents
+
 1. [Platform Support](#platform-support)
-2. [Getting Started](#getting-started)
-3. [Example](#example-output)
-4. [Motivation](#motivation)
-5. [Design](#design)
-6. [Contributing](#contributing)
-7. [License](#license)
+2. [Server-Sent Events trust requirement](#server-sent-events-trust-requirement)
+3. [Getting Started](#getting-started)
+4. [Example](#example-output)
+5. [Motivation](#motivation)
+6. [Design](#design)
+7. [Contributing](#contributing)
+8. [License](#license)
 
 ---
 
