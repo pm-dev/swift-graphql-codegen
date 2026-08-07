@@ -16,7 +16,8 @@ extension Configuration.Output.API {
         ///   - subscriptionSupport: Pass `true` to enable support for subscription operations via GraphQL over Server-Sent Events:
         ///   https://github.com/enisdenjo/graphql-sse/blob/master/PROTOCOL.md#distinct-connections-mode. If your
         ///   graphql documents include one or more subscription operations, this will add a `subscribe` function to the generated URLSession
-        ///   extension.
+        ///   extension. Only enable this for trusted GraphQL servers. The generated implementation buffers each SSE line until its
+        ///   terminator arrives, so an arbitrarily long unterminated line may be buffered indefinitely.
         /// - Returns: A new `HTTPSupport` instance to be passed to the `API.api` factory function.
         public static func httpSupport(
             enableGETQueries: Bool = false,
