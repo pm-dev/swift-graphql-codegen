@@ -28,8 +28,6 @@ struct TypeASTCache {
             case .UNION(let union): unions[union.name] = union
             case .ENUM(let `enum`): enums[`enum`.name] = `enum`
             case .INPUT_OBJECT(let inputObject): inputObjects[inputObject.name] = inputObject
-            case .LIST: break
-            case .NON_NULL: break
             }
         }
     }

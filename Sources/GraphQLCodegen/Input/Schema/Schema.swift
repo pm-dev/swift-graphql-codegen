@@ -77,21 +77,35 @@ struct Schema {
     }
 
     indirect enum Field {
-        case SCALAR(Scalar)
-        case OBJECT(Object)
-        case INTERFACE(Interface)
-        case UNION(Union)
-        case ENUM(Enum)
-        case LIST(Field)
-        case NON_NULL(Field)
+        indirect enum Value {
+            case SCALAR(Scalar)
+            case OBJECT(Object)
+            case INTERFACE(Interface)
+            case UNION(Union)
+            case ENUM(Enum)
+            case LIST(Field)
+        }
+
+        case nullable(Value)
+        case nonNull(Value)
     }
 
     indirect enum Input {
-        case SCALAR(Scalar)
-        case ENUM(Enum)
-        case INPUT_OBJECT(InputObject)
-        case LIST(Input)
-        case NON_NULL(Input)
+        indirect enum Value {
+            case SCALAR(Scalar)
+            case ENUM(Enum)
+            case INPUT_OBJECT(InputObject)
+            case LIST(Input)
+        }
+
+        case nullable(Value)
+        case nonNull(Value)
+
+        var value: Value {
+            switch self {
+            case .nullable(let value), .nonNull(let value): value
+            }
+        }
     }
 
     func queryType() throws -> Object {
@@ -129,13 +143,13 @@ struct Schema {
 
     private func fieldType(_ typeRef: __Schema.__TypeRef) throws -> Field {
         switch typeRef {
-        case .SCALAR(let scalar): .SCALAR(try type(scalar))
-        case .ENUM(let `enum`): .ENUM(try type(`enum`))
-        case .OBJECT(let objectType): .OBJECT(try type(objectType))
-        case .INTERFACE(let interfaceType): .INTERFACE(try type(interfaceType))
-        case .UNION(let unionType): .UNION(try type(unionType))
-        case .LIST(let ofType): .LIST(try fieldType(ofType))
-        case .NON_NULL(let ofType): .NON_NULL(try fieldType(ofType))
+        case .SCALAR(let scalar): .nullable(.SCALAR(try type(scalar)))
+        case .ENUM(let `enum`): .nullable(.ENUM(try type(`enum`)))
+        case .OBJECT(let objectType): .nullable(.OBJECT(try type(objectType)))
+        case .INTERFACE(let interfaceType): .nullable(.INTERFACE(try type(interfaceType)))
+        case .UNION(let unionType): .nullable(.UNION(try type(unionType)))
+        case .LIST(let ofType): .nullable(.LIST(try fieldType(ofType)))
+        case .NON_NULL(let ofType): .nonNull(try fieldValue(ofType))
         case .INPUT_OBJECT:
             throw Codegen.Error(description: """
             Selected a field \(typeRef) whose type is an input object.
@@ -144,6 +158,19 @@ struct Schema {
 
             Note: Turning on validation can help find other similar errors
             """)
+        }
+    }
+
+    private func fieldValue(_ typeRef: __Schema.__NullableTypeRef) throws -> Field.Value {
+        switch typeRef {
+        case .SCALAR(let scalar): .SCALAR(try type(scalar))
+        case .ENUM(let `enum`): .ENUM(try type(`enum`))
+        case .OBJECT(let objectType): .OBJECT(try type(objectType))
+        case .INTERFACE(let interfaceType): .INTERFACE(try type(interfaceType))
+        case .UNION(let unionType): .UNION(try type(unionType))
+        case .LIST(let ofType): .LIST(try fieldType(ofType))
+        case .INPUT_OBJECT:
+            throw Codegen.Error(description: "Invalid output type \(typeRef)")
         }
     }
 
@@ -209,13 +236,20 @@ struct Schema {
 
     private func inputType(_ typeNode: GraphQLAST.TypeNode) throws -> Input {
         switch typeNode {
-        case .named(let namedType): try inputType(namedType)
-        case .list(let listType): .LIST(try inputType(listType.type))
-        case .nonNull(let nonNullType): .NON_NULL(try inputType(nonNullType.type))
+        case .named(let namedType): .nullable(try inputValue(namedType))
+        case .list(let listType): .nullable(.LIST(try inputType(listType.type)))
+        case .nonNull(let nonNullType): .nonNull(try inputValue(nonNullType.type))
         }
     }
 
-    private func inputType(_ namedType: GraphQLAST.NamedType) throws -> Input {
+    private func inputValue(_ typeNode: GraphQLAST.NullableTypeNode) throws -> Input.Value {
+        switch typeNode {
+        case .named(let namedType): try inputValue(namedType)
+        case .list(let listType): .LIST(try inputType(listType.type))
+        }
+    }
+
+    private func inputValue(_ namedType: GraphQLAST.NamedType) throws -> Input.Value {
         let name = namedType.name.value
         if let scalarType = typeCache.scalars[name] {
             return .SCALAR(scalarType)
@@ -230,12 +264,23 @@ struct Schema {
 
     private func inputType(_ typeRef: __Schema.__TypeRef) throws -> Input {
         switch typeRef {
+        case .SCALAR(let scalar): .nullable(.SCALAR(try type(scalar)))
+        case .ENUM(let `enum`): .nullable(.ENUM(try type(`enum`)))
+        case .INPUT_OBJECT(let inputObject): .nullable(.INPUT_OBJECT(try type(inputObject)))
+        case .LIST(let ofType): .nullable(.LIST(try inputType(ofType)))
+        case .NON_NULL(let ofType): .nonNull(try inputValue(ofType))
+        case .INTERFACE, .OBJECT, .UNION: throw Codegen.Error(description: "Invalid Input Type \(typeRef)")
+        }
+    }
+
+    private func inputValue(_ typeRef: __Schema.__NullableTypeRef) throws -> Input.Value {
+        switch typeRef {
         case .SCALAR(let scalar): .SCALAR(try type(scalar))
         case .ENUM(let `enum`): .ENUM(try type(`enum`))
         case .INPUT_OBJECT(let inputObject): .INPUT_OBJECT(try type(inputObject))
         case .LIST(let ofType): .LIST(try inputType(ofType))
-        case .NON_NULL(let ofType): .NON_NULL(try inputType(ofType))
-        case .INTERFACE, .OBJECT, .UNION: throw Codegen.Error(description: "Invalid Input Type \(typeRef)")
+        case .INTERFACE, .OBJECT, .UNION:
+            throw Codegen.Error(description: "Invalid input type \(typeRef)")
         }
     }
 

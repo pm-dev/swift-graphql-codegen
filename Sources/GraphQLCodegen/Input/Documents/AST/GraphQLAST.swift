@@ -346,12 +346,7 @@ enum GraphQLAST {
                 )
             )
             case .list(let innerType): return .optional(.list(innerType.type.typeName))
-            case .nonNull(let innerType):
-                let resolved = innerType.type.typeName
-                switch resolved {
-                case .optional(let unwrapped): return unwrapped
-                case .list, .name: return resolved // Already non-null
-                }
+            case .nonNull(let innerType): return innerType.type.typeName
             }
         }
 
@@ -377,7 +372,33 @@ enum GraphQLAST {
 
     struct NonNullType: Decodable {
         let loc: Location
-        let type: TypeNode
+        let type: NullableTypeNode
+    }
+
+    indirect enum NullableTypeNode: Decodable {
+        case named(NamedType)
+        case list(ListType)
+
+        private enum Kind: String, Decodable {
+            case NamedType
+            case ListType
+        }
+
+        var typeName: SourceTypeName {
+            switch self {
+            case .named(let namedType):
+                .name(SourceTypeName(nativeGraphQLScalarName: namedType.name.value)?.formatted() ?? namedType.name.value)
+            case .list(let innerType): .list(innerType.type.typeName)
+            }
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            switch try decoder.container(keyedBy: KindCodingKey.self).decode(Kind.self, forKey: .kind) {
+            case .NamedType: self = try .named(container.decode(NamedType.self))
+            case .ListType: self = try .list(container.decode(ListType.self))
+            }
+        }
     }
 
     private enum KindCodingKey: String, CodingKey {
