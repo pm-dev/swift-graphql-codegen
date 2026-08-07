@@ -202,7 +202,7 @@ struct GraphQLRequestWriter: APIOutput {
             /// Initializes a POST request for a single-response GraphQL operation.
             \(accessLevel)init(
                 operation: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 automaticPersistedOperations: Bool = true,
                 minifyDocument: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
@@ -232,7 +232,7 @@ struct GraphQLRequestWriter: APIOutput {
             /// Initializes a POST request for a registered single-response GraphQL operation.
             \(accessLevel)init(
                 operation: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
                 accept: String = "application/graphql-response+json"
             ) throws where Operation: GraphQLSingleResponseOperation {
@@ -254,7 +254,7 @@ struct GraphQLRequestWriter: APIOutput {
             /// Initializes a POST request for a single-response GraphQL operation.
             \(accessLevel)init(
                 operation: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 minifyDocument: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
                 accept: String = "application/graphql-response+json"
@@ -696,7 +696,7 @@ struct GraphQLRequestWriter: APIOutput {
             /// Automatic persisted operations are unavailable because subscription fallback is not supported.
             \(accessLevel)init(
                 subscription: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 minifyDocument: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
             ) throws where Operation: GraphQLSubscription {
@@ -729,7 +729,7 @@ struct GraphQLRequestWriter: APIOutput {
             ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
             \(accessLevel)init(
                 subscription: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
             ) throws where Operation: GraphQLSubscription {
                 self.urlRequest = URLRequest(url: endpoint)
@@ -757,7 +757,7 @@ struct GraphQLRequestWriter: APIOutput {
             ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
             \(accessLevel)init(
                 subscription: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 minifyDocument: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
             ) throws where Operation: GraphQLSubscription {
