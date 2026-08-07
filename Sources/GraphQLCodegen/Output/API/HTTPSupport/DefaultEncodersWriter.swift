@@ -89,12 +89,12 @@ struct DefaultEncodersWriter {
                 let encoder = JSONEncoder()
                 return [
                     URLQueryItem(name: "operationName", value: body.operationName),
-                    URLQueryItem(name: "query", value: body.query),
+                    body.query.map { URLQueryItem(name: "query", value: $0) },
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
                         String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
-                ]
+                ].compactMap { $0 }
             }\(subscriptionSupportWithAutomaticPersistedOperations())
         }
 
@@ -148,12 +148,12 @@ struct DefaultEncodersWriter {
                 let encoder = JSONEncoder()
                 return [
                     URLQueryItem(name: "operationName", value: body.operationName),
-                    URLQueryItem(name: "query", value: body.query),
+                    body.query.map { URLQueryItem(name: "query", value: $0) },
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
                         String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
-                ]
+                ].compactMap { $0 }
             }\(subscriptionSupportWithNoPersistedOperations())
         }
 
@@ -332,12 +332,12 @@ struct DefaultEncodersWriter {
                 let encoder = JSONEncoder()
                 return [
                     URLQueryItem(name: "operationName", value: body.operationName),
-                    URLQueryItem(name: "query", value: body.query),
+                    body.query.map { URLQueryItem(name: "query", value: $0) },
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
                         String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
-                ]
+                ].compactMap { $0 }
             }
         """
     }
@@ -377,12 +377,12 @@ struct DefaultEncodersWriter {
                 let encoder = JSONEncoder()
                 return [
                     URLQueryItem(name: "operationName", value: body.operationName),
-                    URLQueryItem(name: "query", value: body.query),
+                    body.query.map { URLQueryItem(name: "query", value: $0) },
                     URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
                     URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
                         String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
-                ]
+                ].compactMap { $0 }
             }
         """
     }
