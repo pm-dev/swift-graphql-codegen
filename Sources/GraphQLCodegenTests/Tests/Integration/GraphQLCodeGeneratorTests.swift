@@ -83,6 +83,142 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func rejectsAliasesThatProduceConflictingNestedTypeNames() async {
+        await expectCodegenError(containing: "conflicting Swift nested type names") {
+            try await runCodegen(
+                document: """
+                query Viewer {
+                  viewer: viewer(id: "1") { name }
+                  Viewer: viewer(id: "2") { name }
+                }
+                """,
+                schema: """
+                type Query { viewer(id: ID!): Viewer! }
+                type Viewer { name: String! }
+                """
+            )
+        }
+    }
+
+    @Test
+    func rejectsFieldAndFragmentThatProduceConflictingTypeNames() async {
+        await expectCodegenError(containing: "response key and fragment name") {
+            try await runCodegen(
+                document: """
+                query Viewer {
+                  foo: viewer { name }
+                  ...foo
+                }
+                fragment foo on Query { version }
+                """,
+                schema: """
+                type Query {
+                  viewer: Viewer!
+                  version: String!
+                }
+                type Viewer { name: String! }
+                """
+            )
+        }
+    }
+
+    @Test
+    func rejectsResponseKeyThatConflictsWithCodingKeys() async {
+        await expectCodegenError(containing: "conflicts with a generated Swift type name") {
+            try await runCodegen(
+                document: """
+                query Viewer {
+                  codingKeys: viewer { name }
+                }
+                """,
+                schema: """
+                type Query { viewer: Viewer! }
+                type Viewer { name: String! }
+                """
+            )
+        }
+    }
+
+    @Test
+    func rejectsConflictingTopLevelTypeNames() async {
+        await expectCodegenError(containing: "conflicting top-level Swift type names") {
+            try await runCodegen(
+                document: """
+                query Viewer { value }
+                """,
+                schema: """
+                enum ViewerQuery { VALUE }
+                type Query { value: ViewerQuery! }
+                """
+            )
+        }
+    }
+
+    @Test
+    func rejectsGeneratedModuleQualifierNames() async {
+        for typeName in ["CryptoKit", "Foundation", "Swift"] {
+            await expectCodegenError(containing: "name reserved by generated code") {
+                try await runCodegen(
+                    document: """
+                    query Viewer { value }
+                    """,
+                    schema: """
+                    scalar \(typeName)
+                    type Query { value: \(typeName)! }
+                    """
+                )
+            }
+        }
+    }
+
+    @Test
+    func rejectsNestedSwiftTypeWhenTopLevelDecoderRequiresQualification() async {
+        await expectCodegenError(containing: "shadows a type referenced by generated code") {
+            try await runCodegen(
+                document: """
+                query Viewer {
+                  decoder
+                  swift: viewer {
+                    name
+                    ...details
+                  }
+                }
+                fragment details on Viewer { id }
+                """,
+                schema: """
+                scalar Decoder
+                type Query {
+                  decoder: Decoder!
+                  viewer: Viewer!
+                }
+                type Viewer {
+                  id: ID!
+                  name: String!
+                }
+                """
+            )
+        }
+    }
+
+    @Test
+    func acceptsCaseDistinctScalarResponseKeys() async throws {
+        try await runCodegen(
+            document: """
+            query Viewer {
+              value
+              Value
+            }
+            """,
+            schema: """
+            type Query {
+              value: String!
+              Value: String!
+            }
+            """
+        )
+    }
+
+    @Test
     func generatedSubscriptionRequestsCannotEnableAutomaticPersistedOperations() async throws {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
             path: UUID().uuidString,
@@ -229,6 +365,59 @@ struct GraphQLCodeGeneratorTests {
                 postRequest.range(of: "/// Initializes a new `GraphQLRequest` with a subscription operation")
             )
             #expect(!postRequest[postInitializer.lowerBound...].contains("try self.init("))
+        }
+    }
+
+    @discardableResult
+    private func runCodegen(
+        document: String,
+        schema: String
+    ) async throws -> String {
+        let generatedDirectory = FileManager.default.temporaryDirectory.appending(
+            path: UUID().uuidString,
+            directoryHint: .isDirectory
+        )
+        try FileManager.default.createDirectory(at: generatedDirectory, withIntermediateDirectories: true)
+        defer {
+            // Best-effort test cleanup; retaining a temporary directory does not affect test behavior.
+            try? FileManager.default.removeItem(at: generatedDirectory)
+        }
+        let operationsDirectory = generatedDirectory.appending(path: "Operations", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: operationsDirectory, withIntermediateDirectories: true)
+        let documentURL = operationsDirectory.appending(path: "Viewer.graphql", directoryHint: .notDirectory)
+        try document.write(to: documentURL, atomically: true, encoding: .utf8)
+        let schemaURL = generatedDirectory.appending(path: "schema.graphqls", directoryHint: .notDirectory)
+        try schema.write(to: schemaURL, atomically: true, encoding: .utf8)
+        try await Codegen(
+            .configuration(
+                input: .input(
+                    schemaSource: .SDLSchemaFile(schemaURL),
+                    documentDirectories: [operationsDirectory]
+                ),
+                output: .output(
+                    schema: .schema(
+                        directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory)
+                    ),
+                    documents: .documents(directory: .directory(operationsDirectory)),
+                    api: .api(
+                        directory: generatedDirectory.appending(path: "API", directoryHint: .isDirectory),
+                        HTTPSupport: .httpSupport()
+                    )
+                )
+            )
+        ).run()
+        return try String(contentsOf: documentURL.appendingPathExtension("swift"), encoding: .utf8)
+    }
+
+    private func expectCodegenError(
+        containing expectedDescription: String,
+        operation: () async throws -> Void
+    ) async {
+        do {
+            try await operation()
+            Issue.record("Expected code generation to fail")
+        } catch {
+            #expect(String(describing: error).contains(expectedDescription))
         }
     }
 
