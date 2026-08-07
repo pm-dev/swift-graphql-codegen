@@ -10,15 +10,19 @@ struct PersistedOperationManifestWriter {
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
-                    guard case .registered(let hash) = operation.persistence else { continue }
-                    operations.append(
-                        PersistedOperationManifest.Operation(
-                            id: hash,
-                            body: operation.canonicalText,
-                            name: operation.ast.name?.value,
-                            type: operation.ast.operation.rawValue
+                    switch operation.persistence {
+                    case .registered(let hash):
+                        operations.append(
+                            PersistedOperationManifest.Operation(
+                                id: hash,
+                                body: operation.canonicalText,
+                                name: operation.ast.name?.value,
+                                type: operation.ast.operation.rawValue
+                            )
                         )
-                    )
+                    case .standard:
+                        preconditionFailure("A registered operation manifest requires registered operations")
+                    }
                 case .fragment: break
                 }
             }
