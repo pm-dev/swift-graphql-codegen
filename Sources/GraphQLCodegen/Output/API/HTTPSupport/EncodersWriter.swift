@@ -1,8 +1,27 @@
 import Foundation
 
-struct EncodersWriter {
+struct EncodersWriter: APIOutput {
     let hasSubscription: Bool
     let configuration: Configuration
+    let relativePath = "HTTPSupport/Encoders.swift"
+
+    var topLevelTypeNames: [SwiftTypeIdentifier] {
+        var typeNames = [SwiftTypeIdentifier(swiftName: "HTTPBodyEncoder")]
+        if configuration.output.api.HTTPSupport?.enableGETQueries == true {
+            typeNames.append(SwiftTypeIdentifier(swiftName: "URLQueryEncoder"))
+        }
+        if case .automatic = configuration.output.documents.operations.persistedOperations {
+            typeNames.append(SwiftTypeIdentifier(swiftName: "AutomaticPersistedOperationPhase"))
+        }
+        return typeNames
+    }
+
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.foundation, "Data"),
+        .init(.foundation, "URLQueryItem"),
+        .init(.swift, "Bool"),
+        .init(.swift, "String"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -21,18 +40,7 @@ struct EncodersWriter {
         configuration.output.api.HTTPSupport?.enableGETQueries == true
     }
 
-    private var url: URL {
-        configuration.output.api.directory.appending(
-            path: "HTTPSupport/Encoders.swift",
-            directoryHint: .notDirectory
-        )
-    }
-
-    func write(using fileOutput: FileOutput) async throws {
-        try await content().write(to: url, using: fileOutput)
-    }
-
-    private func content() -> String {
+    var source: String {
         if enableGETQueries {
             switch configuration.output.documents.operations.persistedOperations {
             case .automatic: getWithAutomaticPersistedOperations()

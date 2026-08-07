@@ -1,5 +1,16 @@
-struct GraphQLErrorWriter {
+struct GraphQLErrorWriter: APIOutput {
     let configuration: Configuration
+
+    let relativePath = "GraphQLError.swift"
+    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLError")]
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.swift, "Decodable"),
+        .init(.swift, "Decoder"),
+        .init(.swift, "DecodingError"),
+        .init(.swift, "Int"),
+        .init(.swift, "Sendable"),
+        .init(.swift, "String"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -10,8 +21,8 @@ struct GraphQLErrorWriter {
         return "\(header)\n\n"
     }
 
-    func write(using fileOutput: FileOutput) async throws {
-        try await """
+    var source: String {
+        """
         \(header)/// https://spec.graphql.org/October2021/#sec-Errors
         \(accessLevel)struct GraphQLError: Decodable, Sendable {
             \(accessLevel)struct Location: Decodable, Sendable {
@@ -46,12 +57,6 @@ struct GraphQLErrorWriter {
             \(accessLevel)let path: [PathSegment]?
             \(accessLevel)let extensions: [String: JSONValue]?
         }
-        """.write(
-            to: configuration.output.api.directory.appending(
-                path: "GraphQLError.swift",
-                directoryHint: .notDirectory
-            ),
-            using: fileOutput
-        )
+        """
     }
 }

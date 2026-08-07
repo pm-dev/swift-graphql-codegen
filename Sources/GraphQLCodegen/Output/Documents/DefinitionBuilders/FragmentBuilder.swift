@@ -4,14 +4,12 @@ struct FragmentBuilder {
     let configuration: Configuration
     let document: Document
     let resolvedFragment: ResolvedFragment
-    let resolvedDocuments: ResolvedDocuments
+    let typeName: SwiftTypeIdentifier
+    let typeScope: SwiftTypeScope
+    let includesSelectionSet: Bool
 
     private var fragment: Document.Fragment {
         resolvedFragment.fragment
-    }
-
-    private var isFulfilled: Bool {
-        resolvedDocuments.fulfilledFragments.contains(fragment.ast.name.value)
     }
 
     private var isPublic: Bool {
@@ -25,10 +23,11 @@ struct FragmentBuilder {
         var fragmentStruct = SwiftStructBuilder(
             description: nil,
             isPublic: isPublic,
-            name: fragment.ast.name.value.capitalizedFirst,
-            conformances: isFulfilled ? configuration.output.documents.fragments.conformances : []
+            name: typeName.source,
+            conformances: includesSelectionSet ? configuration.output.documents.fragments.conformances : [],
+            typeScope: typeScope
         )
-        if isFulfilled {
+        if includesSelectionSet {
             try addSelectionSet(to: &fragmentStruct)
         }
         return fragmentStruct
@@ -41,7 +40,8 @@ struct FragmentBuilder {
                 immutable: configuration.output.documents.fragments.immutable,
                 isPublic: isPublic,
                 conformances: OrderedSet(configuration.output.documents.fragments.conformances),
-                configuration: configuration
+                configuration: configuration,
+                typeScope: typeScope
             )
         } catch {
             switch error as? SelectionSetError {

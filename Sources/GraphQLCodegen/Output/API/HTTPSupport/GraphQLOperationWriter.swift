@@ -1,9 +1,31 @@
 import Foundation
 
-struct GraphQLOperationWriter {
+struct GraphQLOperationWriter: APIOutput {
     let configuration: Configuration
     let hasMutation: Bool
     let hasSubscription: Bool
+    let relativePath = "HTTPSupport/GraphQLOperation.swift"
+
+    var topLevelTypeNames: [SwiftTypeIdentifier] {
+        var typeNames = [
+            SwiftTypeIdentifier(swiftName: "GraphQLOperation"),
+            SwiftTypeIdentifier(swiftName: "GraphQLQuery"),
+        ]
+        if hasMutation {
+            typeNames.append(SwiftTypeIdentifier(swiftName: "GraphQLMutation"))
+        }
+        if hasSubscription {
+            typeNames.append(SwiftTypeIdentifier(swiftName: "GraphQLSubscription"))
+        }
+        return typeNames
+    }
+
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.swift, "Decodable"),
+        .init(.swift, "Encodable"),
+        .init(.swift, "Sendable"),
+        .init(.swift, "String"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -14,18 +36,7 @@ struct GraphQLOperationWriter {
         return "\(header)\n\n"
     }
 
-    private var url: URL {
-        configuration.output.api.directory.appending(
-            path: "HTTPSupport/GraphQLOperation.swift",
-            directoryHint: .notDirectory
-        )
-    }
-
-    func write(using fileOutput: FileOutput) async throws {
-        try await content().write(to: url, using: fileOutput)
-    }
-
-    private func content() -> String {
+    var source: String {
         """
         \(header)/// A `GraphQLOperation` represents a GraphQL document containing a single operation.
         \(accessLevel)protocol GraphQLOperation: Sendable {

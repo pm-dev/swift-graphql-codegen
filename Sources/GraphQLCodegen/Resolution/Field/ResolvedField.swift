@@ -52,12 +52,21 @@ struct ResolvedField {
 
     func sourceTypeName(
         responseKey: String,
-        scalarConversion: (_ name: String, _ isEnum: Bool) -> String = { $1 ? "GraphQLEnum<\($0)>" : $0 }
+        typeScope: SwiftTypeScope,
+        scalarConversion: (_ name: String, _ isEnum: Bool) -> String = { name, isEnum in
+            let typeName = SwiftTypeIdentifier(swiftName: name).source
+            return isEnum ? "GraphQLEnum<\(typeName)>" : typeName
+        }
     ) -> SourceTypeName {
         _sourceTypeName(
             type: type,
             responseKey: responseKey,
-            scalarConversion: scalarConversion
+            scalarConversion: { name, isEnum in
+                if !isEnum, let reference = SwiftTypeReference(nativeScalarName: name) {
+                    return typeScope.reference(reference)
+                }
+                return scalarConversion(name, isEnum)
+            }
         )
     }
 
@@ -68,7 +77,7 @@ struct ResolvedField {
     ) -> SourceTypeName {
         switch type {
         case .scalar(let name, let isEnum): .name(scalarConversion(name, isEnum))
-        case .map: .name(responseKey.capitalizedFirst)
+        case .map: .name(SwiftTypeIdentifier(capitalizing: responseKey).source)
         case .list(let innerType):
             .list(
                 _sourceTypeName(

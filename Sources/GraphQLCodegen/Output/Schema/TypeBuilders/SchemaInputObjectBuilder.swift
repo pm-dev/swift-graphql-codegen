@@ -1,13 +1,15 @@
 struct SchemaInputObjectBuilder: SwiftTypeBuildable {
     let inputObject: Schema.InputObject
+    let typeScope: SwiftTypeScope
 
     func build(configuration: Configuration) -> [String] {
         let isPublic = configuration.output.schema.accessLevel == .public
         var builder = SwiftStructBuilder(
             description: inputObject.ast.description,
             isPublic: isPublic,
-            name: inputObject.ast.name,
-            conformances: configuration.output.schema.inputObjects.conformances
+            name: SwiftTypeIdentifier(swiftName: inputObject.ast.name).source,
+            conformances: configuration.output.schema.inputObjects.conformances,
+            typeScope: typeScope
         )
         for inputField in inputObject.ast.inputFields {
             builder.addProperty(
@@ -18,7 +20,7 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
                 immutable: configuration.output.schema.inputObjects.immutable,
                 name: inputField.name,
                 value: .unassigned(
-                    type: inputField.typeName,
+                    type: inputField.typeName(in: typeScope),
                     initialized: .direct(
                         defaultValue: {
                             switch inputField.type.swiftName {
@@ -45,7 +47,10 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
 }
 
 extension __Schema.__InputValue {
-    var typeName: String {
-        type.swiftName.inputTypeName(hasDefaultValue: defaultValue != nil)
+    func typeName(in typeScope: SwiftTypeScope) -> String {
+        type.swiftName.inputTypeName(
+            hasDefaultValue: defaultValue != nil,
+            typeScope: typeScope
+        )
     }
 }

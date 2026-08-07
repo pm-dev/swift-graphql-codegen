@@ -1,8 +1,19 @@
 import Foundation
 
-struct GraphQLRequestWriter {
+struct GraphQLRequestWriter: APIOutput {
     let hasSubscription: Bool
     let configuration: Configuration
+    let relativePath = "HTTPSupport/GraphQLRequest.swift"
+
+    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLRequest")]
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.foundation, "Data"),
+        .init(.foundation, "JSONDecoder"),
+        .init(.foundation, "URL"),
+        .init(.foundation, "URLRequest"),
+        .init(.swift, "Bool"),
+        .init(.swift, "String"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -21,18 +32,7 @@ struct GraphQLRequestWriter {
         configuration.output.api.HTTPSupport?.enableGETQueries == true
     }
 
-    private var url: URL {
-        configuration.output.api.directory.appending(
-            path: "HTTPSupport/GraphQLRequest.swift",
-            directoryHint: .notDirectory
-        )
-    }
-
-    func write(using fileOutput: FileOutput) async throws {
-        try await content().write(to: url, using: fileOutput)
-    }
-
-    private func content() -> String {
+    var source: String {
         if enableGETQueries {
             switch configuration.output.documents.operations.persistedOperations {
             case .automatic: getWithAutomaticPersistedOperations()
@@ -202,7 +202,7 @@ struct GraphQLRequestWriter {
             /// Initializes a POST request for a single-response GraphQL operation.
             \(accessLevel)init(
                 operation: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 automaticPersistedOperations: Bool = true,
                 minifyDocument: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
@@ -232,7 +232,7 @@ struct GraphQLRequestWriter {
             /// Initializes a POST request for a registered single-response GraphQL operation.
             \(accessLevel)init(
                 operation: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
                 accept: String = "application/graphql-response+json"
             ) throws where Operation: GraphQLSingleResponseOperation {
@@ -254,7 +254,7 @@ struct GraphQLRequestWriter {
             /// Initializes a POST request for a single-response GraphQL operation.
             \(accessLevel)init(
                 operation: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 minifyDocument: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
                 accept: String = "application/graphql-response+json"
@@ -696,7 +696,7 @@ struct GraphQLRequestWriter {
             /// Automatic persisted operations are unavailable because subscription fallback is not supported.
             \(accessLevel)init(
                 subscription: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 minifyDocument: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
             ) throws where Operation: GraphQLSubscription {
@@ -729,7 +729,7 @@ struct GraphQLRequestWriter {
             ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
             \(accessLevel)init(
                 subscription: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
             ) throws where Operation: GraphQLSubscription {
                 self.urlRequest = URLRequest(url: endpoint)
@@ -757,7 +757,7 @@ struct GraphQLRequestWriter {
             ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
             \(accessLevel)init(
                 subscription: Operation,
-                endpoint: Foundation.URL,
+                endpoint: URL,
                 minifyDocument: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
             ) throws where Operation: GraphQLSubscription {

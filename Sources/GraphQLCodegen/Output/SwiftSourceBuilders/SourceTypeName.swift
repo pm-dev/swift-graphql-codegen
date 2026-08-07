@@ -45,8 +45,16 @@ extension SourceTypeName {
         }
     }
 
-    func inputTypeName(hasDefaultValue: Bool) -> String {
-        let typeName = formatted(formatOptional: { "GraphQLNullable<\($0)>?" })
+    func inputTypeName(hasDefaultValue: Bool, typeScope: SwiftTypeScope) -> String {
+        let typeName = formatted(
+            formatName: { name in
+                if let reference = SwiftTypeReference(nativeScalarName: name) {
+                    return typeScope.reference(reference)
+                }
+                return SwiftTypeIdentifier(swiftName: name).source
+            },
+            formatOptional: { "GraphQLNullable<\($0)>?" }
+        )
         guard hasDefaultValue else { return typeName }
         switch self {
         case .optional: return typeName

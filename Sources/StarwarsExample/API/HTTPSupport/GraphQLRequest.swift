@@ -199,7 +199,7 @@ extension GraphQLRequest {
     /// Initializes a POST request for a single-response GraphQL operation.
     init(
         operation: Operation,
-        endpoint: Foundation.URL,
+        endpoint: URL,
         automaticPersistedOperations: Bool = true,
         minifyDocument: Bool = true,
         bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),

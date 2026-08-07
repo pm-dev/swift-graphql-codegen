@@ -1,5 +1,17 @@
-struct JSONValueWriter {
+struct JSONValueWriter: APIOutput {
     let configuration: Configuration
+
+    let relativePath = "JSONValue.swift"
+    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "JSONValue")]
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.swift, "Bool"),
+        .init(.swift, "Decodable"),
+        .init(.swift, "Decoder"),
+        .init(.swift, "DecodingError"),
+        .init(.swift, "Double"),
+        .init(.swift, "Sendable"),
+        .init(.swift, "String"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -10,8 +22,8 @@ struct JSONValueWriter {
         return "\(header)\n\n"
     }
 
-    func write(using fileOutput: FileOutput) async throws {
-        try await """
+    var source: String {
+        """
         \(header)\(accessLevel)enum JSONValue: Decodable, Sendable {
             case map([String: JSONValue])
             case list([JSONValue])
@@ -39,12 +51,6 @@ struct JSONValueWriter {
                 }
             }
         }
-        """.write(
-            to: configuration.output.api.directory.appending(
-                path: "JSONValue.swift",
-                directoryHint: .notDirectory
-            ),
-            using: fileOutput
-        )
+        """
     }
 }

@@ -1,5 +1,14 @@
-struct GraphQLHasDefaultWriter {
+struct GraphQLHasDefaultWriter: APIOutput {
     let configuration: Configuration
+
+    let relativePath = "GraphQLHasDefault.swift"
+    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLHasDefault")]
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.swift, "Encodable"),
+        .init(.swift, "Encoder"),
+        .init(.swift, "Hashable"),
+        .init(.swift, "Sendable"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -10,8 +19,8 @@ struct GraphQLHasDefaultWriter {
         return "\(header)\n\n"
     }
 
-    func write(using fileOutput: FileOutput) async throws {
-        try await """
+    var source: String {
+        """
         \(header)\(accessLevel)enum GraphQLHasDefault<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
             case useDefault
             case value(T)
@@ -44,12 +53,6 @@ struct GraphQLHasDefaultWriter {
                 }
             }
         }
-        """.write(
-            to: configuration.output.api.directory.appending(
-                path: "GraphQLHasDefault.swift",
-                directoryHint: .notDirectory
-            ),
-            using: fileOutput
-        )
+        """
     }
 }
