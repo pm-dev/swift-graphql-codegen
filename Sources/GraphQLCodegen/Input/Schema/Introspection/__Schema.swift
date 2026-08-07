@@ -28,21 +28,18 @@ struct __Schema: Decodable {
         }
 
         struct Object: Decodable {
-            let description: String?
             let name: String
             let fields: [__Field]
             let interfaces: [__TypeRef.Interface]
         }
 
         struct Interface: Decodable {
-            let description: String?
             let name: String
             let fields: [__Field]
             let interfaces: [__TypeRef.Interface]
         }
 
         struct Union: Decodable {
-            let description: String?
             let name: String
             let possibleTypes: [__TypeRef.Object] // https://spec.graphql.org/October2021/#sec-Unions.Type-Validation
         }
@@ -238,40 +235,9 @@ struct __Schema: Decodable {
         }
     }
 
-    struct __Directive: Decodable {
-        let name: String
-        let description: String?
-        let locations: [__DirectiveLocation]
-        let args: [__InputValue]
-        let isRepeatable: Bool
-    }
-
-    enum __DirectiveLocation: String, Decodable {
-        case QUERY
-        case MUTATION
-        case SUBSCRIPTION
-        case FIELD
-        case FRAGMENT_DEFINITION
-        case FRAGMENT_SPREAD
-        case INLINE_FRAGMENT
-        case VARIABLE_DEFINITION
-        case SCHEMA
-        case SCALAR
-        case OBJECT
-        case FIELD_DEFINITION
-        case ARGUMENT_DEFINITION
-        case INTERFACE
-        case UNION
-        case ENUM
-        case ENUM_VALUE
-        case INPUT_OBJECT
-        case INPUT_FIELD_DEFINITION
-    }
-
     struct __Field: Decodable {
         let name: String
         let description: String?
-        let args: [__InputValue]
         let type: __TypeRef
         let isDeprecated: Bool
         let deprecationReason: String?
@@ -302,10 +268,8 @@ struct __Schema: Decodable {
         case NON_NULL
     }
 
-    let description: String?
     let types: [__Type]
     let queryType: __TypeRef.Object
     let mutationType: __TypeRef.Object?
     let subscriptionType: __TypeRef.Object?
-    let directives: [__Directive]
 }
