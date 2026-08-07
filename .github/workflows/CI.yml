@@ -20,6 +20,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.33.0"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: Sources/GraphQLJS/pnpm-lock.yaml
+
+      - name: Verify GraphQL JavaScript bundle
+        run: |
+          ./Scripts/update-graphql-bundle
+          git diff --exit-code -- Sources/GraphQLCodegen/Resources/graphql.bundle.js
+
       - uses: swift-actions/setup-swift@v3
         with:
           swift-version: "6.3"

@@ -472,6 +472,8 @@ Alternative Swift GraphQL client libraries exist. This project was created to so
 ## Contributing
 Contributions, documentation improvements, bug reports, and feature requests are welcome! Feel free to submit pull requests or open issues in our GitHub repository. We appreciate community involvement, whether it’s clarifying docs, squashing bugs, or proposing new features.
 
+The generator ships a bundled copy of the GraphQL JavaScript reference implementation. After changing `Sources/GraphQLJS` or its dependencies, run `./Scripts/update-graphql-bundle` and commit the updated `Sources/GraphQLCodegen/Resources/graphql.bundle.js`. CI rebuilds the bundle from the frozen pnpm lockfile and verifies that the committed resource is current.
+
 
 ## License
 This project is released under the MIT License.
