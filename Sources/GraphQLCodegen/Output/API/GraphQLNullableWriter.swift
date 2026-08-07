@@ -1,6 +1,15 @@
-struct GraphQLNullableWriter {
+struct GraphQLNullableWriter: APIOutput {
     let configuration: Configuration
     let requiresIndirectNullable: Bool
+
+    let relativePath = "GraphQLNullable.swift"
+    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLNullable")]
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.swift, "Encodable"),
+        .init(.swift, "Encoder"),
+        .init(.swift, "Hashable"),
+        .init(.swift, "Sendable"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -11,9 +20,9 @@ struct GraphQLNullableWriter {
         return "\(header)\n\n"
     }
 
-    func write(using fileOutput: FileOutput) async throws {
+    var source: String {
         let indirect = requiresIndirectNullable ? "indirect " : ""
-        try await """
+        return """
         \(header)\(accessLevel)\(indirect)enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
             case null
             case value(T)
@@ -26,12 +35,6 @@ struct GraphQLNullableWriter {
                 }
             }
         }
-        """.write(
-            to: configuration.output.api.directory.appending(
-                path: "GraphQLNullable.swift",
-                directoryHint: .notDirectory
-            ),
-            using: fileOutput
-        )
+        """
     }
 }

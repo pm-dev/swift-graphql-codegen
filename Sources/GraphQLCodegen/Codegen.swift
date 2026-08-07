@@ -41,33 +41,17 @@ public struct Codegen: Sendable {
             schema: loadedSchema.schema,
             documents: documents
         ).resolve()
+        let outputPlan = try CodegenOutputPlan(
+            configuration: configuration,
+            documents: documents,
+            resolvedDocuments: resolvedDocuments,
+            schema: loadedSchema.schema
+        )
 
         // Output
         let fileOutput = FileOutput()
         do {
-            try await DocumentsWriter(
-                configuration: configuration,
-                resolvedDocuments: resolvedDocuments
-            ).write(using: fileOutput)
-            try await SchemaWriter(
-                configuration: configuration,
-                schema: loadedSchema.schema,
-                resolvedDocuments: resolvedDocuments
-            ).write(using: fileOutput)
-            try await APIWriter(
-                configuration: configuration,
-                hasMutation: resolvedDocuments.hasMutation,
-                hasSubscription: resolvedDocuments.hasSubscription,
-                requiresIndirectNullable: resolvedDocuments.requiresIndirectNullable
-            ).write(using: fileOutput)
-            switch configuration.output.documents.operations.persistedOperations {
-            case .registered(let manifestURL):
-                try await PersistedOperationManifestWriter(
-                    manifestURL: manifestURL,
-                    documents: documents
-                ).write(using: fileOutput)
-            case .automatic, .none: break
-            }
+            try await outputPlan.write(using: fileOutput)
         } catch {
             let generationError = error
             do {

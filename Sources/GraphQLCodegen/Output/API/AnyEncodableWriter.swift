@@ -1,5 +1,14 @@
-struct AnyEncodableWriter {
+struct AnyEncodableWriter: APIOutput {
     let configuration: Configuration
+
+    let relativePath = "AnyEncodable.swift"
+    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "AnyEncodable")]
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.swift, "Encodable"),
+        .init(.swift, "Encoder"),
+        .init(.swift, "Sendable"),
+        .init(.swift, "Void"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -10,8 +19,8 @@ struct AnyEncodableWriter {
         return "\(header)\n\n"
     }
 
-    func write(using fileOutput: FileOutput) async throws {
-        try await """
+    var source: String {
+        """
         \(header)\(accessLevel)struct AnyEncodable: Encodable, Sendable {
             private let encoder: @Sendable (Encoder) throws -> Void
             \(accessLevel)init<T: Encodable & Sendable>(_ value: T) {
@@ -25,12 +34,6 @@ struct AnyEncodableWriter {
                 try self.encoder(encoder)
             }
         }
-        """.write(
-            to: configuration.output.api.directory.appending(
-                path: "AnyEncodable.swift",
-                directoryHint: .notDirectory
-            ),
-            using: fileOutput
-        )
+        """
     }
 }

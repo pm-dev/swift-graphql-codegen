@@ -1,5 +1,17 @@
-struct GraphQLResponseWriter {
+struct GraphQLResponseWriter: APIOutput {
     let configuration: Configuration
+
+    let relativePath = "GraphQLResponse.swift"
+    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLResponse")]
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.swift, "CodingKey"),
+        .init(.swift, "Decodable"),
+        .init(.swift, "Decoder"),
+        .init(.swift, "DecodingError"),
+        .init(.swift, "Error"),
+        .init(.swift, "Sendable"),
+        .init(.swift, "String"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -10,8 +22,8 @@ struct GraphQLResponseWriter {
         return "\(header)\n\n"
     }
 
-    func write(using fileOutput: FileOutput) async throws {
-        try await """
+    var source: String {
+        """
         \(header)\(accessLevel)enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {
             \(accessLevel)struct Success: Sendable {
                 \(accessLevel)let data: Data
@@ -70,12 +82,6 @@ struct GraphQLResponseWriter {
                 }
             }
         }
-        """.write(
-            to: configuration.output.api.directory.appending(
-                path: "GraphQLResponse.swift",
-                directoryHint: .notDirectory
-            ),
-            using: fileOutput
-        )
+        """
     }
 }

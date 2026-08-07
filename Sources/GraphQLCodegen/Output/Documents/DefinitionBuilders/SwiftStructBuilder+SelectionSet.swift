@@ -11,15 +11,16 @@ extension SwiftStructBuilder {
         immutable: Bool,
         isPublic: Bool,
         conformances: OrderedSet<String>,
-        configuration: Configuration
+        configuration: Configuration,
+        typeScope: SwiftTypeScope
     ) throws {
-        var hasFields = false
-        var hasFragments = false
+        let typePlan = SelectionSetTypePlan(selectionSet: selectionSet, conformances: conformances)
+        let selectionTypeScope = typeScope.adding(declarations: typePlan.declarations.map(\.name))
+
         var hasNonnilTypenameField = false
         for (responseKey, selection) in selectionSet {
             switch selection {
             case .field(let field, let conditional):
-                hasFields = true
                 hasNonnilTypenameField = hasNonnilTypenameField || (responseKey == "__typename" && !conditional)
                 let conditionalField = conditional ? field.asOptional() : field
                 addProperty(
@@ -30,13 +31,15 @@ extension SwiftStructBuilder {
                     immutable: immutable,
                     name: responseKey,
                     value: .unassigned(
-                        type: conditionalField.sourceTypeName(responseKey: responseKey).formatted(),
+                        type: conditionalField.sourceTypeName(
+                            responseKey: responseKey,
+                            typeScope: selectionTypeScope
+                        ).formatted(),
                         initialized: configuration.output.documents.memberwiseInitializer ?
                             .direct(defaultValue: nil) : nil
                     )
                 )
             case .fragmentSpread(let fragmentSpreadName, let checkTypename):
-                hasFragments = true
                 addProperty(
                     description: nil,
                     deprecation: nil,
@@ -45,7 +48,8 @@ extension SwiftStructBuilder {
                     immutable: immutable,
                     name: responseKey,
                     value: .unassigned(
-                        type: fragmentSpreadName.capitalizedFirst + (checkTypename != nil ? "?" : ""),
+                        type: SwiftTypeIdentifier(capitalizing: fragmentSpreadName).source +
+                            (checkTypename != nil ? "?" : ""),
                         initialized: configuration.output.documents.memberwiseInitializer ?
                             .direct(defaultValue: nil) : nil
                     )
@@ -62,16 +66,21 @@ extension SwiftStructBuilder {
                     immutable: immutable,
                     isPublic: isPublic,
                     conformances: conformances,
-                    configuration: configuration
+                    configuration: configuration,
+                    typeScope: selectionTypeScope
                 )
             }
         }
-        if hasFragments, conformances.contains("Decodable") {
+        let includesDecodable = conformances.contains { conformance in
+            SwiftConformanceName(source: conformance).includesDecodable
+        }
+        if typePlan.hasFragments, includesDecodable {
             try addDecodableInitializer(
                 selectionSet,
-                hasFields: hasFields,
+                hasFields: !typePlan.fields.isEmpty,
                 hasNonnilTypenameField: hasNonnilTypenameField,
-                configuration: configuration
+                configuration: configuration,
+                typeScope: selectionTypeScope
             )
         }
     }
@@ -82,7 +91,8 @@ extension SwiftStructBuilder {
         immutable: Bool,
         isPublic: Bool,
         conformances: OrderedSet<String>,
-        configuration: Configuration
+        configuration: Configuration,
+        typeScope: SwiftTypeScope
     ) throws {
         switch fieldType {
         case .scalar: break
@@ -90,8 +100,9 @@ extension SwiftStructBuilder {
             var nestedStruct = SwiftStructBuilder(
                 description: nil,
                 isPublic: isPublic,
-                name: responseKey.capitalizedFirst,
-                conformances: conformances.elements
+                name: SwiftTypeIdentifier(capitalizing: responseKey).source,
+                conformances: conformances.elements,
+                typeScope: typeScope
             )
             do {
                 try nestedStruct.addSelectionSet(
@@ -99,7 +110,8 @@ extension SwiftStructBuilder {
                     immutable: immutable,
                     isPublic: isPublic,
                     conformances: conformances,
-                    configuration: configuration
+                    configuration: configuration,
+                    typeScope: typeScope
                 )
             } catch {
                 switch error as? SelectionSetError {
@@ -119,7 +131,8 @@ extension SwiftStructBuilder {
                 immutable: immutable,
                 isPublic: isPublic,
                 conformances: conformances,
-                configuration: configuration
+                configuration: configuration,
+                typeScope: typeScope
             )
         case .list(let innerType):
             try addNestedStruct(
@@ -128,7 +141,8 @@ extension SwiftStructBuilder {
                 immutable: immutable,
                 isPublic: isPublic,
                 conformances: conformances,
-                configuration: configuration
+                configuration: configuration,
+                typeScope: typeScope
             )
         }
     }
@@ -137,17 +151,21 @@ extension SwiftStructBuilder {
         _ selectionSet: ResolvedSelectionSet,
         hasFields: Bool,
         hasNonnilTypenameField: Bool,
-        configuration: Configuration
+        configuration: Configuration,
+        typeScope: SwiftTypeScope
     ) throws {
         var initializerBody: [String] = []
         if hasFields {
-            initializerBody.append("let container = try decoder.container(keyedBy: CodingKeys.self)")
+            initializerBody.append(
+                "let container = try decoder.container(keyedBy: \(SwiftTypeIdentifier.codingKeys.source).self)"
+            )
         }
         var codingKeysEnum = hasFields ? SwiftEnumBuilder(
             description: nil,
             isPublic: false,
-            name: "CodingKeys",
-            conformances: ["CodingKey"]
+            name: SwiftTypeIdentifier.codingKeys.source,
+            conformances: ["CodingKey"],
+            typeScope: typeScope
         ) : nil
         for (responseKey, selection) in selectionSet {
             switch selection {
@@ -157,10 +175,16 @@ extension SwiftStructBuilder {
                 let typename: String
                 if conditional {
                     assignment.append("decodeIfPresent(")
-                    typename = field.asNonOptional().sourceTypeName(responseKey: responseKey).formatted()
+                    typename = field.asNonOptional().sourceTypeName(
+                        responseKey: responseKey,
+                        typeScope: typeScope
+                    ).formatted()
                 } else {
                     assignment.append("decode(")
-                    typename = field.sourceTypeName(responseKey: responseKey).formatted()
+                    typename = field.sourceTypeName(
+                        responseKey: responseKey,
+                        typeScope: typeScope
+                    ).formatted()
                 }
                 assignment.append("\(typename).self, forKey: .\(responseKey))")
                 codingKeysEnum?.addCase(description: nil, deprecation: nil, name: responseKey)
@@ -172,7 +196,7 @@ extension SwiftStructBuilder {
             switch selection {
             case .field: break
             case .fragmentSpread(let fragmentSpreadName, let checkTypename):
-                let fragmentTypeName = fragmentSpreadName.capitalizedFirst
+                let fragmentTypeName = SwiftTypeIdentifier(capitalizing: fragmentSpreadName).source
                 var assignment = "\(identifier(responseKey)) = "
                 if let checkTypename {
                     if !hasNonnilTypenameField {
@@ -190,7 +214,9 @@ extension SwiftStructBuilder {
             initializerBody = codingKeysEnum.build(configuration: configuration) + initializerBody
         }
         addInitializer(
-            arguments: ["from decoder: Decoder"],
+            arguments: [
+                "from decoder: \(typeScope.reference(.init(.swift, "Decoder")))",
+            ],
             body: initializerBody,
             isThrowing: true
         )

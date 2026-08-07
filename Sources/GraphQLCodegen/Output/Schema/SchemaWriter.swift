@@ -1,30 +1,80 @@
 import Foundation
 
 struct SchemaWriter {
+    enum TypePlan {
+        case `enum`(Schema.Enum)
+        case inputObject(Schema.InputObject)
+        case scalar(Schema.Scalar)
+
+        var name: String {
+            switch self {
+            case .enum(let `enum`): `enum`.ast.name
+            case .inputObject(let inputObject): inputObject.ast.name
+            case .scalar(let scalar): scalar.ast.name
+            }
+        }
+    }
+
     let configuration: Configuration
-    let schema: Schema
-    let resolvedDocuments: ResolvedDocuments
+
+    let typePlans: [TypePlan]
+
+    init(configuration: Configuration, schema: Schema, resolvedDocuments: ResolvedDocuments) {
+        self.configuration = configuration
+        self.typePlans = resolvedDocuments.usedTypes.sorted().compactMap { name -> TypePlan? in
+            if let scalar = schema.typeCache.scalars[name] {
+                return scalar.ast.isNativeSwiftType ? nil : .scalar(scalar)
+            }
+            if let `enum` = schema.typeCache.enums[name] {
+                return `enum`.ast.isSystemType ? nil : .enum(`enum`)
+            }
+            return schema.typeCache.inputObjects[name].map(TypePlan.inputObject)
+        }
+    }
+
+    var topLevelDeclarations: [GeneratedTypeDeclaration] {
+        typePlans.map { type in
+            GeneratedTypeDeclaration(
+                name: SwiftTypeIdentifier(swiftName: type.name),
+                origin: .schema(type.name),
+                conformances: conformances(for: type)
+            )
+        }
+    }
+
+    func conformances(for type: TypePlan) -> [String] {
+        switch type {
+        case .enum:
+            ["String"] + configuration.output.schema.enums.conformances
+        case .inputObject:
+            configuration.output.schema.inputObjects.conformances
+        case .scalar:
+            []
+        }
+    }
 
     private var schemaDirectory: URL {
         configuration.output.schema.directory
     }
 
-    func write(using fileOutput: FileOutput) async throws {
-        try await writeCustomScalars(using: fileOutput)
-        try await writeEnums(using: fileOutput)
-        try await writeInputObjects(using: fileOutput)
+    func write(using fileOutput: FileOutput, typeScope: SwiftTypeScope) async throws {
+        try await writeCustomScalars(using: fileOutput, typeScope: typeScope)
+        try await writeEnums(using: fileOutput, typeScope: typeScope)
+        try await writeInputObjects(using: fileOutput, typeScope: typeScope)
     }
 
-    private func writeCustomScalars(using fileOutput: FileOutput) async throws {
+    private func writeCustomScalars(
+        using fileOutput: FileOutput,
+        typeScope: SwiftTypeScope
+    ) async throws {
         var scalarsDir = schemaDirectory
         if let scalarDirectoryName = configuration.output.schema.scalars.directoryName {
             scalarsDir.append(path: scalarDirectoryName, directoryHint: .isDirectory)
         }
         await fileOutput.remove(at: scalarsDir)
         await fileOutput.createDirectory(at: scalarsDir)
-        for scalar in schema.typeCache.scalars.values {
-            guard !scalar.ast.isNativeSwiftType else { continue }
-            guard resolvedDocuments.usedTypes.contains(scalar.ast.name) else { continue }
+        for type in typePlans {
+            guard case .scalar(let scalar) = type else { continue }
             let filename = "\(scalar.ast.name).graphqls.swift"
             let url = scalarsDir.appending(path: filename, directoryHint: .notDirectory)
             guard !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
@@ -35,25 +85,26 @@ struct SchemaWriter {
             var file = SwiftFileWriter()
             file.setHeader(configuration.output.schema.scalars.header)
             file.setImports(configuration.output.schema.scalars.importedModules)
-            file.addType(SchemaScalarBuilder(scalar: scalar))
+            file.addType(SchemaScalarBuilder(scalar: scalar, typeScope: typeScope))
             try await file.write(to: url, configuration: configuration, using: fileOutput)
         }
     }
 
-    private func writeEnums(using fileOutput: FileOutput) async throws {
+    private func writeEnums(using fileOutput: FileOutput, typeScope: SwiftTypeScope) async throws {
         var enumsDir = schemaDirectory
         if let enumDirectoryName = configuration.output.schema.enums.directoryName {
             enumsDir.append(path: enumDirectoryName, directoryHint: .isDirectory)
         }
         await fileOutput.remove(at: enumsDir)
         await fileOutput.createDirectory(at: enumsDir)
-        for `enum` in schema.typeCache.enums.values {
-            guard !`enum`.ast.isSystemType else { continue }
-            guard resolvedDocuments.usedTypes.contains(`enum`.ast.name) else { continue }
+        for type in typePlans {
+            guard case .enum(let `enum`) = type else { continue }
             var file = SwiftFileWriter()
             file.setHeader(configuration.output.schema.enums.header)
             file.setImports(configuration.output.schema.enums.importedModules)
-            file.addType(SchemaEnumBuilder(enum: `enum`, configuration: configuration))
+            file.addType(
+                SchemaEnumBuilder(enum: `enum`, configuration: configuration, typeScope: typeScope)
+            )
             try await file.write(
                 to: enumsDir.appending(path: "\(`enum`.ast.name).graphqls.swift", directoryHint: .notDirectory),
                 configuration: configuration,
@@ -62,19 +113,22 @@ struct SchemaWriter {
         }
     }
 
-    private func writeInputObjects(using fileOutput: FileOutput) async throws {
+    private func writeInputObjects(
+        using fileOutput: FileOutput,
+        typeScope: SwiftTypeScope
+    ) async throws {
         var inputObjectsDir = schemaDirectory
         if let inputObjectDirectoryName = configuration.output.schema.inputObjects.directoryName {
             inputObjectsDir.append(path: inputObjectDirectoryName, directoryHint: .isDirectory)
         }
         await fileOutput.remove(at: inputObjectsDir)
         await fileOutput.createDirectory(at: inputObjectsDir)
-        for inputObject in schema.typeCache.inputObjects.values {
-            guard resolvedDocuments.usedTypes.contains(inputObject.ast.name) else { continue }
+        for type in typePlans {
+            guard case .inputObject(let inputObject) = type else { continue }
             var file = SwiftFileWriter()
             file.setHeader(configuration.output.schema.inputObjects.header)
             file.setImports(configuration.output.schema.inputObjects.importedModules)
-            file.addType(SchemaInputObjectBuilder(inputObject: inputObject))
+            file.addType(SchemaInputObjectBuilder(inputObject: inputObject, typeScope: typeScope))
             try await file.write(
                 to: inputObjectsDir.appending(
                     path: "\(inputObject.ast.name).graphqls.swift",

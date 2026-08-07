@@ -1,8 +1,19 @@
 import Foundation
 
-struct GraphQLRequestWriter {
+struct GraphQLRequestWriter: APIOutput {
     let hasSubscription: Bool
     let configuration: Configuration
+    let relativePath = "HTTPSupport/GraphQLRequest.swift"
+
+    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLRequest")]
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.foundation, "Data"),
+        .init(.foundation, "JSONDecoder"),
+        .init(.foundation, "URL"),
+        .init(.foundation, "URLRequest"),
+        .init(.swift, "Bool"),
+        .init(.swift, "String"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -21,18 +32,7 @@ struct GraphQLRequestWriter {
         configuration.output.api.HTTPSupport?.enableGETQueries == true
     }
 
-    private var url: URL {
-        configuration.output.api.directory.appending(
-            path: "HTTPSupport/GraphQLRequest.swift",
-            directoryHint: .notDirectory
-        )
-    }
-
-    func write(using fileOutput: FileOutput) async throws {
-        try await content().write(to: url, using: fileOutput)
-    }
-
-    private func content() -> String {
+    var source: String {
         if enableGETQueries {
             switch configuration.output.documents.operations.persistedOperations {
             case .automatic: getWithAutomaticPersistedOperations()

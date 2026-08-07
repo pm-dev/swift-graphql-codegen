@@ -1,5 +1,16 @@
-struct GraphQLEnumWriter {
+struct GraphQLEnumWriter: APIOutput {
     let configuration: Configuration
+
+    let relativePath = "GraphQLEnum.swift"
+    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLEnum")]
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.swift, "Decodable"),
+        .init(.swift, "Decoder"),
+        .init(.swift, "Hashable"),
+        .init(.swift, "RawRepresentable"),
+        .init(.swift, "Sendable"),
+        .init(.swift, "String"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -10,8 +21,8 @@ struct GraphQLEnumWriter {
         return "\(header)\n\n"
     }
 
-    func write(using fileOutput: FileOutput) async throws {
-        try await """
+    var source: String {
+        """
         \(header)\(accessLevel)enum GraphQLEnum<T>: Decodable, Hashable, Sendable where T: Hashable & RawRepresentable & Sendable, T.RawValue == String {
             case known(T)
             case unknown(String)
@@ -25,12 +36,6 @@ struct GraphQLEnumWriter {
                 }
             }
         }
-        """.write(
-            to: configuration.output.api.directory.appending(
-                path: "GraphQLEnum.swift",
-                directoryHint: .notDirectory
-            ),
-            using: fileOutput
-        )
+        """
     }
 }

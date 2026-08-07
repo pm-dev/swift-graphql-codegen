@@ -2,9 +2,54 @@ import Foundation
 
 struct APIWriter {
     let configuration: Configuration
-    let hasMutation: Bool
-    let hasSubscription: Bool
-    let requiresIndirectNullable: Bool
+
+    private let outputs: [any APIOutput]
+
+    init(
+        configuration: Configuration,
+        hasMutation: Bool,
+        hasSubscription: Bool,
+        requiresIndirectNullable: Bool
+    ) {
+        var outputs: [any APIOutput] = [
+            AnyEncodableWriter(configuration: configuration),
+            GraphQLEnumWriter(configuration: configuration),
+            GraphQLErrorWriter(configuration: configuration),
+            GraphQLHasDefaultWriter(configuration: configuration),
+            GraphQLNullableWriter(
+                configuration: configuration,
+                requiresIndirectNullable: requiresIndirectNullable
+            ),
+            GraphQLResponseWriter(configuration: configuration),
+            JSONValueWriter(configuration: configuration),
+        ]
+        if configuration.output.api.HTTPSupport != nil {
+            let httpOutputs: [any APIOutput] = [
+                DefaultEncodersWriter(hasSubscription: hasSubscription, configuration: configuration),
+                GraphQLOperationWriter(
+                    configuration: configuration,
+                    hasMutation: hasMutation,
+                    hasSubscription: hasSubscription
+                ),
+                EncodersWriter(hasSubscription: hasSubscription, configuration: configuration),
+                URLSessionWriter(hasSubscription: hasSubscription, configuration: configuration),
+                GraphQLRequestWriter(hasSubscription: hasSubscription, configuration: configuration),
+            ]
+            outputs.append(contentsOf: httpOutputs)
+        }
+        self.configuration = configuration
+        self.outputs = outputs
+    }
+
+    var topLevelDeclarations: [GeneratedTypeDeclaration] {
+        outputs.flatMap(\.topLevelTypeNames).map { typeName in
+            GeneratedTypeDeclaration(
+                name: typeName,
+                origin: .api(typeName.unescaped),
+                conformances: []
+            )
+        }
+    }
 
     private var httpSupportDirectory: URL {
         configuration.output.api.directory.appending(
@@ -13,46 +58,16 @@ struct APIWriter {
         )
     }
 
-    func write(using fileOutput: FileOutput) async throws {
+    func write(using fileOutput: FileOutput, typeScope: SwiftTypeScope) async throws {
         let destinationPath = configuration.output.api.directory
         await fileOutput.createDirectory(at: destinationPath)
-        try await AnyEncodableWriter(configuration: configuration).write(using: fileOutput)
-        try await GraphQLEnumWriter(configuration: configuration).write(using: fileOutput)
-        try await GraphQLErrorWriter(configuration: configuration).write(using: fileOutput)
-        try await GraphQLHasDefaultWriter(configuration: configuration).write(using: fileOutput)
-        try await GraphQLNullableWriter(
-            configuration: configuration,
-            requiresIndirectNullable: requiresIndirectNullable
-        ).write(using: fileOutput)
-        try await GraphQLResponseWriter(configuration: configuration).write(using: fileOutput)
-        try await JSONValueWriter(configuration: configuration).write(using: fileOutput)
-
-        // HTTP Support
         if configuration.output.api.HTTPSupport != nil {
             await fileOutput.createDirectory(at: httpSupportDirectory)
-            try await DefaultEncodersWriter(
-                hasSubscription: hasSubscription,
-                configuration: configuration
-            ).write(using: fileOutput)
-            try await GraphQLOperationWriter(
-                configuration: configuration,
-                hasMutation: hasMutation,
-                hasSubscription: hasSubscription
-            ).write(using: fileOutput)
-            try await EncodersWriter(
-                hasSubscription: hasSubscription,
-                configuration: configuration
-            ).write(using: fileOutput)
-            try await URLSessionWriter(
-                hasSubscription: hasSubscription,
-                configuration: configuration
-            ).write(using: fileOutput)
-            try await GraphQLRequestWriter(
-                hasSubscription: hasSubscription,
-                configuration: configuration
-            ).write(using: fileOutput)
         } else {
             await fileOutput.remove(at: httpSupportDirectory)
+        }
+        for output in outputs {
+            try await output.write(using: fileOutput, typeScope: typeScope)
         }
     }
 }

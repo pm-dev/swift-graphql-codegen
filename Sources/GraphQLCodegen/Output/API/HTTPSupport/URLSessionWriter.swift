@@ -1,8 +1,21 @@
 import Foundation
 
-struct URLSessionWriter {
+struct URLSessionWriter: APIOutput {
     let hasSubscription: Bool
     let configuration: Configuration
+    let relativePath = "HTTPSupport/URLSession+GraphQL.swift"
+
+    let topLevelTypeNames: [SwiftTypeIdentifier] = []
+    let typeReferences: Set<SwiftTypeReference> = [
+        .init(.foundation, "Data"),
+        .init(.foundation, "HTTPURLResponse"),
+        .init(.foundation, "URLSession"),
+        .init(.swift, "Array"),
+        .init(.swift, "AsyncThrowingStream"),
+        .init(.swift, "Error"),
+        .init(.swift, "Task"),
+        .init(.swift, "UInt8"),
+    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
@@ -17,18 +30,7 @@ struct URLSessionWriter {
         hasSubscription && configuration.output.api.HTTPSupport?.subscriptionSupport == true
     }
 
-    private var url: URL {
-        configuration.output.api.directory.appending(
-            path: "HTTPSupport/URLSession+GraphQL.swift",
-            directoryHint: .notDirectory
-        )
-    }
-
-    func write(using fileOutput: FileOutput) async throws {
-        try await content().write(to: url, using: fileOutput)
-    }
-
-    private func content() -> String {
+    var source: String {
         """
         \(header)import Foundation
 
