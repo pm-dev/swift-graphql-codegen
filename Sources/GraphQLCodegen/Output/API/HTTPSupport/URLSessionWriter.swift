@@ -179,6 +179,7 @@ struct URLSessionWriter {
             }
 
             private struct ServerSentEventAccumulator {
+                private let dataFieldSeparator: UInt8 = 0x0A
                 private var data = Data()
                 private var hasDataField = false
                 private var isFirstLine = true
@@ -225,7 +226,7 @@ struct URLSessionWriter {
                             throw SubscriptionError.eventTooLarge(maximumByteCount: maximumByteCount)
                         }
                         if hasDataField {
-                            data.append(0x0A)
+                            data.append(dataFieldSeparator)
                         }
                         data.append(contentsOf: value.utf8)
                         hasDataField = true
