@@ -182,7 +182,7 @@ struct OperationBuilder {
                                 switch variableDefinition.type.typeName {
                                 case .optional:
                                     if let defaultValue = variableDefinition.defaultValue {
-                                        ".value(.useDefault) \(SwiftSource(value: defaultValue.description).blockComment)"
+                                        "nil \(SwiftSource(value: defaultValue.description).blockComment)"
                                     } else {
                                         "nil"
                                     }
@@ -266,9 +266,6 @@ struct OperationBuilder {
 
 extension GraphQLAST.VariableDefinition {
     fileprivate var typeName: String {
-        type.typeName.formatted(
-            formatName: { defaultValue == nil ? $0 : "GraphQLHasDefault<\($0)>" },
-            formatOptional: { "GraphQLNullable<\($0)>?" }
-        )
+        type.typeName.inputTypeName(hasDefaultValue: defaultValue != nil)
     }
 }

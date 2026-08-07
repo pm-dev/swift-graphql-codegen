@@ -44,4 +44,13 @@ extension SourceTypeName {
             )
         }
     }
+
+    func inputTypeName(hasDefaultValue: Bool) -> String {
+        let typeName = formatted(formatOptional: { "GraphQLNullable<\($0)>?" })
+        guard hasDefaultValue else { return typeName }
+        switch self {
+        case .optional: return typeName
+        case .list, .name: return "GraphQLHasDefault<\(typeName)>"
+        }
+    }
 }

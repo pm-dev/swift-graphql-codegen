@@ -12,15 +12,35 @@ struct GraphQLHasDefaultWriter {
 
     func write(using fileOutput: FileOutput) async throws {
         try await """
-        \(header)\(accessLevel)enum GraphQLHasDefault<T>: Encodable, Hashable where T: Encodable & Hashable & Sendable {
+        \(header)\(accessLevel)enum GraphQLHasDefault<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
             case useDefault
             case value(T)
 
             \(accessLevel)func encode(to encoder: Encoder) throws {
-                var container = encoder.singleValueContainer()
                 switch self {
+                case .useDefault:
+                    throw EncodingError.invalidValue(
+                        self,
+                        EncodingError.Context(
+                            codingPath: encoder.codingPath,
+                            debugDescription: "GraphQLHasDefault.useDefault must be encoded from a keyed container."
+                        )
+                    )
+                case .value(let value):
+                    var container = encoder.singleValueContainer()
+                    try container.encode(value)
+                }
+            }
+        }
+
+        extension KeyedEncodingContainer {
+            \(accessLevel)mutating func encode<T>(
+                _ value: GraphQLHasDefault<T>,
+                forKey key: Key
+            ) throws where T: Encodable & Hashable & Sendable {
+                switch value {
                 case .useDefault: break
-                case .value(let t): try container.encode(t)
+                case .value(let value): try encode(value, forKey: key)
                 }
             }
         }

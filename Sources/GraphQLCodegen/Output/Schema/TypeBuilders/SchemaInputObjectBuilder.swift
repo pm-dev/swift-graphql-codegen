@@ -24,7 +24,7 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
                             switch inputField.type.swiftName {
                             case .optional:
                                 if let defaultValue = inputField.defaultValue {
-                                    ".value(.useDefault) \(SwiftSource(value: defaultValue.description).blockComment)"
+                                    "nil \(SwiftSource(value: defaultValue.description).blockComment)"
                                 } else {
                                     "nil"
                                 }
@@ -46,9 +46,6 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
 
 extension __Schema.__InputValue {
     var typeName: String {
-        type.swiftName.formatted(
-            formatName: { defaultValue == nil ? $0 : "GraphQLHasDefault<\($0)>" },
-            formatOptional: { "GraphQLNullable<\($0)>?" }
-        )
+        type.swiftName.inputTypeName(hasDefaultValue: defaultValue != nil)
     }
 }

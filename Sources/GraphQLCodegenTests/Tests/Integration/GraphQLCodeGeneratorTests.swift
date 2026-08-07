@@ -7,6 +7,7 @@ struct GraphQLCodeGeneratorTests {
         .deletingLastPathComponent() // Inside 'Integration'
     private let starwarsExampleDirectory = GraphQLCodeGeneratorTests
         .currentDirectory
+        .deletingLastPathComponent() // Inside 'Tests'
         .deletingLastPathComponent() // Inside 'GraphQLCodegenTests'
         .deletingLastPathComponent() // Inside 'Sources'
         .appending(path: "StarwarsExample", directoryHint: .isDirectory)
