@@ -6,8 +6,8 @@ struct DefaultURLQueryEncoderTests {
     @Test
     func omitsDocumentFromPersistedQuery() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
-            query: CurrentUserQuery(),
-            automaticPersistedOperations: true,
+            operation: CurrentUserQuery(),
+            automaticPersistedOperationPhase: .initialRequestWithHash,
             minifyDocument: true
         )
 
@@ -17,8 +17,8 @@ struct DefaultURLQueryEncoderTests {
     @Test
     func includesDocumentInStandardQuery() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
-            query: CurrentUserQuery(),
-            automaticPersistedOperations: false,
+            operation: CurrentUserQuery(),
+            automaticPersistedOperationPhase: nil,
             minifyDocument: true
         )
 

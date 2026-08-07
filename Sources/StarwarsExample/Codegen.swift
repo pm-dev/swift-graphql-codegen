@@ -20,7 +20,10 @@ struct StarwarsCodegen {
                     ),
                     api: .api(
                         directory: currentFileDirectory.appending(path: "API", directoryHint: .isDirectory),
-                        HTTPSupport: .httpSupport(enableGETQueries: true)
+                        HTTPSupport: .httpSupport(
+                            enableGETQueries: true,
+                            subscriptionSupport: true
+                        )
                     )
                 )
             )

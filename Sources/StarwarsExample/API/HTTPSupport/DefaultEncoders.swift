@@ -7,14 +7,14 @@ import Foundation
 /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
 struct DefaultURLQueryEncoder: URLQueryEncoder {
     init() {}
-    func encode<Query: GraphQLQuery>(
-        query: Query,
-        automaticPersistedOperations: Bool,
+    func encode<Operation: GraphQLOperation>(
+        operation: Operation,
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
         minifyDocument: Bool
     ) throws -> [URLQueryItem] {
         let body = Body(
-            operation: query,
-            automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil,
+            operation: operation,
+            automaticPersistedOperationPhase: automaticPersistedOperationPhase,
             minifyDocument: minifyDocument
         )
         let encoder = JSONEncoder()

@@ -38,11 +38,11 @@ struct URLSessionWriter {
                 \(accessLevel)let response: HTTPURLResponse
             }
 
-            /// Executes a GraphQL operation
+            /// Executes a single-response GraphQL operation.
             /// - Parameters:
             ///   - request: The request containing the `URLRequest` to be performed.
             ///   - decoder: The function used to turn response data into an Operation.Data instance.
-            \(accessLevel)func request<Operation: GraphQLOperation>(
+            \(accessLevel)func request<Operation: GraphQLSingleResponseOperation>(
                 _ request: GraphQLRequest<Operation>,
                 decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
             ) async throws -> GraphQLResponse<Operation.Data>.Success {
@@ -54,7 +54,7 @@ struct URLSessionWriter {
                 case .success(let success): return success
                 \(requestErrorHandling())
                 }
-            }\(persistingRequest())\(subscriptions())
+            }\(subscriptions())
         }
         """
     }
@@ -68,9 +68,9 @@ struct URLSessionWriter {
                             error.message == "PersistedQueryNotFound"
                         }
                         if containsPersistedQueryNotFound,
-                           let persistedOperationBodyEncoder = request.persistedOperationBodyEncoder {
+                           let retry = request.persistedOperationRetry {
                             return try await self.request(
-                                try persistingRequest(request, bodyEncoder: persistedOperationBodyEncoder),
+                                try request.updated(for: retry),
                                 decoder: decoder
                             )
                         }
@@ -81,33 +81,6 @@ struct URLSessionWriter {
         }
     }
 
-    private func persistingRequest() -> String {
-        guard case .automatic = configuration.output.documents.operations.persistedOperations else { return "" }
-        return """
-
-
-            private func persistingRequest<Operation: GraphQLOperation>(
-                _ original: GraphQLRequest<Operation>,
-                bodyEncoder: HTTPBodyEncoder
-            ) throws -> GraphQLRequest<Operation> {
-                var urlRequest = original.urlRequest
-                urlRequest.url = original.endpoint
-                urlRequest.httpBody = try bodyEncoder.encode(
-                    operation: original.operation,
-                    automaticPersistedOperationPhase: .persistRequestWithDocument,
-                    minifyDocument: original.minifyDocument
-                )
-                return GraphQLRequest(
-                    urlRequest: urlRequest,
-                    endpoint: original.endpoint,
-                    operation: original.operation,
-                    minifyDocument: original.minifyDocument,
-                    persistedOperationBodyEncoder: nil
-                )
-            }
-        """
-    }
-
     private func subscriptions() -> String {
         guard includeSubscriptionSupport else { return "" }
         return """
@@ -115,7 +88,7 @@ struct URLSessionWriter {
 
             /// Initiates an event stream using a GraphQL subscription.
             /// This implementation assumes your server uses the "GraphQL over Server-Sent Events" spec:
-            /// https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverSSE.md#distinct-connections-mode
+            /// https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverSSE.md#distinct-connections-mode\(automaticPersistedOperationSubscriptionDocumentation())
             /// - Parameters:
             ///   - request: The  request containing the `URLRequest` to be performed. The `URLRequest` must have `text/event-stream` set
             ///   in the "accept" header.
@@ -136,7 +109,7 @@ struct URLSessionWriter {
                                 if let messageData = buffer.append(byte) {
                                     switch try decoder(messageData) {
                                     case .success(let success): continuation.yield(success)
-                                    case .requestError(let requestError): throw requestError
+                                    \(subscriptionRequestErrorHandling())
                                     }
                                 }
                             }
@@ -178,5 +151,27 @@ struct URLSessionWriter {
                 }
             }
         """
+    }
+
+    private func automaticPersistedOperationSubscriptionDocumentation() -> String {
+        guard case .automatic = configuration.output.documents.operations.persistedOperations else { return "" }
+        return """
+
+            /// - Important: Automatic persisted operations are not supported for subscriptions. Subscription
+            /// requests always include the full operation document.
+        """
+    }
+
+    private func subscriptionRequestErrorHandling() -> String {
+        switch configuration.output.documents.operations.persistedOperations {
+        case .automatic:
+            """
+            case .requestError(let requestError):
+                                            // TODO: Support automatic persisted operation fallback for subscriptions.
+                                            throw requestError
+            """
+        case .registered, .none:
+            "case .requestError(let requestError): throw requestError"
+        }
     }
 }

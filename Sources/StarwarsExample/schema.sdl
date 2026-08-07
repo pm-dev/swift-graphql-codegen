@@ -2,6 +2,14 @@ type Query {
   hero(episode: Episode): Character!
 }
 
+type Mutation {
+  setFavoriteEpisode(episode: Episode!): Episode!
+}
+
+type Subscription {
+  favoriteEpisodeChanged: Episode!
+}
+
 interface Character {
   id: ID!
   name: String!

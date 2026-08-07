@@ -76,14 +76,14 @@ struct DefaultEncodersWriter {
         /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
         \(accessLevel)struct DefaultURLQueryEncoder: URLQueryEncoder {
             \(accessLevel)init() {}
-            \(accessLevel)func encode<Query: GraphQLQuery>(
-                query: Query,
-                automaticPersistedOperations: Bool,
+            \(accessLevel)func encode<Operation: GraphQLOperation>(
+                operation: Operation,
+                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
                 minifyDocument: Bool
             ) throws -> [URLQueryItem] {
                 let body = Body(
-                    operation: query,
-                    automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil,
+                    operation: operation,
+                    automaticPersistedOperationPhase: automaticPersistedOperationPhase,
                     minifyDocument: minifyDocument
                 )
                 let encoder = JSONEncoder()
@@ -95,7 +95,7 @@ struct DefaultEncodersWriter {
                         String(decoding: try encoder.encode(extensions), as: UTF8.self)
                     })
                 ].compactMap { $0 }
-            }\(subscriptionSupportWithAutomaticPersistedOperations())
+            }
         }
 
         \(httpBodyEncoderWithAutomaticPersistedOperations())
@@ -311,34 +311,6 @@ struct DefaultEncodersWriter {
             }
 
         }
-        """
-    }
-
-    private func subscriptionSupportWithAutomaticPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
-        return """
-
-
-            \(accessLevel)func encode<Subscription: GraphQLSubscription>(
-                subscription: Subscription,
-                automaticPersistedOperations: Bool,
-                minifyDocument: Bool
-            ) throws -> [URLQueryItem] {
-                let body = Body(
-                    operation: subscription,
-                    automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil,
-                    minifyDocument: minifyDocument
-                )
-                let encoder = JSONEncoder()
-                return [
-                    URLQueryItem(name: "operationName", value: body.operationName),
-                    body.query.map { URLQueryItem(name: "query", value: $0) },
-                    URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
-                    URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
-                    })
-                ].compactMap { $0 }
-            }
         """
     }
 

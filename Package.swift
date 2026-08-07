@@ -39,7 +39,9 @@ let package = Package(
                 .target(name: "GraphQLCodegen"),
             ],
             exclude: [
+                "Operations/FavoriteEpisodeChangedSubscription.graphql",
                 "Operations/HeroQuery.graphql",
+                "Operations/SetFavoriteEpisodeMutation.graphql",
                 "schema.sdl",
             ]
         ),
