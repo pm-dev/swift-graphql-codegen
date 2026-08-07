@@ -46,7 +46,11 @@ struct GraphQLOperationWriter {
             associatedtype Data: Decodable, Sendable
         }
 
-        \(accessLevel)protocol GraphQLQuery: GraphQLOperation {}\(mutationProtocol())\(subscriptionProtocol())
+        /// A `GraphQLSingleResponseOperation` produces one response and can be executed with `URLSession.request`.
+        /// Queries and mutations have this capability; subscriptions produce a stream instead.
+        \(accessLevel)protocol GraphQLSingleResponseOperation: GraphQLOperation {}
+
+        \(accessLevel)protocol GraphQLQuery: GraphQLSingleResponseOperation {}\(mutationProtocol())\(subscriptionProtocol())
         """
     }
 
@@ -82,7 +86,7 @@ struct GraphQLOperationWriter {
         return """
 
 
-        \(accessLevel)protocol GraphQLMutation: GraphQLOperation {}
+        \(accessLevel)protocol GraphQLMutation: GraphQLSingleResponseOperation {}
         """
     }
 

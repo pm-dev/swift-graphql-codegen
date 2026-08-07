@@ -27,4 +27,12 @@ protocol GraphQLOperation: Sendable {
     associatedtype Data: Decodable, Sendable
 }
 
-protocol GraphQLQuery: GraphQLOperation {}
+/// A `GraphQLSingleResponseOperation` produces one response and can be executed with `URLSession.request`.
+/// Queries and mutations have this capability; subscriptions produce a stream instead.
+protocol GraphQLSingleResponseOperation: GraphQLOperation {}
+
+protocol GraphQLQuery: GraphQLSingleResponseOperation {}
+
+protocol GraphQLMutation: GraphQLSingleResponseOperation {}
+
+protocol GraphQLSubscription: GraphQLOperation {}
