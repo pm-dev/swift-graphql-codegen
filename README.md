@@ -431,6 +431,23 @@ Simplicity also means this package is small, which keeps SPM resolution times an
 - ~3 second clean build compile time (M1 laptop)
 - 1 dependency (Apple's OrderedCollections package)
 
+### Generated type naming
+
+GraphQL response keys may use any casing permitted by GraphQL. The response key is the field alias when one is present, or the schema field name otherwise.
+
+When a selected field has a selection set, codegen creates a nested response type named by capitalizing its response key. When two fields in the same selection set would produce the same type name, Codegen reports an error. For example, this valid GraphQL:
+
+```graphql
+profile: Viewer { id }
+Profile: Viewer { name }
+```
+
+would produce `struct Profile` for both keys. An alias or fragment can be used to resolve this conflict.
+
+Before writing files, Codegen builds the concrete output plan and validates declarations in their actual Swift lexical scopes. This includes conflicts between response keys, fragments, generated schema types, and fixed operation declarations or references such as `Data`, `Variables`, and `CodingKey`.
+
+Configured conformances are emitted verbatim and are not included in collision validation. Codegen neither qualifies generated system type references nor validates collisions with Swift standard-library or Foundation types. Callers are responsible for avoiding those collisions with GraphQL aliases or fragment names and for qualifying configured types and conformances when necessary.
+
 ## Alternatives
 
 Alternative Swift GraphQL client libraries exist. This project was created to solve specific issues and reduce complexity. It has optimized for different tradeoffs than the libraries below. Choosing the right library will depend on your specific use case.

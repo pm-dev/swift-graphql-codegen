@@ -3,15 +3,6 @@ struct GraphQLResponseWriter: APIOutput {
 
     let relativePath = "GraphQLResponse.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLResponse")]
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.swift, "CodingKey"),
-        .init(.swift, "Decodable"),
-        .init(.swift, "Decoder"),
-        .init(.swift, "DecodingError"),
-        .init(.swift, "Error"),
-        .init(.swift, "Sendable"),
-        .init(.swift, "String"),
-    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

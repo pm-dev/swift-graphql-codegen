@@ -1,16 +1,13 @@
 struct SchemaEnumBuilder: SwiftTypeBuildable {
     let `enum`: Schema.Enum
     let configuration: Configuration
-    let typeScope: SwiftTypeScope
 
     func build(configuration: Configuration) -> [String] {
         var builder = SwiftEnumBuilder(
             description: `enum`.ast.description,
             isPublic: configuration.output.schema.accessLevel == .public,
             name: SwiftTypeIdentifier(swiftName: `enum`.ast.name).source,
-            conformances: [typeScope.reference(.init(.swift, "String"))] +
-                configuration.output.schema.enums.conformances,
-            typeScope: typeScope
+            conformances: ["String"] + configuration.output.schema.enums.conformances
         )
         for enumValue in `enum`.ast.enumValues {
             let caseName: String

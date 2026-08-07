@@ -6,16 +6,6 @@ struct URLSessionWriter: APIOutput {
     let relativePath = "HTTPSupport/URLSession+GraphQL.swift"
 
     let topLevelTypeNames: [SwiftTypeIdentifier] = []
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.foundation, "Data"),
-        .init(.foundation, "HTTPURLResponse"),
-        .init(.foundation, "URLSession"),
-        .init(.swift, "Array"),
-        .init(.swift, "AsyncThrowingStream"),
-        .init(.swift, "Error"),
-        .init(.swift, "Task"),
-        .init(.swift, "UInt8"),
-    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

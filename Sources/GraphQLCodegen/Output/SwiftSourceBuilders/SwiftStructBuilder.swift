@@ -26,16 +26,14 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         description: String?,
         isPublic: Bool,
         name: String,
-        conformances: [String],
-        typeScope: SwiftTypeScope
+        conformances: [String]
     ) {
         builder = SwiftTypeBuilder(
             description: description,
             isPublic: isPublic,
             type: "struct",
             name: identifier(name),
-            conformances: conformances,
-            typeScope: typeScope
+            conformances: conformances
         )
     }
 

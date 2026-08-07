@@ -45,13 +45,10 @@ extension SourceTypeName {
         }
     }
 
-    func inputTypeName(hasDefaultValue: Bool, typeScope: SwiftTypeScope) -> String {
+    func inputTypeName(hasDefaultValue: Bool) -> String {
         let typeName = formatted(
             formatName: { name in
-                if let reference = SwiftTypeReference(nativeScalarName: name) {
-                    return typeScope.reference(reference)
-                }
-                return SwiftTypeIdentifier(swiftName: name).source
+                SwiftTypeIdentifier(swiftName: name).source
             },
             formatOptional: { "GraphQLNullable<\($0)>?" }
         )

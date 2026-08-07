@@ -45,11 +45,14 @@ struct CodegenOutputPlan {
         self.topLevelDeclarations = topLevelDeclarations
     }
 
+    func validate() throws {
+        try GeneratedTypeNameValidator(outputPlan: self).validate()
+    }
+
     func write(using fileOutput: FileOutput) async throws {
-        let typeScope = SwiftTypeScope(declarations: topLevelDeclarations.map(\.name))
-        try await documentsWriter.write(using: fileOutput, typeScope: typeScope)
-        try await schemaWriter.write(using: fileOutput, typeScope: typeScope)
-        try await apiWriter.write(using: fileOutput, typeScope: typeScope)
+        try await documentsWriter.write(using: fileOutput)
+        try await schemaWriter.write(using: fileOutput)
+        try await apiWriter.write(using: fileOutput)
         try await manifestWriter?.write(using: fileOutput)
     }
 }

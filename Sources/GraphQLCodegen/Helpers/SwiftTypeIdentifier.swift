@@ -1,7 +1,7 @@
 struct SwiftTypeIdentifier: Hashable {
+    static let codingKey = SwiftTypeIdentifier(swiftName: "CodingKey")
     static let codingKeys = SwiftTypeIdentifier(swiftName: "CodingKeys")
     static let data = SwiftTypeIdentifier(swiftName: "Data")
-    static let swiftModule = SwiftTypeIdentifier(swiftName: "Swift")
     static let variables = SwiftTypeIdentifier(swiftName: "Variables")
 
     let unescaped: String

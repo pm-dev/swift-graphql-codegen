@@ -11,11 +11,9 @@ extension SwiftStructBuilder {
         immutable: Bool,
         isPublic: Bool,
         conformances: OrderedSet<String>,
-        configuration: Configuration,
-        typeScope: SwiftTypeScope
+        configuration: Configuration
     ) throws {
         let typePlan = SelectionSetTypePlan(selectionSet: selectionSet, conformances: conformances)
-        let selectionTypeScope = typeScope.adding(declarations: typePlan.declarations.map(\.name))
 
         var hasNonnilTypenameField = false
         for (responseKey, selection) in selectionSet {
@@ -31,10 +29,7 @@ extension SwiftStructBuilder {
                     immutable: immutable,
                     name: responseKey,
                     value: .unassigned(
-                        type: conditionalField.sourceTypeName(
-                            responseKey: responseKey,
-                            typeScope: selectionTypeScope
-                        ).formatted(),
+                        type: conditionalField.sourceTypeName(responseKey: responseKey).formatted(),
                         initialized: configuration.output.documents.memberwiseInitializer ?
                             .direct(defaultValue: nil) : nil
                     )
@@ -66,8 +61,7 @@ extension SwiftStructBuilder {
                     immutable: immutable,
                     isPublic: isPublic,
                     conformances: conformances,
-                    configuration: configuration,
-                    typeScope: selectionTypeScope
+                    configuration: configuration
                 )
             }
         }
@@ -79,8 +73,7 @@ extension SwiftStructBuilder {
                 selectionSet,
                 hasFields: !typePlan.fields.isEmpty,
                 hasNonnilTypenameField: hasNonnilTypenameField,
-                configuration: configuration,
-                typeScope: selectionTypeScope
+                configuration: configuration
             )
         }
     }
@@ -91,8 +84,7 @@ extension SwiftStructBuilder {
         immutable: Bool,
         isPublic: Bool,
         conformances: OrderedSet<String>,
-        configuration: Configuration,
-        typeScope: SwiftTypeScope
+        configuration: Configuration
     ) throws {
         switch fieldType {
         case .scalar: break
@@ -101,8 +93,7 @@ extension SwiftStructBuilder {
                 description: nil,
                 isPublic: isPublic,
                 name: SwiftTypeIdentifier(capitalizing: responseKey).source,
-                conformances: conformances.elements,
-                typeScope: typeScope
+                conformances: conformances.elements
             )
             do {
                 try nestedStruct.addSelectionSet(
@@ -110,8 +101,7 @@ extension SwiftStructBuilder {
                     immutable: immutable,
                     isPublic: isPublic,
                     conformances: conformances,
-                    configuration: configuration,
-                    typeScope: typeScope
+                    configuration: configuration
                 )
             } catch {
                 switch error as? SelectionSetError {
@@ -131,8 +121,7 @@ extension SwiftStructBuilder {
                 immutable: immutable,
                 isPublic: isPublic,
                 conformances: conformances,
-                configuration: configuration,
-                typeScope: typeScope
+                configuration: configuration
             )
         case .list(let innerType):
             try addNestedStruct(
@@ -141,8 +130,7 @@ extension SwiftStructBuilder {
                 immutable: immutable,
                 isPublic: isPublic,
                 conformances: conformances,
-                configuration: configuration,
-                typeScope: typeScope
+                configuration: configuration
             )
         }
     }
@@ -151,8 +139,7 @@ extension SwiftStructBuilder {
         _ selectionSet: ResolvedSelectionSet,
         hasFields: Bool,
         hasNonnilTypenameField: Bool,
-        configuration: Configuration,
-        typeScope: SwiftTypeScope
+        configuration: Configuration
     ) throws {
         var initializerBody: [String] = []
         if hasFields {
@@ -164,8 +151,7 @@ extension SwiftStructBuilder {
             description: nil,
             isPublic: false,
             name: SwiftTypeIdentifier.codingKeys.source,
-            conformances: ["CodingKey"],
-            typeScope: typeScope
+            conformances: ["CodingKey"]
         ) : nil
         for (responseKey, selection) in selectionSet {
             switch selection {
@@ -175,16 +161,10 @@ extension SwiftStructBuilder {
                 let typename: String
                 if conditional {
                     assignment.append("decodeIfPresent(")
-                    typename = field.asNonOptional().sourceTypeName(
-                        responseKey: responseKey,
-                        typeScope: typeScope
-                    ).formatted()
+                    typename = field.asNonOptional().sourceTypeName(responseKey: responseKey).formatted()
                 } else {
                     assignment.append("decode(")
-                    typename = field.sourceTypeName(
-                        responseKey: responseKey,
-                        typeScope: typeScope
-                    ).formatted()
+                    typename = field.sourceTypeName(responseKey: responseKey).formatted()
                 }
                 assignment.append("\(typename).self, forKey: .\(responseKey))")
                 codingKeysEnum?.addCase(description: nil, deprecation: nil, name: responseKey)
@@ -215,7 +195,7 @@ extension SwiftStructBuilder {
         }
         addInitializer(
             arguments: [
-                "from decoder: \(typeScope.reference(.init(.swift, "Decoder")))",
+                "from decoder: Decoder",
             ],
             body: initializerBody,
             isThrowing: true

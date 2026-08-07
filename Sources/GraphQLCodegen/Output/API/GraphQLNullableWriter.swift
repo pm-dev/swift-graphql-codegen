@@ -4,12 +4,6 @@ struct GraphQLNullableWriter: APIOutput {
 
     let relativePath = "GraphQLNullable.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLNullable")]
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.swift, "Encodable"),
-        .init(.swift, "Encoder"),
-        .init(.swift, "Hashable"),
-        .init(.swift, "Sendable"),
-    ]
 
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""

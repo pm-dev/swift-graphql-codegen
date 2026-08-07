@@ -47,6 +47,7 @@ public struct Codegen: Sendable {
             resolvedDocuments: resolvedDocuments,
             schema: loadedSchema.schema
         )
+        try outputPlan.validate()
 
         // Output
         let fileOutput = FileOutput()

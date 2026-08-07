@@ -42,9 +42,6 @@ struct DocumentsWriter {
                         origin: .operation(
                             name: operation.operation.ast.name?.value,
                             file: resolvedDocument.document.url
-                        ),
-                        conformances: configuration.operationConformances(
-                            for: operation.operation.ast.operation
                         )
                     )
                     definitions.append(.operation(operation, declaration))
@@ -53,9 +50,7 @@ struct DocumentsWriter {
                     let includesSelectionSet = resolvedDocuments.fulfilledFragments.contains(name)
                     let declaration = GeneratedTypeDeclaration(
                         name: SwiftTypeIdentifier(capitalizing: name),
-                        origin: .fragment(name: name, file: fragment.fragment.file),
-                        conformances: includesSelectionSet ?
-                            configuration.output.documents.fragments.conformances : []
+                        origin: .fragment(name: name, file: fragment.fragment.file)
                     )
                     definitions.append(
                         .fragment(
@@ -79,7 +74,7 @@ struct DocumentsWriter {
         documentPlans.flatMap(\.definitions).map(\.declaration)
     }
 
-    func write(using fileOutput: FileOutput, typeScope: SwiftTypeScope) async throws {
+    func write(using fileOutput: FileOutput) async throws {
         try validateOutputURLs()
         switch configuration.output.documents.directory {
         case .definition: break
@@ -98,7 +93,6 @@ struct DocumentsWriter {
                     let operation = try buildOperation(
                         resolvedOperation,
                         typeName: declaration.name,
-                        typeScope: typeScope,
                         in: document
                     )
                     file.addType(operation)
@@ -112,7 +106,6 @@ struct DocumentsWriter {
                         try buildFragment(
                             resolvedFragment,
                             typeName: declaration.name,
-                            typeScope: typeScope,
                             includesSelectionSet: includesSelectionSet,
                             in: document
                         )
@@ -153,15 +146,13 @@ struct DocumentsWriter {
     private func buildOperation(
         _ operation: ResolvedOperation,
         typeName: SwiftTypeIdentifier,
-        typeScope: SwiftTypeScope,
         in document: Document
     ) throws -> SwiftTypeBuildable {
         let operation = OperationBuilder(
             configuration: configuration,
             document: document,
             resolvedOperation: operation,
-            typeName: typeName,
-            typeScope: typeScope
+            typeName: typeName
         )
         return try operation.buildable()
     }
@@ -169,7 +160,6 @@ struct DocumentsWriter {
     private func buildFragment(
         _ resolvedFragment: ResolvedFragment,
         typeName: SwiftTypeIdentifier,
-        typeScope: SwiftTypeScope,
         includesSelectionSet: Bool,
         in document: Document
     ) throws -> SwiftTypeBuildable {
@@ -178,7 +168,6 @@ struct DocumentsWriter {
             document: document,
             resolvedFragment: resolvedFragment,
             typeName: typeName,
-            typeScope: typeScope,
             includesSelectionSet: includesSelectionSet
         )
         return try fragment.buildable()

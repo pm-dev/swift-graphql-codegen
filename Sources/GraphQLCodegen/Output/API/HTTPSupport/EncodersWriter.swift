@@ -16,13 +16,6 @@ struct EncodersWriter: APIOutput {
         return typeNames
     }
 
-    let typeReferences: Set<SwiftTypeReference> = [
-        .init(.foundation, "Data"),
-        .init(.foundation, "URLQueryItem"),
-        .init(.swift, "Bool"),
-        .init(.swift, "String"),
-    ]
-
     private var accessLevel: String {
         configuration.output.api.accessLevel == .public ? "public " : ""
     }

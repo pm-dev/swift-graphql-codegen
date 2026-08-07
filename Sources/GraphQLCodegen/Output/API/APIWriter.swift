@@ -45,8 +45,7 @@ struct APIWriter {
         outputs.flatMap(\.topLevelTypeNames).map { typeName in
             GeneratedTypeDeclaration(
                 name: typeName,
-                origin: .api(typeName.unescaped),
-                conformances: []
+                origin: .api(typeName.unescaped)
             )
         }
     }
@@ -58,7 +57,7 @@ struct APIWriter {
         )
     }
 
-    func write(using fileOutput: FileOutput, typeScope: SwiftTypeScope) async throws {
+    func write(using fileOutput: FileOutput) async throws {
         let destinationPath = configuration.output.api.directory
         await fileOutput.createDirectory(at: destinationPath)
         if configuration.output.api.HTTPSupport != nil {
@@ -67,7 +66,7 @@ struct APIWriter {
             await fileOutput.remove(at: httpSupportDirectory)
         }
         for output in outputs {
-            try await output.write(using: fileOutput, typeScope: typeScope)
+            try await output.write(using: fileOutput)
         }
     }
 }
