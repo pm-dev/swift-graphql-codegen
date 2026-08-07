@@ -1,13 +1,13 @@
 import Foundation
 
 struct GraphQLRequestWriter: APIOutput {
-    let hasSubscription: Bool
+    let plan: HTTPGenerationPlan
     let configuration: Configuration
     let relativePath = "HTTPSupport/GraphQLRequest.swift"
 
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [SwiftTypeIdentifier(swiftName: "GraphQLRequest")]
-        if case .automatic = configuration.output.documents.operations.persistedOperations {
+        if case .automatic = plan.persistence {
             typeNames.append(SwiftTypeIdentifier(swiftName: "PersistedOperationRetry"))
         }
         return typeNames
@@ -23,26 +23,21 @@ struct GraphQLRequestWriter: APIOutput {
     }
 
     private var includeSubscriptionSupport: Bool {
-        hasSubscription && configuration.output.api.HTTPSupport?.subscriptionSupport == true
+        plan.includesSubscriptions
     }
 
     private var enableGETQueries: Bool {
-        configuration.output.api.HTTPSupport?.enableGETQueries == true
+        plan.enablesGETQueries
     }
 
     var source: String {
-        if enableGETQueries {
-            switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: getWithAutomaticPersistedOperations()
-            case .registered: getWithRegisteredPersistedOperations()
-            case .none: getWithNoPersistedOperations()
-            }
-        } else {
-            switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: postWithAutomaticPersistedOperations()
-            case .registered: postWithRegisteredPersistedOperations()
-            case .none: postWithNoPersistedOperations()
-            }
+        switch plan.mode {
+        case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
+        case .getWithRegisteredPersistence: getWithRegisteredPersistedOperations()
+        case .getWithoutPersistence: getWithNoPersistedOperations()
+        case .postWithAutomaticPersistence: postWithAutomaticPersistedOperations()
+        case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
+        case .postWithoutPersistence: postWithNoPersistedOperations()
         }
     }
 
@@ -65,7 +60,7 @@ struct GraphQLRequestWriter: APIOutput {
     }
 
     private func requestStateInitializer() -> String {
-        guard case .automatic = configuration.output.documents.operations.persistedOperations else { return "" }
+        guard case .automatic = plan.persistence else { return "" }
         return """
 
 
@@ -86,7 +81,7 @@ struct GraphQLRequestWriter: APIOutput {
     }
 
     private func persistedOperationRetryDeclaration() -> String {
-        guard case .automatic = configuration.output.documents.operations.persistedOperations else { return "" }
+        guard case .automatic = plan.persistence else { return "" }
         return """
         enum PersistedOperationRetry {
         \(persistedOperationGETRetryCase())
@@ -102,7 +97,7 @@ struct GraphQLRequestWriter: APIOutput {
     }
 
     private func persistedOperationUpdate() -> String {
-        guard case .automatic = configuration.output.documents.operations.persistedOperations else { return "" }
+        guard case .automatic = plan.persistence else { return "" }
         return """
 
 
@@ -152,7 +147,7 @@ struct GraphQLRequestWriter: APIOutput {
     }
 
     private func requestStateProperties() -> String {
-        switch configuration.output.documents.operations.persistedOperations {
+        switch plan.persistence {
         case .automatic:
             """
 
@@ -186,7 +181,7 @@ struct GraphQLRequestWriter: APIOutput {
     }
 
     private func operationInitializer() -> String {
-        switch configuration.output.documents.operations.persistedOperations {
+        switch plan.persistence {
         case .automatic: automaticOperationInitializer()
         case .registered: registeredOperationInitializer()
         case .none: operationInitializerWithoutPersistence()
