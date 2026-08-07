@@ -42,6 +42,24 @@ struct SchemaWriter {
         }
     }
 
+    var moduleQualifiers: Set<SwiftTypeIdentifier> {
+        Set(topLevelDeclarations.flatMap { declaration in
+            declaration.conformances.compactMap { conformance in
+                SwiftConformanceName(source: conformance).moduleQualifier
+            }
+        }).union([.swiftModule])
+    }
+
+    var conformanceTypeReferences: Set<SwiftTypeIdentifier> {
+        Set(topLevelDeclarations.flatMap { declaration in
+            declaration.conformances.compactMap { conformance in
+                let conformance = SwiftConformanceName(source: conformance)
+                guard conformance.standardLibraryReference == nil else { return nil }
+                return conformance.lookupTypeName
+            }
+        })
+    }
+
     func conformances(for type: TypePlan) -> [String] {
         switch type {
         case .enum:

@@ -38,4 +38,16 @@ struct SwiftConformanceName {
         default: false
         }
     }
+
+    var lookupTypeName: SwiftTypeIdentifier? {
+        source.split(separator: ".").first.map { component in
+            SwiftTypeIdentifier(swiftName: String(component))
+        }
+    }
+
+    var moduleQualifier: SwiftTypeIdentifier? {
+        guard standardLibraryReference == nil else { return nil }
+        guard source.contains(".") else { return nil }
+        return lookupTypeName
+    }
 }

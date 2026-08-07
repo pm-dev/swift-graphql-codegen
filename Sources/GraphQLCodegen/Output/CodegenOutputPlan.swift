@@ -5,6 +5,7 @@ struct CodegenOutputPlan {
     let schemaWriter: SchemaWriter
 
     let configuration: Configuration
+    let reservedTopLevelTypeNames: Set<SwiftTypeIdentifier>
     let topLevelDeclarations: [GeneratedTypeDeclaration]
 
     init(
@@ -37,12 +38,24 @@ struct CodegenOutputPlan {
         }
         let topLevelDeclarations = apiWriter.topLevelDeclarations +
             documentsWriter.topLevelDeclarations + schemaWriter.topLevelDeclarations
+        let apiTypeNames = Set(apiWriter.topLevelDeclarations.map(\.name))
+        let configuredTypeReferences = documentsWriter.conformanceTypeReferences
+            .union(schemaWriter.conformanceTypeReferences)
+            .subtracting(apiTypeNames)
         self.apiWriter = apiWriter
         self.configuration = configuration
         self.documentsWriter = documentsWriter
         self.manifestWriter = manifestWriter
+        self.reservedTopLevelTypeNames = apiWriter.moduleQualifiers
+            .union(documentsWriter.moduleQualifiers)
+            .union(schemaWriter.moduleQualifiers)
+            .union(configuredTypeReferences)
         self.schemaWriter = schemaWriter
         self.topLevelDeclarations = topLevelDeclarations
+    }
+
+    func validate() throws {
+        try GeneratedTypeNameValidator(outputPlan: self).validate()
     }
 
     func write(using fileOutput: FileOutput) async throws {

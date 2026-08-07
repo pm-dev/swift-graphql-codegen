@@ -51,6 +51,12 @@ struct APIWriter {
         }
     }
 
+    var moduleQualifiers: Set<SwiftTypeIdentifier> {
+        outputs.reduce(into: []) { result, output in
+            result.formUnion(output.moduleQualifiers)
+        }
+    }
+
     private var httpSupportDirectory: URL {
         configuration.output.api.directory.appending(
             path: "HTTPSupport",

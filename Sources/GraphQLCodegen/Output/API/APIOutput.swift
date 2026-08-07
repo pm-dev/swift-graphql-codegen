@@ -19,6 +19,12 @@ protocol APIOutput: Sendable {
 }
 
 extension APIOutput {
+    var moduleQualifiers: Set<SwiftTypeIdentifier> {
+        Set(typeReferences.map { reference in
+            SwiftTypeIdentifier(swiftName: reference.module.rawValue)
+        })
+    }
+
     func write(using fileOutput: FileOutput, typeScope: SwiftTypeScope) async throws {
         try await typeScope.qualify(source, references: typeReferences).write(
             to: configuration.output.api.directory.appending(

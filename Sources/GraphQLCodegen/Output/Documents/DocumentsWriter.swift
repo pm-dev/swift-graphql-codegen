@@ -79,6 +79,38 @@ struct DocumentsWriter {
         documentPlans.flatMap(\.definitions).map(\.declaration)
     }
 
+    var conformanceTypeReferences: Set<SwiftTypeIdentifier> {
+        Set(plannedConformances.compactMap { conformance in
+            let conformance = SwiftConformanceName(source: conformance)
+            guard conformance.standardLibraryReference == nil else { return nil }
+            return conformance.lookupTypeName
+        })
+    }
+
+    var moduleQualifiers: Set<SwiftTypeIdentifier> {
+        Set(plannedConformances.compactMap { conformance in
+            SwiftConformanceName(source: conformance).moduleQualifier
+        }).union([.swiftModule])
+    }
+
+    private var plannedConformances: [String] {
+        documentPlans.flatMap { documentPlan in
+            documentPlan.definitions.flatMap { definition in
+                var conformances = definition.declaration.conformances
+                switch definition {
+                case .fragment:
+                    break
+                case .operation(let operation, _):
+                    conformances += configuration.output.documents.operations.responseData.conformances
+                    if !operation.operation.ast.variableDefinitions.isEmpty {
+                        conformances += configuration.output.documents.operations.variables.conformances
+                    }
+                }
+                return conformances
+            }
+        }
+    }
+
     func write(using fileOutput: FileOutput, typeScope: SwiftTypeScope) async throws {
         try validateOutputURLs()
         switch configuration.output.documents.directory {
