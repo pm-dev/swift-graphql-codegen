@@ -25,7 +25,8 @@ let package = Package(
         .testTarget(
             name: "GraphQLCodegenTests",
             dependencies: [
-                .target(name: "GraphQLCodegen")
+                .target(name: "GraphQLCodegen"),
+                .target(name: "StarwarsExample"),
             ],
             exclude: [
                 "Fixtures/Defaults/Definitions",
