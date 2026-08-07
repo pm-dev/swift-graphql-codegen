@@ -83,7 +83,9 @@ opt_in_rules:
 excluded:
   - .build/
   - Sources/StarwarsExample/
-  - Sources/GraphQLCodegenTests/Integration/ExpectedOutput/
+  - Sources/GraphQLCodegenTests/Fixtures/Defaults/Generated/
+  - Sources/GraphQLCodegenTests/GeneratedAPI/
+  - Sources/GraphQLCodegenTests/Tests/Integration/ExpectedOutput/
 
 trailing_comma:
   mandatory_comma: true

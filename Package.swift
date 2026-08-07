@@ -28,6 +28,7 @@ let package = Package(
                 .target(name: "GraphQLCodegen")
             ],
             exclude: [
+                "Fixtures/Defaults/Definitions",
                 "GraphQLCodegen.xctestplan",
             ]
         ),
