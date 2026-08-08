@@ -25,9 +25,26 @@ struct DocumentsLoader {
             documentFileURLs,
             fragmentLookup: &fragmentLookup
         )
+        var manifestOperations: [PersistedOperationManifest.Operation] = []
+        let preparedDocuments = try prepare(
+            parsedDocuments,
+            fragmentLookup: fragmentLookup,
+            manifestOperations: &manifestOperations
+        )
+        let persistedOperationManifest: PersistedOperationManifestOutput? =
+            switch configuration.output.documents.operations.persistedOperations {
+            case .registered(let manifestURL):
+                PersistedOperationManifestOutput(
+                    operations: manifestOperations,
+                    url: manifestURL
+                )
+            case .automatic, .none:
+                nil
+            }
         return Documents(
-            documents: try prepare(parsedDocuments, fragmentLookup: fragmentLookup),
-            fragmentLookup: fragmentLookup
+            documents: preparedDocuments,
+            fragmentLookup: fragmentLookup,
+            persistedOperationManifest: persistedOperationManifest
         )
     }
 
@@ -91,7 +108,8 @@ struct DocumentsLoader {
 
     private func prepare(
         _ documents: [ParsedDocument],
-        fragmentLookup: [String: Document.Fragment]
+        fragmentLookup: [String: Document.Fragment],
+        manifestOperations: inout [PersistedOperationManifest.Operation]
     ) throws -> [Document] {
         var updatedDocuments: [Document] = []
         updatedDocuments.reserveCapacity(documents.count)
@@ -107,13 +125,22 @@ struct DocumentsLoader {
                         operationSourceText: operationSourceText
                     ).expandSourceText { $0.sourceText }
                     let canonicalText = try graphQLJS.canonicalize(expandedText)
-                    let persistence: Document.Operation.Persistence =
-                        switch configuration.output.documents.operations.persistedOperations {
-                        case .registered:
-                            .registered(hash: hash(canonicalText))
-                        case .automatic, .none:
-                            .standard
-                        }
+                    let persistence: Document.Operation.Persistence
+                    switch configuration.output.documents.operations.persistedOperations {
+                    case .registered:
+                        let hash = hash(canonicalText)
+                        manifestOperations.append(
+                            PersistedOperationManifest.Operation(
+                                id: hash,
+                                body: canonicalText,
+                                name: operationAST.name?.value,
+                                type: operationAST.operation.rawValue
+                            )
+                        )
+                        persistence = .registered(hash: hash)
+                    case .automatic, .none:
+                        persistence = .standard
+                    }
                     updatedDefinitions.append(
                         .operation(
                             Document.Operation(

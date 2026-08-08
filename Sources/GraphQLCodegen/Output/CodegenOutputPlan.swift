@@ -28,12 +28,11 @@ struct CodegenOutputPlan {
             schema: schema,
             resolvedDocuments: resolvedDocuments
         )
-        let manifestWriter: PersistedOperationManifestWriter? =
-            switch configuration.output.documents.operations.persistedOperations {
-        case .registered(let manifestURL):
-            PersistedOperationManifestWriter(manifestURL: manifestURL, documents: documents)
-        case .automatic, .none:
-            nil
+        let manifestWriter = documents.persistedOperationManifest.map { output in
+            PersistedOperationManifestWriter(
+                manifestURL: output.url,
+                operations: output.operations
+            )
         }
         let topLevelDeclarations = apiWriter.topLevelDeclarations +
             documentsWriter.topLevelDeclarations + schemaWriter.topLevelDeclarations
