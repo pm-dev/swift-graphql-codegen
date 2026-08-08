@@ -68,6 +68,7 @@ struct ServerSentEventTests {
             encoding: .utf8
         )
         #expect(output.contains("maximumLineByteCount"))
+        #expect(output.contains("requires version 26 or newer"))
         #expect(output.contains("UTF8Span(validating: buffer.span)"))
         #expect(!output.contains("String(bytes: buffer, encoding: .utf8)"))
 

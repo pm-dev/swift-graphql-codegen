@@ -55,6 +55,8 @@ extension URLSession {
     /// requests always include the full operation document.
     ///
     /// Lines, complete event payloads, and decoded results waiting for the consumer are bounded independently.
+    /// - Important: This API uses `UTF8Span` and requires version 26 or newer of macOS, iOS, tvOS, watchOS,
+    ///   or visionOS.
     /// - Parameters:
     ///   - request: The request containing the `URLRequest` to be performed. The `URLRequest` must have
     ///   `text/event-stream` set in the "accept" header.
