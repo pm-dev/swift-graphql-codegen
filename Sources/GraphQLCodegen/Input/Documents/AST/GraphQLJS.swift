@@ -86,11 +86,11 @@ struct GraphQLJS {
         Data(try stringResult(function: "parseGraphQL", arguments: [sourceText]).utf8)
     }
 
-    func validate(_ sourceText: String, schemaJSON: String) throws -> Data {
+    func validate(_ sourceTexts: [String], schemaJSON: String) throws -> Data {
         Data(
             try stringResult(
-                function: "validateDocument",
-                arguments: [sourceText, schemaJSON]
+                function: "validateDocuments",
+                arguments: [sourceTexts, schemaJSON]
             ).utf8
         )
     }

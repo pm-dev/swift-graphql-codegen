@@ -1,6 +1,27 @@
 import Foundation
 
 struct DocumentsValidator {
+    private struct GraphQLError: Decodable {
+        struct Location: Decodable {
+            let line: Int
+            let column: Int
+
+            var description: String {
+                "line: \(line), column: \(column)"
+            }
+        }
+
+        let message: String
+        let locations: [Location]
+
+        var description: String {
+            """
+            \(message)
+            \(locations.map(\.description).joined(separator: "\n"))
+            """
+        }
+    }
+
     struct ValidationError: CustomStringConvertible, Error {
         let documentErrors: [DocumentError]
 
@@ -32,26 +53,35 @@ struct DocumentsValidator {
     let graphQLJS: GraphQLJS
 
     func validate() throws {
+        let operationsByDocument = documents.documents.map { document in
+            document.definitions.compactMap { definition -> Document.Operation? in
+                guard case .operation(let operation) = definition else { return nil }
+                return operation
+            }
+        }
+        let operations = operationsByDocument.flatMap { $0 }
+        guard !operations.isEmpty else { return }
+
+        let errorsJSON = try graphQLJS.validate(
+            operations.map(\.canonicalText),
+            schemaJSON: schemaJSON
+        )
+        let validationErrors = try JSONDecoder().decode([[GraphQLError]].self, from: errorsJSON)
+
         var documentErrors: [DocumentError] = []
-        for document in documents.documents {
+        var validationIndex = 0
+        for (document, operations) in zip(documents.documents, operationsByDocument) {
             var operationErrors: [OperationError] = []
-            for definition in document.definitions {
-                switch definition {
-                case .operation(let operation):
-                    let errors = try DocumentValidator(
-                        documentText: operation.canonicalText,
-                        graphQLJS: graphQLJS,
-                        schemaJSON: schemaJSON
-                    ).validate()
-                    if !errors.isEmpty {
-                        operationErrors.append(
-                            OperationError(
-                                operationName: operation.ast.name?.value,
-                                errors: errors.map(\.description)
-                            )
+            for operation in operations {
+                let errors = validationErrors[validationIndex]
+                validationIndex += 1
+                if !errors.isEmpty {
+                    operationErrors.append(
+                        OperationError(
+                            operationName: operation.ast.name?.value,
+                            errors: errors.map(\.description)
                         )
-                    }
-                case .fragment: break
+                    )
                 }
             }
             if !operationErrors.isEmpty {

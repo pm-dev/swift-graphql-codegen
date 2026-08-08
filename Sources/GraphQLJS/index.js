@@ -19,11 +19,12 @@ function parseGraphQL(query) {
   return execute(() => JSON.stringify(parse(query)));
 }
 
-function validateDocument(document, JSONSchemaString) {
+function validateDocuments(documents, JSONSchemaString) {
   return execute(() => {
     const schema = buildClientSchema(JSON.parse(JSONSchemaString));
-    const ast = parse(document);
-    return JSON.stringify(validate(schema, ast));
+    return JSON.stringify(
+      documents.map((document) => validate(schema, parse(document))),
+    );
   });
 }
 
@@ -43,4 +44,4 @@ function canonicalizeDocument(document) {
   return execute(() => stripIgnoredCharacters(document));
 }
 
-module.exports = { parseGraphQL, validateDocument, convertSDLSchema, canonicalizeDocument };
+module.exports = { parseGraphQL, validateDocuments, convertSDLSchema, canonicalizeDocument };

@@ -102,6 +102,28 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func reportsValidationErrorsForMultipleOperations() async {
+        await expectCodegenError(
+            containing: [
+                "Operation: First",
+                "Cannot query field \"first\"",
+                "Operation: Second",
+                "Cannot query field \"second\"",
+            ]
+        ) {
+            try await runCodegen(
+                document: """
+                query First { first }
+                query Second { second }
+                """,
+                schema: """
+                type Query { value: String! }
+                """
+            )
+        }
+    }
+
+    @Test
     func rejectsFieldAndFragmentThatProduceConflictingTypeNames() async {
         await expectCodegenError(containing: "response key and fragment name") {
             try await runCodegen(
@@ -442,11 +464,20 @@ struct GraphQLCodeGeneratorTests {
         containing expectedDescription: String,
         operation: () async throws -> Void
     ) async {
+        await expectCodegenError(containing: [expectedDescription], operation: operation)
+    }
+
+    private func expectCodegenError(
+        containing expectedDescriptions: [String],
+        operation: () async throws -> Void
+    ) async {
         do {
             try await operation()
             Issue.record("Expected code generation to fail")
         } catch {
-            #expect(String(describing: error).contains(expectedDescription))
+            for expectedDescription in expectedDescriptions {
+                #expect(String(describing: error).contains(expectedDescription))
+            }
         }
     }
 
