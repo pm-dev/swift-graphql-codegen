@@ -74,12 +74,12 @@ struct DocumentsWriter {
         documentPlans.flatMap(\.definitions).map(\.declaration)
     }
 
-    func write(using fileOutput: FileOutput) async throws {
+    func write(using fileOutput: FileOutput) throws {
         try validateOutputURLs()
         switch configuration.output.documents.directory {
         case .definition: break
         case .directory(let url):
-            await fileOutput.createDirectory(at: url)
+            fileOutput.createDirectory(at: url)
         }
         for plannedDocument in documentPlans {
             let document = plannedDocument.document
@@ -115,14 +115,14 @@ struct DocumentsWriter {
             }
             let outputURL = document.outputURL(configuration)
             if emptyFile {
-                await fileOutput.remove(at: outputURL)
+                fileOutput.remove(at: outputURL)
             } else {
-                try await file.write(to: outputURL, configuration: configuration, using: fileOutput)
+                try file.write(to: outputURL, configuration: configuration, using: fileOutput)
             }
         }
         let generated = documentPlans.map { $0.document.outputURL(configuration) }
         let removed = Set(previouslyGenerated).subtracting(generated)
-        await fileOutput.remove(at: removed)
+        fileOutput.remove(at: removed)
     }
 
     private func validateOutputURLs() throws {
