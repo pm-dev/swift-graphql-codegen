@@ -52,7 +52,7 @@ jobs:
         run: swift build --build-tests -v
 
       - name: Periphery
-        run: mise run periphery -- --format github-actions --relative-results --color never
+        run: mise run periphery -- --format github-actions --relative-results --color never --quiet
 
       - name: Lint
         run: mise run lint
