@@ -130,7 +130,7 @@ struct OperationBuilder {
     }
 
     private func addVariablesProperty(to operationStruct: inout SwiftStructBuilder) {
-        let variableDefinitions = operation.ast.variableDefinitions
+        let variableDefinitions = operation.ast.variableDefinitions ?? []
         guard !variableDefinitions.isEmpty else {
             operationStruct.addProperty(
                 description: nil,
@@ -186,7 +186,7 @@ struct OperationBuilder {
     }
 
     private func addVariablesStruct(to operationStruct: inout SwiftStructBuilder) {
-        let variableDefinitions = operation.ast.variableDefinitions
+        let variableDefinitions = operation.ast.variableDefinitions ?? []
         guard !variableDefinitions.isEmpty else { return }
         let typeNames = variableDefinitions.map(\.typeName)
         var variablesStruct = SwiftStructBuilder(

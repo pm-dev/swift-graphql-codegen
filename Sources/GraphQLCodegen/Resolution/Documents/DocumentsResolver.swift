@@ -121,7 +121,7 @@ struct DocumentsResolver {
                 switch definition {
                 case .operation(let resolvedOperation):
                     selectionSets.append(resolvedOperation.resolvedSelectionSet)
-                    for variableDefinition in resolvedOperation.operation.ast.variableDefinitions {
+                    for variableDefinition in resolvedOperation.operation.ast.variableDefinitions ?? [] {
                         try addUsedInputTypes(variableDefinition, to: &usage.usedTypes)
                     }
                     switch resolvedOperation.operation.ast.operation {

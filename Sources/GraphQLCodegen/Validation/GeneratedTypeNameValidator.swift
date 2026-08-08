@@ -83,7 +83,7 @@ struct GeneratedTypeNameValidator {
                 responseKey: nil
             ),
         ]
-        let variableDefinitions = operation.operation.ast.variableDefinitions
+        let variableDefinitions = operation.operation.ast.variableDefinitions ?? []
         if !variableDefinitions.isEmpty {
             operationTypes[.variables] = NestedTypeSource(
                 description: "Generated operation variables type: Variables",
