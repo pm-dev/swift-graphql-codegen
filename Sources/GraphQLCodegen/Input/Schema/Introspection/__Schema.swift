@@ -1,4 +1,3 @@
-// periphery:ignore:all - Retain the complete schema projection for future codegen features.
 /// Mirrors the schema introspection response produced by `IntrospectionQuery`.
 ///
 /// Keep this boundary model aligned with:
@@ -27,21 +26,18 @@ struct __Schema: Decodable {
         }
 
         struct Object: Decodable {
-            let description: String?
             let name: String
             let fields: [__Field]
             let interfaces: [__TypeRef.Interface]
         }
 
         struct Interface: Decodable {
-            let description: String?
             let name: String
             let fields: [__Field]
             let interfaces: [__TypeRef.Interface]
         }
 
         struct Union: Decodable {
-            let description: String?
             let name: String
             let possibleTypes: [__TypeRef.Object] // https://spec.graphql.org/September2025/#sec-Unions.Type-Validation
         }
@@ -272,17 +268,9 @@ struct __Schema: Decodable {
         }
     }
 
-    struct __Directive: Decodable {
-        let name: String
-        let description: String?
-        let args: [__InputValue]
-        let isRepeatable: Bool
-    }
-
     struct __Field: Decodable {
         let name: String
         let description: String?
-        let args: [__InputValue]
         let type: __TypeRef
         let isDeprecated: Bool
         let deprecationReason: String?
@@ -324,10 +312,8 @@ struct __Schema: Decodable {
         case INPUT_OBJECT
     }
 
-    let description: String?
     let types: [__NamedType]
     let queryType: __TypeRef.Object
     let mutationType: __TypeRef.Object?
     let subscriptionType: __TypeRef.Object?
-    let directives: [__Directive]
 }

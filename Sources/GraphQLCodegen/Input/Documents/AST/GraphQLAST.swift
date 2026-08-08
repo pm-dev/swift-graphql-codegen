@@ -1,4 +1,3 @@
-// periphery:ignore:all - Retain the complete document projection for future codegen features.
 import Foundation
 
 /// Mirrors the executable-document AST produced by the bundled graphql-js parser.
@@ -17,12 +16,10 @@ enum GraphQLAST {
     }
 
     struct Name: Decodable {
-        let loc: Location
         let value: String
     }
 
     struct Document: Decodable {
-        let loc: Location
         let definitions: [Definition]
     }
 
@@ -50,7 +47,6 @@ enum GraphQLAST {
         let operation: OperationType
         let name: Name?
         let variableDefinitions: [VariableDefinition]?
-        let directives: [Directive]?
         let selectionSet: SelectionSet
     }
 
@@ -61,21 +57,17 @@ enum GraphQLAST {
     }
 
     struct VariableDefinition: Decodable, Sendable {
-        let loc: Location
         let description: StringValue?
         let variable: Variable
         let type: TypeNode
         let defaultValue: ConstValue?
-        let directives: [ConstDirective]?
     }
 
     struct Variable: Decodable {
-        let loc: Location
         let name: Name
     }
 
     struct SelectionSet: Decodable, Sendable {
-        let loc: Location
         let selections: [Selection]
     }
 
@@ -115,10 +107,8 @@ enum GraphQLAST {
     }
 
     struct Field: Decodable {
-        let loc: Location
         let alias: Name?
         let name: Name
-        let arguments: [Argument]?
         let directives: [Directive]?
         let selectionSet: SelectionSet?
 
@@ -127,26 +117,12 @@ enum GraphQLAST {
         }
     }
 
-    struct Argument: Decodable, Sendable {
-        let loc: Location
-        let name: Name
-        let value: Value
-    }
-
-    struct ConstArgument: Decodable {
-        let loc: Location
-        let name: Name
-        let value: ConstValue
-    }
-
     struct FragmentSpread: Decodable {
-        let loc: Location
         let name: Name
         let directives: [Directive]?
     }
 
     struct InlineFragment: Decodable {
-        let loc: Location
         let typeCondition: NamedType?
         let directives: [Directive]?
         let selectionSet: SelectionSet
@@ -157,47 +133,7 @@ enum GraphQLAST {
         let description: StringValue?
         let name: Name
         let typeCondition: NamedType
-        let directives: [Directive]?
         let selectionSet: SelectionSet
-    }
-
-    enum Value: Decodable, Sendable {
-        case variable(Variable)
-        case int(IntValue)
-        case float(FloatValue)
-        case string(StringValue)
-        case boolean(BooleanValue)
-        case null(NullValue)
-        case `enum`(EnumValue)
-        case list(ListValue)
-        case object(ObjectValue)
-
-        private enum Kind: String, Decodable {
-            case Variable
-            case IntValue
-            case FloatValue
-            case StringValue
-            case BooleanValue
-            case NullValue
-            case EnumValue
-            case ListValue
-            case ObjectValue
-        }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.singleValueContainer()
-            switch try decoder.container(keyedBy: KindCodingKey.self).decode(Kind.self, forKey: .kind) {
-            case .Variable: self = try .variable(container.decode(Variable.self))
-            case .IntValue: self = try .int(container.decode(IntValue.self))
-            case .FloatValue: self = try .float(container.decode(FloatValue.self))
-            case .StringValue: self = try .string(container.decode(StringValue.self))
-            case .BooleanValue: self = try .boolean(container.decode(BooleanValue.self))
-            case .NullValue: self = try .null(container.decode(NullValue.self))
-            case .EnumValue: self = try .enum(container.decode(EnumValue.self))
-            case .ListValue: self = try .list(container.decode(ListValue.self))
-            case .ObjectValue: self = try .object(container.decode(ObjectValue.self))
-            }
-        }
     }
 
     enum ConstValue: Decodable, Sendable {
@@ -258,76 +194,42 @@ enum GraphQLAST {
     }
 
     struct IntValue: Decodable {
-        let loc: Location
         let value: String
     }
 
     struct FloatValue: Decodable {
-        let loc: Location
         let value: String
     }
 
     struct StringValue: Decodable {
         let value: String
-        let loc: Location
     }
 
     struct BooleanValue: Decodable {
-        let loc: Location
         let value: Bool
     }
 
-    struct NullValue: Decodable {
-        let loc: Location
-    }
+    struct NullValue: Decodable {}
 
     struct EnumValue: Decodable {
-        let loc: Location
         let value: String
     }
 
-    struct ListValue: Decodable {
-        let loc: Location
-        let values: [Value]
-    }
-
     struct ConstListValue: Decodable {
-        let loc: Location
         let values: [ConstValue]
     }
 
-    struct ObjectValue: Decodable {
-        let loc: Location
-        let fields: [ObjectField]
-    }
-
     struct ConstObjectValue: Decodable {
-        let loc: Location
         let fields: [ConstObjectField]
     }
 
-    struct ObjectField: Decodable {
-        let loc: Location
-        let name: Name
-        let value: Value
-    }
-
     struct ConstObjectField: Decodable {
-        let loc: Location
         let name: Name
         let value: ConstValue
     }
 
     struct Directive: Decodable, Sendable {
-        let loc: Location
         let name: Name
-        let arguments: [Argument]?
-    }
-
-    struct ConstDirective: Decodable {
-        let loc: Location
-        let name: Name
-        let arguments: [ConstArgument]?
     }
 
     indirect enum TypeNode: Decodable, Sendable {
@@ -364,17 +266,14 @@ enum GraphQLAST {
     }
 
     struct NamedType: Decodable {
-        let loc: Location
         let name: Name
     }
 
     struct ListType: Decodable {
-        let loc: Location
         let type: TypeNode
     }
 
     struct NonNullType: Decodable {
-        let loc: Location
         let type: NullableTypeNode
     }
 
