@@ -67,7 +67,10 @@ struct ServerSentEventTests {
             ),
             encoding: .utf8
         )
-        #expect(output.contains("Only use this API with a trusted GraphQL server"))
+        #expect(output.contains("maximumLineByteCount"))
+        #expect(output.contains("requires version 26 or newer"))
+        #expect(output.contains("UTF8Span(validating: buffer.span)"))
+        #expect(!output.contains("String(bytes: buffer, encoding: .utf8)"))
 
         try #"""
         import Dispatch
@@ -87,16 +90,22 @@ struct ServerSentEventTests {
                     client?.urlProtocol(self, didFailWithError: URLError(.badURL))
                     return
                 }
-                let body: String
+                let body: Data
                 switch url.path {
                 case "/standards":
-                    body = "\u{FEFF}event: next\r\ndata: {\"data\":\rdata: {\"updates\":\"first\"}}\n\r\nevent: complete\rdata:\r\r"
+                    body = Data("\u{FEFF}event: next\r\ndata: {\"data\":\rdata: {\"updates\":\"first\"}}\n\r\nevent: complete\rdata:\r\r".utf8)
                 case "/missing-complete":
-                    body = "event: next\ndata: {\"data\":{\"updates\":\"first\"}}\n\n"
+                    body = Data("event: next\ndata: {\"data\":{\"updates\":\"first\"}}\n\n".utf8)
                 case "/oversized":
-                    body = "event: next\ndata: {\"data\":{\"updates\":\"too large\"}}\n\n"
+                    body = Data("event: next\ndata: {\"data\":{\"updates\":\"too large\"}}\n\n".utf8)
+                case "/oversized-line":
+                    body = Data(repeating: 0x61, count: 9)
+                case "/maximum-line":
+                    body = Data(":12345678901234\r\nevent: complete\r\ndata:\r\n\r\n".utf8)
+                case "/invalid-utf8":
+                    body = Data([0x3A, 0xC3, 0x28, 0x0A])
                 case "/overflow":
-                    body = "event: next\ndata: {\"data\":{\"updates\":\"first\"}}\n\nevent: next\ndata: {\"data\":{\"updates\":\"second\"}}\n\nevent: complete\ndata:\n\n"
+                    body = Data("event: next\ndata: {\"data\":{\"updates\":\"first\"}}\n\nevent: next\ndata: {\"data\":{\"updates\":\"second\"}}\n\nevent: complete\ndata:\n\n".utf8)
                 default:
                     client?.urlProtocol(self, didFailWithError: URLError(.unsupportedURL))
                     return
@@ -108,7 +117,7 @@ struct ServerSentEventTests {
                     headerFields: ["Content-Type": "text/event-stream"]
                 )!
                 client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-                client?.urlProtocol(self, didLoad: Data(body.utf8))
+                client?.urlProtocol(self, didLoad: body)
                 client?.urlProtocolDidFinishLoading(self)
             }
 
@@ -175,6 +184,26 @@ struct ServerSentEventTests {
                     throw VerificationError.failed("Event size verification failed: \(error)")
                 }
                 do {
+                    try await harness.verifyLineSizeIsBounded()
+                } catch {
+                    throw VerificationError.failed("Line size verification failed: \(error)")
+                }
+                do {
+                    try await harness.verifyMaximumLineSizeIsAccepted()
+                } catch {
+                    throw VerificationError.failed("Maximum line size verification failed: \(error)")
+                }
+                do {
+                    try await harness.verifyInvalidLineSizeFails()
+                } catch {
+                    throw VerificationError.failed("Invalid line size verification failed: \(error)")
+                }
+                do {
+                    try await harness.verifyInvalidUTF8Fails()
+                } catch {
+                    throw VerificationError.failed("UTF-8 verification failed: \(error)")
+                }
+                do {
                     try await harness.verifyResultBufferIsBounded()
                 } catch {
                     throw VerificationError.failed("Result buffer verification failed: \(error)")
@@ -232,6 +261,61 @@ struct ServerSentEventTests {
                         throw VerificationError.failed("Event limit error contained the wrong limit")
                     }
                 }
+            }
+
+            private func verifyLineSizeIsBounded() async throws {
+                let session = makeSession()
+                defer { session.invalidateAndCancel() }
+                do {
+                    let stream = try await session.subscribe(
+                        try makeRequest(path: "oversized-line"),
+                        maximumLineByteCount: 8
+                    )
+                    for try await _ in stream {}
+                    throw VerificationError.failed("Oversized line succeeded")
+                } catch URLSession.SubscriptionError.lineTooLarge(let maximumByteCount) {
+                    guard maximumByteCount == 8 else {
+                        throw VerificationError.failed("Line limit error contained the wrong limit")
+                    }
+                }
+            }
+
+            private func verifyMaximumLineSizeIsAccepted() async throws {
+                let session = makeSession()
+                defer { session.invalidateAndCancel() }
+                let stream = try await session.subscribe(
+                    try makeRequest(path: "maximum-line"),
+                    maximumLineByteCount: 15
+                )
+                for try await _ in stream {
+                    throw VerificationError.failed("Complete event unexpectedly yielded a result")
+                }
+            }
+
+            private func verifyInvalidLineSizeFails() async throws {
+                let session = makeSession()
+                defer { session.invalidateAndCancel() }
+                do {
+                    _ = try await session.subscribe(
+                        try makeRequest(path: "unused"),
+                        maximumLineByteCount: 0
+                    )
+                    throw VerificationError.failed("Invalid line limit succeeded")
+                } catch URLSession.SubscriptionError.invalidMaximumLineByteCount(let maximumByteCount) {
+                    guard maximumByteCount == 0 else {
+                        throw VerificationError.failed("Invalid line limit error contained the wrong limit")
+                    }
+                }
+            }
+
+            private func verifyInvalidUTF8Fails() async throws {
+                let session = makeSession()
+                defer { session.invalidateAndCancel() }
+                do {
+                    let stream = try await session.subscribe(try makeRequest(path: "invalid-utf8"))
+                    for try await _ in stream {}
+                    throw VerificationError.failed("Invalid UTF-8 succeeded")
+                } catch URLSession.SubscriptionError.invalidUTF8 {}
             }
 
             private func verifyResultBufferIsBounded() async throws {
