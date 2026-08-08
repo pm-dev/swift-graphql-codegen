@@ -39,6 +39,8 @@ jobs:
         with:
           swift-version: "6.3"
 
+      - uses: jdx/mise-action@v3
+
       - uses: actions/cache@v4
         with:
           path: |
@@ -50,6 +52,9 @@ jobs:
 
       - name: Build
         run: swift build --build-tests -v
+
+      - name: Periphery
+        run: mise run periphery -- --format github-actions --relative-results --color never
 
       - name: Lint
         run: |
