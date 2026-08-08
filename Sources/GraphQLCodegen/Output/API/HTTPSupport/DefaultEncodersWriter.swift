@@ -77,12 +77,20 @@ struct DefaultEncodersWriter: APIOutput {
                 )
                 let encoder = JSONEncoder()
                 return [
-                    URLQueryItem(name: "operationName", value: body.operationName),
+                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
                     body.query.map { URLQueryItem(name: "query", value: $0) },
-                    URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
-                    URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
-                    })
+                    try body.variables.map { variables in
+                        URLQueryItem(
+                            name: "variables",
+                            value: String(decoding: try encoder.encode(variables), as: UTF8.self)
+                        )
+                    },
+                    try body.extensions.map { extensions in
+                        URLQueryItem(
+                            name: "extensions",
+                            value: String(decoding: try encoder.encode(extensions), as: UTF8.self)
+                        )
+                    }
                 ].compactMap { $0 }
             }
         }
@@ -104,12 +112,20 @@ struct DefaultEncodersWriter: APIOutput {
                 let body = Body(operation: query)
                 let encoder = JSONEncoder()
                 return [
-                    URLQueryItem(name: "operationName", value: body.operationName),
-                    URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
-                    URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
-                    })
-                ]
+                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
+                    try body.variables.map { variables in
+                        URLQueryItem(
+                            name: "variables",
+                            value: String(decoding: try encoder.encode(variables), as: UTF8.self)
+                        )
+                    },
+                    try body.extensions.map { extensions in
+                        URLQueryItem(
+                            name: "extensions",
+                            value: String(decoding: try encoder.encode(extensions), as: UTF8.self)
+                        )
+                    }
+                ].compactMap { $0 }
             }\(subscriptionSupportWithRegisteredPersistedOperations())
         }
 
@@ -136,12 +152,20 @@ struct DefaultEncodersWriter: APIOutput {
                 )
                 let encoder = JSONEncoder()
                 return [
-                    URLQueryItem(name: "operationName", value: body.operationName),
+                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
                     body.query.map { URLQueryItem(name: "query", value: $0) },
-                    URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
-                    URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
-                    })
+                    try body.variables.map { variables in
+                        URLQueryItem(
+                            name: "variables",
+                            value: String(decoding: try encoder.encode(variables), as: UTF8.self)
+                        )
+                    },
+                    try body.extensions.map { extensions in
+                        URLQueryItem(
+                            name: "extensions",
+                            value: String(decoding: try encoder.encode(extensions), as: UTF8.self)
+                        )
+                    }
                 ].compactMap { $0 }
             }\(subscriptionSupportWithNoPersistedOperations())
         }
@@ -221,7 +245,7 @@ struct DefaultEncodersWriter: APIOutput {
                 }
                 self.operationName = Operation.operationName
                 self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
-                self.variables = AnyEncodable(operation.variables)
+                self.variables = operation.requestVariables
                 self.extensions = extensions
             }
         }
@@ -255,7 +279,7 @@ struct DefaultEncodersWriter: APIOutput {
                     "sha256Hash": AnyEncodable(Operation.hash)
                 ])
                 self.operationName = Operation.operationName
-                self.variables = AnyEncodable(operation.variables)
+                self.variables = operation.requestVariables
                 self.extensions = extensions
             }
         }
@@ -295,7 +319,7 @@ struct DefaultEncodersWriter: APIOutput {
             ) {
                 self.operationName = Operation.operationName
                 self.query = minifyDocument ? Operation.minifiedDocument : Operation.document
-                self.variables = AnyEncodable(operation.variables)
+                self.variables = operation.requestVariables
                 self.extensions = operation.extensions
             }
 
@@ -312,12 +336,20 @@ struct DefaultEncodersWriter: APIOutput {
                 let body = Body(operation: subscription)
                 let encoder = JSONEncoder()
                 return [
-                    URLQueryItem(name: "operationName", value: body.operationName),
-                    URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
-                    URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
-                    })
-                ]
+                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
+                    try body.variables.map { variables in
+                        URLQueryItem(
+                            name: "variables",
+                            value: String(decoding: try encoder.encode(variables), as: UTF8.self)
+                        )
+                    },
+                    try body.extensions.map { extensions in
+                        URLQueryItem(
+                            name: "extensions",
+                            value: String(decoding: try encoder.encode(extensions), as: UTF8.self)
+                        )
+                    }
+                ].compactMap { $0 }
             }
         """
     }
@@ -337,12 +369,20 @@ struct DefaultEncodersWriter: APIOutput {
                 )
                 let encoder = JSONEncoder()
                 return [
-                    URLQueryItem(name: "operationName", value: body.operationName),
+                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
                     body.query.map { URLQueryItem(name: "query", value: $0) },
-                    URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
-                    URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                        String(decoding: try encoder.encode(extensions), as: UTF8.self)
-                    })
+                    try body.variables.map { variables in
+                        URLQueryItem(
+                            name: "variables",
+                            value: String(decoding: try encoder.encode(variables), as: UTF8.self)
+                        )
+                    },
+                    try body.extensions.map { extensions in
+                        URLQueryItem(
+                            name: "extensions",
+                            value: String(decoding: try encoder.encode(extensions), as: UTF8.self)
+                        )
+                    }
                 ].compactMap { $0 }
             }
         """

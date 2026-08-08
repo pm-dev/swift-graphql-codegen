@@ -44,11 +44,26 @@ struct GraphQLOperationWriter: APIOutput {
             /// https://spec.graphql.org/October2021/#sec-Language.Variables
             var variables: Variables { get }
 
+            /// The operation's variables erased for request encoding.
+            /// Variable-free operations return `nil` so request encoders omit them.
+            var requestVariables: AnyEncodable? { get }
+
             /// Metadata associated with the operation to include in the request.
             var extensions: [String: AnyEncodable]? { get }
 
             associatedtype Variables: Encodable, Sendable
             associatedtype Data: Decodable, Sendable
+        }
+
+        extension GraphQLOperation {
+            \(accessLevel)var requestVariables: AnyEncodable? {
+                let requestVariables: AnyEncodable = AnyEncodable(variables)
+                return requestVariables
+            }
+        }
+
+        extension GraphQLOperation where Variables == Never? {
+            \(accessLevel)var requestVariables: AnyEncodable? { nil }
         }
 
         /// A `GraphQLSingleResponseOperation` produces one response and can be executed with `URLSession.request`.
