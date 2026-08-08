@@ -12,7 +12,7 @@ struct ServerSentEventTests {
         let stream = try await session.subscribe(try makeRequest(path: "standards"))
         var values: [GraphQLEnum<Episode>] = []
         for try await response in stream {
-            values.append(response.data.favoriteEpisodeChanged)
+            values.append(try #require(response.data).favoriteEpisodeChanged)
         }
 
         #expect(values == [.known(.jedi)])
@@ -154,10 +154,10 @@ struct ServerSentEventTests {
                 if text.contains("EMPIRE") {
                     secondResultDecoded.signal()
                 }
-                return .success(
-                    GraphQLResponse<OverflowProbeData>.Success(
+                return .executionResult(
+                    GraphQLResponse<OverflowProbeData>.ExecutionResult(
                         data: OverflowProbeData(),
-                        fieldErrors: nil,
+                        errors: nil,
                         extensions: nil
                     )
                 )

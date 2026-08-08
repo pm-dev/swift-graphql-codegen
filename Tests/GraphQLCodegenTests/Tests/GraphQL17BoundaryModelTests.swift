@@ -4,6 +4,11 @@ import Testing
 
 struct GraphQL17BoundaryModelTests {
     @Test
+    func mapsBuiltInIDToTheCustomizableGeneratedAlias() {
+        #expect(SourceTypeName(nativeGraphQLScalarName: "ID")?.formatted() == "ID")
+    }
+
+    @Test
     func decodesExecutableDescriptions() throws {
         let document = try DocumentASTParser(
             graphQLJS: GraphQLJS(),

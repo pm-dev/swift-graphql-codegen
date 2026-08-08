@@ -17,8 +17,8 @@ struct __Schema: Decodable {
             let name: String
             let specifiedByURL: String?
 
-            var isNativeSwiftType: Bool {
-                SourceTypeName(nativeGraphQLScalarName: name) != nil
+            var requiresGeneratedTypeDefinition: Bool {
+                name == "ID" || SourceTypeName(nativeGraphQLScalarName: name) == nil
             }
 
             var swiftName: String {
