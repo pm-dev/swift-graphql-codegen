@@ -28,11 +28,11 @@ extension Configuration.Output.Schema {
             )
         }
 
-        public let directoryName: String?
-        public let header: String?
-        public let importedModules: [String]
-        public let conformances: [String]
-        public let caseConversion: CaseConversion?
+        public var directoryName: String?
+        public var header: String?
+        public var importedModules: [String]
+        public var conformances: [String]
+        public var caseConversion: CaseConversion?
     }
 }
 
@@ -47,8 +47,8 @@ extension Configuration.Output.Schema.Enums {
             case macro // THIS_IS_MACRO_CASE
         }
 
-        public let from: Case
-        public let to: Case
+        public var from: Case
+        public var to: Case
         public static func conversion(from: Case, to: Case) -> CaseConversion {
             CaseConversion(
                 from: from,

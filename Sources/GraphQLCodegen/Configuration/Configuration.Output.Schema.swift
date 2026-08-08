@@ -30,10 +30,10 @@ extension Configuration.Output {
             )
         }
 
-        public let directory: URL
-        public let scalars: Scalars
-        public let enums: Enums
-        public let inputObjects: InputObjects
-        public let accessLevel: AccessLevel
+        public var directory: URL
+        public var scalars: Scalars
+        public var enums: Enums
+        public var inputObjects: InputObjects
+        public var accessLevel: AccessLevel
     }
 }

@@ -20,7 +20,7 @@ extension Configuration.Output.Documents.Operations {
             )
         }
 
-        public let immutable: Bool
-        public let conformances: [String]
+        public var immutable: Bool
+        public var conformances: [String]
     }
 }

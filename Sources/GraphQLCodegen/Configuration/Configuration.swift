@@ -18,19 +18,19 @@ public struct Configuration: Sendable {
         input: Input,
         validation: Bool = true,
         output: Output
-    ) throws -> Configuration {
-        try Configuration(
+    ) -> Configuration {
+        Configuration(
             input: input,
             validation: validation,
             output: output
-        ).checkConfiguration()
+        )
     }
 
-    public let input: Input
-    public let validation: Bool
-    public let output: Output
+    public var input: Input
+    public var validation: Bool
+    public var output: Output
 
-    private func checkConfiguration() throws -> Self {
+    func validate() throws {
         if case .spaces(let count) = output.indentation, count < 0 {
             throw Codegen.Error(description: "The indentation space count must not be negative.")
         }
@@ -61,7 +61,6 @@ public struct Configuration: Sendable {
             )
         case .introspectionEndpoint: break
         }
-        return self
     }
 
     private func verifyLocalURL(

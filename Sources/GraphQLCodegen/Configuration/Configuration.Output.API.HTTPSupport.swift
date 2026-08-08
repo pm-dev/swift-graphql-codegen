@@ -29,7 +29,7 @@ extension Configuration.Output.API {
             )
         }
 
-        public let enableGETQueries: Bool
-        public let subscriptionSupport: Bool
+        public var enableGETQueries: Bool
+        public var subscriptionSupport: Bool
     }
 }

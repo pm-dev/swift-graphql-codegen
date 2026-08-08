@@ -26,10 +26,10 @@ extension Configuration {
             )
         }
 
-        public let indentation: Indentation
-        public let schema: Schema
-        public let documents: Documents
-        public let api: API
+        public var indentation: Indentation
+        public var schema: Schema
+        public var documents: Documents
+        public var api: API
     }
 }
 
