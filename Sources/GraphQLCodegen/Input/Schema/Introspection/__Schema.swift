@@ -2,7 +2,7 @@
 /// Mirrors the schema introspection response produced by `IntrospectionQuery`.
 ///
 /// Keep this boundary model aligned with:
-/// https://spec.graphql.org/October2021/#sec-Schema-Introspection.Schema-Introspection-Schema
+/// https://spec.graphql.org/September2025/#sec-Schema-Introspection.Schema-Introspection-Schema
 struct __Schema: Decodable {
     enum __NamedType: Decodable {
         case SCALAR(Scalar)
@@ -43,7 +43,7 @@ struct __Schema: Decodable {
         struct Union: Decodable {
             let description: String?
             let name: String
-            let possibleTypes: [__TypeRef.Object] // https://spec.graphql.org/October2021/#sec-Unions.Type-Validation
+            let possibleTypes: [__TypeRef.Object] // https://spec.graphql.org/September2025/#sec-Unions.Type-Validation
         }
 
         struct Enum: Decodable {
@@ -62,6 +62,7 @@ struct __Schema: Decodable {
             let description: String?
             let name: String
             let inputFields: [__InputValue]
+            let isOneOf: Bool
         }
 
         private enum CodingKeys: CodingKey {
