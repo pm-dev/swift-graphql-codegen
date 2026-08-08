@@ -1,7 +1,6 @@
 import Foundation
 
 struct Documents {
-    let previouslyGenerated: [URL]
     let documents: [Document]
     let fragmentLookup: [String: Document.Fragment]
 

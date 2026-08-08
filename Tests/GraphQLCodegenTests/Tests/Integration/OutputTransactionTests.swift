@@ -4,6 +4,40 @@ import Testing
 
 struct OutputTransactionTests {
     @Test
+    func removesObsoleteDocumentsFromSeparateOutputDirectory() async throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+
+        let configuration = try configuration(for: fixture)
+        try await Codegen(configuration).run()
+
+        let documentsDirectory = fixture.output.appending(
+            path: "Operations",
+            directoryHint: .isDirectory
+        )
+        let generatedDocument = documentsDirectory.appending(
+            path: "Value.graphql.swift",
+            directoryHint: .notDirectory
+        )
+        let unrelatedFile = documentsDirectory.appending(
+            path: "README.md",
+            directoryHint: .notDirectory
+        )
+        let unrelatedContents = "Keep this file.\n"
+        try Data(unrelatedContents.utf8).write(to: unrelatedFile)
+
+        #expect(FileManager.default.fileExists(atPath: generatedDocument.path(percentEncoded: false)))
+
+        try FileManager.default.removeItem(
+            at: fixture.operations.appending(path: "Value.graphql", directoryHint: .notDirectory)
+        )
+        try await Codegen(configuration).run()
+
+        #expect(!FileManager.default.fileExists(atPath: generatedDocument.path(percentEncoded: false)))
+        #expect(try String(contentsOf: unrelatedFile, encoding: .utf8) == unrelatedContents)
+    }
+
+    @Test
     func preservesCustomScalarSource() async throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }

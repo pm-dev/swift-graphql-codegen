@@ -2,6 +2,10 @@ import Foundation
 import OrderedCollections
 
 struct DocumentsWriter {
+    private enum GeneratedFileFinderError: Error {
+        case failedToEnumerateDirectory(URL)
+    }
+
     enum DefinitionPlan {
         case fragment(
             ResolvedFragment,
@@ -24,8 +28,6 @@ struct DocumentsWriter {
 
     let configuration: Configuration
     let documentPlans: [DocumentPlan]
-
-    private let previouslyGenerated: [URL]
 
     init(configuration: Configuration, resolvedDocuments: ResolvedDocuments) throws {
         var documentPlans: [DocumentPlan] = []
@@ -67,7 +69,6 @@ struct DocumentsWriter {
         }
         self.configuration = configuration
         self.documentPlans = documentPlans
-        self.previouslyGenerated = resolvedDocuments.previouslyGenerated
     }
 
     var topLevelDeclarations: [GeneratedTypeDeclaration] {
@@ -76,6 +77,7 @@ struct DocumentsWriter {
 
     func write(using fileOutput: FileOutput) throws {
         try validateOutputURLs()
+        let previouslyGenerated = try previouslyGeneratedFileURLs()
         switch configuration.output.documents.directory {
         case .definition: break
         case .directory(let url):
@@ -121,8 +123,44 @@ struct DocumentsWriter {
             }
         }
         let generated = documentPlans.map { $0.document.outputURL(configuration) }
-        let removed = Set(previouslyGenerated).subtracting(generated)
+        let removed = previouslyGenerated.subtracting(generated)
         fileOutput.remove(at: removed)
+    }
+
+    private func previouslyGeneratedFileURLs() throws -> Set<URL> {
+        let directories = switch configuration.output.documents.directory {
+        case .definition:
+            configuration.input.documentDirectories
+        case .directory(let directory):
+            [directory]
+        }
+        let generatedFileURLs = try directories
+            .sorted { $0.path < $1.path }
+            .map(generatedFileURLs(in:))
+            .flatMap { $0 }
+        return Set(generatedFileURLs)
+    }
+
+    private func generatedFileURLs(in directory: URL) throws -> [URL] {
+        guard FileManager.default.fileExists(atPath: directory.path(percentEncoded: false)) else {
+            return []
+        }
+        let resourceKeys: Set<URLResourceKey> = [.isRegularFileKey]
+        guard let directoryEnumerator = FileManager.default.enumerator(
+            at: directory,
+            includingPropertiesForKeys: Array(resourceKeys),
+            options: .skipsHiddenFiles
+        )
+        else {
+            throw GeneratedFileFinderError.failedToEnumerateDirectory(directory)
+        }
+        var generatedFileURLs: [URL] = []
+        for case let url as URL in directoryEnumerator
+            where try url.resourceValues(forKeys: resourceKeys).isRegularFile == true &&
+            url.lastPathComponent.hasSuffix(".graphql.swift") {
+            generatedFileURLs.append(url)
+        }
+        return generatedFileURLs
     }
 
     private func validateOutputURLs() throws {
