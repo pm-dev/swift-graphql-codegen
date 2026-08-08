@@ -110,6 +110,62 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func requiresTypenameForNamedFragmentSpreadInsideConditionalType() async {
+        await expectCodegenError(containing: "'__typename' needed in selection set under the 'hero' field") {
+            try await runCodegen(
+                document: """
+                fragment CharacterFields on Character { name }
+
+                query Hero {
+                  hero {
+                    ... on Human {
+                      ...CharacterFields
+                    }
+                  }
+                }
+                """,
+                schema: """
+                type Query { hero: Character! }
+                interface Character { name: String! }
+                type Human implements Character { name: String! }
+                type Droid implements Character { name: String! }
+                """
+            )
+        }
+    }
+
+    @Test
+    func preservesConditionalityForNamedFragmentSpread() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment CharacterFields on Character { name }
+
+            query Hero {
+              hero {
+                __typename
+                ... on Human {
+                  ...CharacterFields
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { name: String! }
+            type Human implements Character { name: String! }
+            type Droid implements Character { name: String! }
+            """
+        )
+
+        #expect(output.contains("let __CharacterFields: CharacterFields?"))
+        #expect(
+            output.contains(
+                "__CharacterFields = __typename == \"Human\" ? try CharacterFields(from: decoder) : nil"
+            )
+        )
+    }
+
+    @Test
     func rejectsAliasesThatProduceConflictingNestedTypeNames() async {
         await expectCodegenError(containing: "conflicting Swift nested type names") {
             try await runCodegen(
