@@ -37,7 +37,7 @@ public struct Codegen: Sendable {
         ).validate()
 
         // Validation
-        if case .enabled = loadedSchema.validation {
+        if configuration.validation {
             try DocumentsValidator(
                 schemaJSON: loadedSchema.schemaJSON,
                 documents: documents,

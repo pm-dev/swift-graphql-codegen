@@ -1,20 +1,13 @@
 import Foundation
 
 struct LoadedSchema {
-    enum Validation {
-        case disabled
-        case enabled
-    }
-
     let schema: Schema
     let schemaJSON: String
-    let validation: Validation
 }
 
 private struct LoadedIntrospection {
     let schema: __Schema
     let schemaJSON: String
-    let validation: LoadedSchema.Validation
 }
 
 // Type names are guaranteed to be unique
@@ -26,38 +19,15 @@ struct TypeASTCache {
     var unions: [String: __Schema.__NamedType.Union] = [:]
     var enums: [String: __Schema.__NamedType.Enum] = [:]
     var inputObjects: [String: __Schema.__NamedType.InputObject] = [:]
-    init(_ schema: __Schema, deprecationPolicy: Configuration.Input.DeprecationPolicy) {
+    init(_ schema: __Schema) {
         for type in schema.types {
             switch type {
             case .SCALAR(let scalar): scalars[scalar.name] = scalar
-            case .OBJECT(let object):
-                objects[object.name] = __Schema.__NamedType.Object(
-                    description: object.description,
-                    name: object.name,
-                    fields: object.fields.compactMap { $0.applying(deprecationPolicy) },
-                    interfaces: object.interfaces
-                )
-            case .INTERFACE(let interface):
-                interfaces[interface.name] = __Schema.__NamedType.Interface(
-                    description: interface.description,
-                    name: interface.name,
-                    fields: interface.fields.compactMap { $0.applying(deprecationPolicy) },
-                    interfaces: interface.interfaces
-                )
+            case .OBJECT(let object): objects[object.name] = object
+            case .INTERFACE(let interface): interfaces[interface.name] = interface
             case .UNION(let union): unions[union.name] = union
-            case .ENUM(let `enum`):
-                enums[`enum`.name] = __Schema.__NamedType.Enum(
-                    description: `enum`.description,
-                    name: `enum`.name,
-                    enumValues: `enum`.enumValues.compactMap { $0.applying(deprecationPolicy) }
-                )
-            case .INPUT_OBJECT(let inputObject):
-                inputObjects[inputObject.name] = __Schema.__NamedType.InputObject(
-                    description: inputObject.description,
-                    name: inputObject.name,
-                    inputFields: inputObject.inputFields.compactMap { $0.applying(deprecationPolicy) },
-                    isOneOf: inputObject.isOneOf
-                )
+            case .ENUM(let `enum`): enums[`enum`.name] = `enum`
+            case .INPUT_OBJECT(let inputObject): inputObjects[inputObject.name] = inputObject
             }
         }
     }
@@ -118,20 +88,15 @@ struct SchemaLoader {
 
     func load() async throws -> LoadedSchema {
         let introspection = try await loadIntrospection()
+        let projectedSchema = introspection.schema.applying(configuration.input.deprecationPolicy)
         return LoadedSchema(
             schema: Schema(
-                queryTypeRef: introspection.schema.queryType,
-                mutationTypeRef: introspection.schema.mutationType,
-                subscriptionTypeRef: introspection.schema.subscriptionType,
-                typeCache: TypeCache(
-                    TypeASTCache(
-                        introspection.schema,
-                        deprecationPolicy: configuration.input.deprecationPolicy
-                    )
-                )
+                queryTypeRef: projectedSchema.queryType,
+                mutationTypeRef: projectedSchema.mutationType,
+                subscriptionTypeRef: projectedSchema.subscriptionType,
+                typeCache: TypeCache(TypeASTCache(projectedSchema))
             ),
-            schemaJSON: introspection.schemaJSON,
-            validation: introspection.validation
+            schemaJSON: introspection.schemaJSON
         )
     }
 
@@ -169,8 +134,7 @@ struct SchemaLoader {
         let schemaJSON = try JSONSerialization.data(withJSONObject: schemaObject)
         return LoadedIntrospection(
             schema: __schema,
-            schemaJSON: try decodeUTF8(schemaJSON, source: endpoint),
-            validation: configuration.validation ? .enabled : .disabled
+            schemaJSON: try decodeUTF8(schemaJSON, source: endpoint)
         )
     }
 
@@ -179,8 +143,7 @@ struct SchemaLoader {
         let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: data).__schema
         return LoadedIntrospection(
             schema: __schema,
-            schemaJSON: try decodeUTF8(data, source: schemaFile),
-            validation: configuration.validation ? .enabled : .disabled
+            schemaJSON: try decodeUTF8(data, source: schemaFile)
         )
     }
 
@@ -194,8 +157,7 @@ struct SchemaLoader {
         let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: jsonSchema.data).__schema
         return LoadedIntrospection(
             schema: __schema,
-            schemaJSON: jsonSchema.text,
-            validation: configuration.validation ? .enabled : .disabled
+            schemaJSON: jsonSchema.text
         )
     }
 
@@ -204,40 +166,5 @@ struct SchemaLoader {
             throw Codegen.Error(description: "Schema source is not valid UTF-8: \(source)")
         }
         return string
-    }
-}
-
-extension __Schema.__Field {
-    func applying(_ policy: Configuration.Input.DeprecationPolicy) -> Self? {
-        switch policy {
-        case .include: return self
-        case .exclude:
-            guard deprecation == nil else { return nil }
-            return Self(
-                name: name,
-                description: description,
-                args: args.filter { $0.deprecation == nil },
-                type: type,
-                deprecation: nil
-            )
-        }
-    }
-}
-
-extension __Schema.__EnumValue {
-    func applying(_ policy: Configuration.Input.DeprecationPolicy) -> Self? {
-        switch policy {
-        case .include: self
-        case .exclude: deprecation == nil ? self : nil
-        }
-    }
-}
-
-extension __Schema.__InputValue {
-    func applying(_ policy: Configuration.Input.DeprecationPolicy) -> Self? {
-        switch policy {
-        case .include: self
-        case .exclude: deprecation == nil ? self : nil
-        }
     }
 }
