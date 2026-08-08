@@ -8,12 +8,9 @@ enum ResolvedSelection {
 
     func merging(with other: ResolvedSelection) throws -> ResolvedSelection {
         switch self {
-        case .fragmentSpread(let name, let checkTypename):
+        case .fragmentSpread:
             switch other {
-            case .fragmentSpread(let otherName, let otherCheckTypename):
-                assert(name == otherName)
-                assert(checkTypename == otherCheckTypename)
-                return self
+            case .fragmentSpread: return self
             case .field: throw MergeError.incompatibleSelectionTypes(self, other)
             }
         case .field(let field, let conditional):

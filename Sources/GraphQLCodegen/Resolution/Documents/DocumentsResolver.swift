@@ -140,9 +140,7 @@ struct DocumentsResolver {
                 switch selection {
                 case .fragmentSpread(let name, _):
                     guard usage.fulfilledFragments.insert(name).inserted else { continue }
-                    guard let resolvedFragment = resolvedFragments[name] else {
-                        throw Codegen.Error(description: "Resolved fragment is missing: \(name)")
-                    }
+                    let resolvedFragment = resolvedFragments[name]!
                     selectionSets.append(resolvedFragment.resolvedSelectionSet)
                 case .field(let field, _):
                     var fieldType: ResolvedFieldType? = field.type
