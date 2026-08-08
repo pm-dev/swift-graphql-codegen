@@ -1,18 +1,37 @@
 import Foundation
 
 struct DocumentScanner {
+    struct DocumentFile {
+        let relativePath: String
+        let url: URL
+    }
+
     enum DocumentFileFinderError: Error {
         case failedToEnumerateDirectory(URL)
     }
 
     let directories: [URL]
 
-    func scan() throws -> [URL] {
-        let documentFileURLs = try directories
-            .sorted { $0.path < $1.path }
-            .map(scanDirectory)
-            .flatMap { $0 }
-        return Set(documentFileURLs).sorted { $0.path < $1.path }
+    func scan() throws -> [DocumentFile] {
+        var documentByURL: [URL: (document: DocumentFile, sourceRootDepth: Int)] = [:]
+        for directory in directories.sorted(by: { $0.path < $1.path }) {
+            let sourceRoot = directory.standardizedFileURL.pathComponents
+            for url in try scanDirectory(directory) {
+                let standardizedURL = url.standardizedFileURL
+                let document = DocumentFile(
+                    relativePath: standardizedURL.pathComponents
+                        .dropFirst(sourceRoot.count)
+                        .joined(separator: "/"),
+                    url: url
+                )
+                if documentByURL[standardizedURL]?.sourceRootDepth ?? -1 < sourceRoot.count {
+                    documentByURL[standardizedURL] = (document, sourceRoot.count)
+                }
+            }
+        }
+        return documentByURL
+            .sorted { $0.key.path < $1.key.path }
+            .map(\.value.document)
     }
 
     private func scanDirectory(_ directory: URL) throws -> [URL] {
