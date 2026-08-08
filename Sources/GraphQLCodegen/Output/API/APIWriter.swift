@@ -24,16 +24,20 @@ struct APIWriter {
             JSONValueWriter(configuration: configuration),
         ]
         if configuration.output.api.HTTPSupport != nil {
+            let httpGenerationPlan = HTTPGenerationPlan(
+                configuration: configuration,
+                hasSubscription: hasSubscription
+            )
             let httpOutputs: [any APIOutput] = [
-                DefaultEncodersWriter(hasSubscription: hasSubscription, configuration: configuration),
+                DefaultEncodersWriter(plan: httpGenerationPlan, configuration: configuration),
                 GraphQLOperationWriter(
                     configuration: configuration,
                     hasMutation: hasMutation,
                     hasSubscription: hasSubscription
                 ),
-                EncodersWriter(hasSubscription: hasSubscription, configuration: configuration),
+                EncodersWriter(plan: httpGenerationPlan, configuration: configuration),
                 URLSessionWriter(hasSubscription: hasSubscription, configuration: configuration),
-                GraphQLRequestWriter(hasSubscription: hasSubscription, configuration: configuration),
+                GraphQLRequestWriter(plan: httpGenerationPlan, configuration: configuration),
             ]
             outputs.append(contentsOf: httpOutputs)
         }
