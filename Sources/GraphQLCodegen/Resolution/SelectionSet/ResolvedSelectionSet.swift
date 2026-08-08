@@ -3,14 +3,18 @@ import OrderedCollections
 typealias ResolvedSelectionSet = OrderedDictionary<String, ResolvedSelection>
 
 enum ResolvedSelection {
-    case fragmentSpread(String, checkTypename: String?)
+    case fragmentSpread(String, checkTypenames: Set<String>?)
     case field(ResolvedField, conditional: Bool)
 
     func merging(with other: ResolvedSelection) throws -> ResolvedSelection {
         switch self {
-        case .fragmentSpread:
+        case .fragmentSpread(let name, let checkTypenames):
             switch other {
-            case .fragmentSpread: return self
+            case .fragmentSpread(_, let otherCheckTypenames):
+                guard let checkTypenames, let otherCheckTypenames else {
+                    return .fragmentSpread(name, checkTypenames: nil)
+                }
+                return .fragmentSpread(name, checkTypenames: checkTypenames.union(otherCheckTypenames))
             case .field: throw MergeError.incompatibleSelectionTypes(self, other)
             }
         case .field(let field, let conditional):

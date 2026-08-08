@@ -35,7 +35,11 @@ jobs:
       - name: Verify GraphQL JavaScript bundle
         run: |
           ./Scripts/update-graphql-bundle
-          git diff --exit-code -- Sources/GraphQLCodegen/Resources/graphql.bundle.js
+          if ! git diff --quiet -- Sources/GraphQLCodegen/Resources/graphql.bundle.js; then
+            echo "::error file=Sources/GraphQLCodegen/Resources/graphql.bundle.js::GraphQL JavaScript bundle is out of date. Run ./Scripts/update-graphql-bundle and commit the regenerated bundle."
+            git diff --stat -- Sources/GraphQLCodegen/Resources/graphql.bundle.js
+            exit 1
+          fi
 
       - uses: jdx/mise-action@v4
 

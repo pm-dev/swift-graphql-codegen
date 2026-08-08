@@ -1,8 +1,5 @@
 retain_public: true
 report_exclude:
-  - "Sources/GraphQLCodegen/Input/Documents/AST/GraphQLAST.swift"
-  - "Sources/GraphQLCodegen/Input/Schema/Introspection/__Schema.swift"
-  - "Sources/GraphQLCodegen/Output/PersistedOperations/PersistedOperationManifest.swift"
   - "Tests/GraphQLCodegenTests/Fixtures/Defaults/Generated/**"
   - "Tests/GraphQLCodegenTests/GeneratedAPI/**"
 exclude_targets:

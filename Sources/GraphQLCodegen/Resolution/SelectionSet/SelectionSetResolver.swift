@@ -1,6 +1,19 @@
 import OrderedCollections
 
 struct SelectionSetResolver {
+    private enum TypeCondition {
+        case abstract
+        case always
+        case typename(String)
+
+        var isConditional: Bool {
+            switch self {
+            case .abstract, .typename: true
+            case .always: false
+            }
+        }
+    }
+
     let onType: Schema.SelectionSet
     let selectionSet: GraphQLAST.SelectionSet
     let schema: Schema
@@ -12,7 +25,7 @@ struct SelectionSetResolver {
         try collect(
             selectionSet: selectionSet,
             onType: onType,
-            inConditionalTypeCondition: false,
+            typeCondition: .always,
             inOptionalDirective: false
         )
     }
@@ -20,7 +33,7 @@ struct SelectionSetResolver {
     private func collect(
         selectionSet: GraphQLAST.SelectionSet,
         onType: Schema.SelectionSet,
-        inConditionalTypeCondition: Bool,
+        typeCondition: TypeCondition,
         inOptionalDirective: Bool
     ) throws -> ResolvedSelectionSet {
         var resolvedSelectionSet = ResolvedSelectionSet()
@@ -37,7 +50,7 @@ struct SelectionSetResolver {
                         schema: schema,
                         documents: documents
                     ).resolve()
-                let conditional = inConditionalTypeCondition ||
+                let conditional = typeCondition.isConditional ||
                     inOptionalDirective ||
                     selection.hasOptionalDirective
                 try resolvedSelectionSet.addSelection(
@@ -62,45 +75,64 @@ struct SelectionSetResolver {
                 }
                 let fragment = try documents.fragment(fragmentName)
                 let fragmentType = try schema.fragmentType(fragment.ast)
-                if schema.isFragment(fragmentType, alwaysFulfilledBy: self.onType) {
+                let fragmentTypeCondition = nestedTypeCondition(
+                    typeCondition,
+                    fragmentType: fragmentType,
+                    onType: onType
+                )
+                switch fragmentTypeCondition {
+                case .always:
                     try resolvedSelectionSet.addSelection(
-                        .fragmentSpread(fragmentName, checkTypename: nil),
+                        .fragmentSpread(fragmentName, checkTypenames: nil),
                         responseKey: "__" + fragmentName
                     )
-                } else {
-                    switch fragmentType {
-                    case .OBJECT(let object):
-                        try resolvedSelectionSet.addSelection(
-                            .fragmentSpread(fragmentName, checkTypename: object.ast.name),
-                            responseKey: "__" + fragmentName
-                        )
-                    case .INTERFACE, .UNION:
-                        // Because we can't verify whether these fragments are fulfilled, we'll
-                        // roll their fields up to the response type, rather than using the fragment type.
-                        // https://github.com/graphql/graphql-spec/pull/879
-                        let fragmentGroupedSelections = try collect(
-                            selectionSet: fragment.ast.selectionSet,
-                            onType: fragmentType,
-                            inConditionalTypeCondition: inConditionalTypeCondition ||
-                                !schema.isFragment(fragmentType, alwaysFulfilledBy: onType),
-                            inOptionalDirective: inOptionalDirective || selection.hasOptionalDirective
-                        )
-                        try resolvedSelectionSet.merge(fragmentGroupedSelections) { try $0.merging(with: $1) }
-                    }
+                case .typename(let typename):
+                    try resolvedSelectionSet.addSelection(
+                        .fragmentSpread(fragmentName, checkTypenames: [typename]),
+                        responseKey: "__" + fragmentName
+                    )
+                case .abstract:
+                    // Because we can't verify whether these fragments are fulfilled, we'll
+                    // roll their fields up to the response type, rather than using the fragment type.
+                    // https://github.com/graphql/graphql-spec/pull/879
+                    let fragmentGroupedSelections = try collect(
+                        selectionSet: fragment.ast.selectionSet,
+                        onType: fragmentType,
+                        typeCondition: fragmentTypeCondition,
+                        inOptionalDirective: inOptionalDirective || selection.hasOptionalDirective
+                    )
+                    try resolvedSelectionSet.merge(fragmentGroupedSelections) { try $0.merging(with: $1) }
                 }
             case .inlineFragment(let inlineFragment):
                 let fragmentType = try schema.fragmentType(inlineFragment) ?? onType
                 let fragmentGroupedSelections = try collect(
                     selectionSet: inlineFragment.selectionSet,
                     onType: fragmentType,
-                    inConditionalTypeCondition: inConditionalTypeCondition ||
-                        !schema.isFragment(fragmentType, alwaysFulfilledBy: onType),
+                    typeCondition: nestedTypeCondition(
+                        typeCondition,
+                        fragmentType: fragmentType,
+                        onType: onType
+                    ),
                     inOptionalDirective: inOptionalDirective || selection.hasOptionalDirective
                 )
                 try resolvedSelectionSet.merge(fragmentGroupedSelections) { try $0.merging(with: $1) }
             }
         }
         return resolvedSelectionSet
+    }
+
+    private func nestedTypeCondition(
+        _ inherited: TypeCondition,
+        fragmentType: Schema.SelectionSet,
+        onType: Schema.SelectionSet
+    ) -> TypeCondition {
+        guard !schema.isFragment(fragmentType, alwaysFulfilledBy: onType) else {
+            return inherited
+        }
+        return switch fragmentType {
+        case .OBJECT(let object): .typename(object.ast.name)
+        case .INTERFACE, .UNION: .abstract
+        }
     }
 }
 

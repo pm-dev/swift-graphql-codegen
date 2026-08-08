@@ -299,6 +299,7 @@ struct __Schema: Decodable {
         case ENUM_VALUE
         case INPUT_OBJECT
         case INPUT_FIELD_DEFINITION
+        case DIRECTIVE_DEFINITION
     }
 
     struct __Field: Decodable {
