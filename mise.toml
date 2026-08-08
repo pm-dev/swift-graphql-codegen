@@ -1,0 +1,6 @@
+[tools]
+periphery = "3.8.0"
+
+[tasks.periphery]
+description = "Scan for unused Swift code using the existing debug index store"
+run = "periphery scan --skip-build --index-store-path .build/debug/index/store --strict"
