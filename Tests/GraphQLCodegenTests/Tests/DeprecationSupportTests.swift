@@ -4,6 +4,11 @@ import Testing
 
 struct DeprecationSupportTests {
     private let schema = """
+    directive @format(
+      old: String @deprecated(reason: "Use style.")
+      style: String
+    ) on FIELD
+
     type Query {
       search(
         input: SearchInput
@@ -50,6 +55,38 @@ struct DeprecationSupportTests {
         #expect(diagnostics.count == 1)
         #expect(diagnostic.operationName == "Search")
         #expect(diagnostic.issues.map(\.message) == [#"The argument "Query.search(old:)" is deprecated. Use new."#])
+    }
+
+    @Test
+    func reportsDeprecatedDirectiveArgumentWhenIncluded() async throws {
+        let fixture = try makeFixture(
+            document: #"query Search { search @format(old: "legacy") }"#
+        )
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        let configuration = makeConfiguration(
+            schemaSource: .SDLSchemaFile(fixture.schemaURL, deprecationPolicy: .include),
+            fixture: fixture
+        )
+        let graphQLJS = try GraphQLJS()
+        let loadedSchema = try await SchemaLoader(
+            configuration: configuration,
+            graphQLJS: graphQLJS,
+            urlSession: .shared
+        ).load()
+        let documents = try DocumentsLoader(
+            configuration: configuration,
+            graphQLJS: graphQLJS
+        ).load()
+
+        let diagnostics = try DeprecationUsageValidator(
+            documents: documents,
+            graphQLJS: graphQLJS,
+            policy: .include,
+            schemaJSON: loadedSchema.schemaJSON
+        ).validate()
+
+        let diagnostic = try #require(diagnostics.first)
+        #expect(diagnostic.issues.map(\.message) == [#"The argument "@format(old:)" is deprecated. Use style."#])
     }
 
     @Test

@@ -34,9 +34,6 @@ export function validateDocuments(documents, JSONSchemaString) {
 function deprecatedArgumentsRule(context) {
   return {
     Argument(node) {
-      if (context.getDirective() != null) {
-        return;
-      }
       const argument = context.getArgument();
       const deprecationReason = argument?.deprecationReason;
       if (argument && deprecationReason != null) {
