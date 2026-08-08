@@ -95,8 +95,9 @@ struct GraphQLOperationWriter: APIOutput {
             /// https://spec.graphql.org/October2021/#sec-Document
             static var document: String { get }
 
-            /// A precomputed, lexically equivalent document with ignored characters removed.
-            /// The generated HTTP encoders use this representation when `minifyDocument` is enabled.
+            /// A precomputed, execution-equivalent document with executable descriptions and ignored characters removed.
+            /// The generated HTTP encoders use this representation for persisted-operation hashes and when
+            /// `minifyDocument` is enabled.
             static var minifiedDocument: String { get }
         """
     }

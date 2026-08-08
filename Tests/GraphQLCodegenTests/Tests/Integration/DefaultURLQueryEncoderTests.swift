@@ -1,8 +1,26 @@
+import CryptoKit
 import Foundation
 @testable import StarwarsExample
 import Testing
 
 struct DefaultURLQueryEncoderTests {
+    @Test
+    func persistedHashUsesDescriptionlessDocument() throws {
+        let queryItems = try DefaultURLQueryEncoder().encode(
+            operation: DescribedQuery(),
+            automaticPersistedOperationPhase: .initialRequestWithHash,
+            minifyDocument: false
+        )
+        let extensionsValue = try #require(queryItems.first { $0.name == "extensions" }?.value)
+        let extensions = try JSONDecoder().decode(
+            PersistedExtensions.self,
+            from: Data(extensionsValue.utf8)
+        )
+
+        #expect(extensions.persistedQuery.sha256Hash == hash(DescribedQuery.minifiedDocument))
+        #expect(extensions.persistedQuery.sha256Hash != hash(DescribedQuery.document))
+    }
+
     @Test
     func omitsDocumentFromPersistedQuery() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
@@ -81,6 +99,20 @@ struct DefaultURLQueryEncoderTests {
         let extensions: [String: StarwarsExample.AnyEncodable]? = nil
     }
 
+    private struct DescribedQuery: GraphQLQuery {
+        struct Data: Decodable, Sendable {}
+
+        static let operationName: String? = "Described"
+        static let document = #"""
+        "Documentation."
+        query Described { viewer { id } }
+        """#
+        static let minifiedDocument = "query Described{viewer{id}}"
+
+        let variables: Never? = nil
+        let extensions: [String: StarwarsExample.AnyEncodable]? = nil
+    }
+
     private struct EncodedExtensions: Decodable {
         let requestID: String
     }
@@ -105,5 +137,17 @@ struct DefaultURLQueryEncoderTests {
             // periphery:ignore - Used through the synthesized Encodable implementation.
             let includeDetails: Bool
         }
+    }
+
+    private struct PersistedExtensions: Decodable {
+        struct PersistedQuery: Decodable {
+            let sha256Hash: String
+        }
+
+        let persistedQuery: PersistedQuery
+    }
+
+    private func hash(_ document: String) -> String {
+        SHA256.hash(data: Data(document.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 }

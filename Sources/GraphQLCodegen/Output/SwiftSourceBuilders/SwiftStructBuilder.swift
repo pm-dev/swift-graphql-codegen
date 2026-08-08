@@ -9,12 +9,23 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             case flattened([InitializerArgument], indentation: Configuration.Output.Indentation)
 
             struct InitializerArgument {
-                static func named(_ name: String, type: String, defaultValue: String?) -> InitializerArgument {
-                    InitializerArgument(name: name, type: type, defaultValue: defaultValue)
+                static func named(
+                    _ name: String,
+                    type: String,
+                    description: String?,
+                    defaultValue: String?
+                ) -> InitializerArgument {
+                    InitializerArgument(
+                        name: name,
+                        type: type,
+                        description: description,
+                        defaultValue: defaultValue
+                    )
                 }
 
                 let name: String
                 let type: String
+                let description: String?
                 let defaultValue: String?
             }
         }
@@ -87,7 +98,9 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             case .flattened(let initializerArguments, let indentation):
                 for argument in initializerArguments {
                     builder.addPropertyInitializerArguments(
-                        "\(identifier(argument.name)): \(argument.type)".addingDefaultValue(argument.defaultValue)
+                        "\(identifier(argument.name)): \(argument.type)".addingDefaultValue(argument.defaultValue),
+                        name: argument.name,
+                        description: argument.description
                     )
                 }
                 var assignmentLines = ["self.\(safeName) = \(type)("]

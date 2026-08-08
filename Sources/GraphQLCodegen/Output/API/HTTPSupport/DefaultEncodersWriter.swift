@@ -234,12 +234,13 @@ struct DefaultEncodersWriter: APIOutput {
                 minifyDocument: Bool
             ) {
                 let query = minifyDocument ? Operation.minifiedDocument : Operation.document
+                let persistedDocument = Operation.minifiedDocument
                 var extensions = operation.extensions
                 if automaticPersistedOperationPhase != nil {
                     var persistedExtensions = extensions ?? [:]
                     persistedExtensions["persistedQuery"] = AnyEncodable([
                         "version": AnyEncodable(1),
-                        "sha256Hash": AnyEncodable(persistedOperationHash(query))
+                        "sha256Hash": AnyEncodable(persistedOperationHash(persistedDocument))
                     ])
                     extensions = persistedExtensions
                 }

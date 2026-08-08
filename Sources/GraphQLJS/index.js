@@ -42,5 +42,32 @@ export function convertSDLSchema(SDLSchemaString, introspectionQueryString) {
 }
 
 export function canonicalizeDocument(document) {
-  return execute(() => stripIgnoredCharacters(document));
+  return execute(() => {
+    const ast = parse(document);
+    const descriptionRanges = [];
+    for (const definition of ast.definitions) {
+      if (
+        definition.kind !== 'OperationDefinition' &&
+        definition.kind !== 'FragmentDefinition'
+      ) {
+        continue;
+      }
+      if (definition.description) {
+        descriptionRanges.push(definition.description.loc);
+      }
+      for (const variableDefinition of definition.variableDefinitions ?? []) {
+        if (variableDefinition.description) {
+          descriptionRanges.push(variableDefinition.description.loc);
+        }
+      }
+    }
+    let executableDocument = document;
+    descriptionRanges.sort((left, right) => right.start - left.start);
+    for (const range of descriptionRanges) {
+      executableDocument =
+        executableDocument.slice(0, range.start) +
+        executableDocument.slice(range.end);
+    }
+    return stripIgnoredCharacters(executableDocument);
+  });
 }

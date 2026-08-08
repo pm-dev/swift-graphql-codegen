@@ -14,6 +14,68 @@ struct GraphQLCodeGeneratorTests {
         .appending(path: "Examples/StarwarsExample/Sources/StarwarsExample", directoryHint: .isDirectory)
 
     @Test
+    func preservesExecutableDescriptionsAsDocumentation() async throws {
+        let output = try await runCodegen(
+            document: #"""
+            """
+            Loads the **viewer**.
+
+            Use this operation for profile screens.
+            """
+            query Viewer(
+              "Include the viewer's `name`."
+              $includeName: Boolean!
+            ) {
+              viewer {
+                ...ViewerFields
+              }
+            }
+
+            "Shared viewer fields."
+            fragment ViewerFields on Viewer {
+              name @include(if: $includeName)
+            }
+            """#,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { name: String! }
+            """
+        )
+
+        #expect(
+            output.contains(
+                "/// Loads the **viewer**.\n" +
+                    "/// \n" +
+                    "/// Use this operation for profile screens.\n" +
+                    "struct ViewerQuery"
+            )
+        )
+        #expect(
+            output.contains(
+                "    /// - Parameters:\n" +
+                    "    ///   - includeName: Include the viewer's `name`.\n" +
+                    "    init("
+            )
+        )
+        #expect(
+            output.contains(
+                "        /// Include the viewer's `name`.\n" +
+                    "        let includeName: Bool"
+            )
+        )
+        #expect(output.contains("""
+        /// Shared viewer fields.
+        struct ViewerFields
+        """))
+        #expect(
+            output.contains(
+                "query Viewer($includeName:Boolean!){viewer{...ViewerFields}}" +
+                    "fragment ViewerFields on Viewer{name@include(if:$includeName)}"
+            )
+        )
+    }
+
+    @Test
     func testGeneratesCodeForValidSchemaAndDocument() async throws {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
             path: UUID().uuidString,

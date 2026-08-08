@@ -40,7 +40,7 @@ struct OperationBuilder {
             }
         }
         return SwiftStructBuilder(
-            description: nil,
+            description: operation.ast.description?.value,
             isPublic: isPublic,
             name: typeName.source,
             conformances: conformances
@@ -161,6 +161,7 @@ struct OperationBuilder {
                         .named(
                             variableDefinition.variable.name.value,
                             type: typeNames[idx],
+                            description: variableDefinition.description?.value,
                             defaultValue: {
                                 switch variableDefinition.type.typeName {
                                 case .optional:
@@ -197,7 +198,7 @@ struct OperationBuilder {
         )
         for (idx, variableDefinition) in variableDefinitions.enumerated() {
             variablesStruct.addProperty(
-                description: nil,
+                description: variableDefinition.description?.value,
                 deprecation: nil,
                 isPublic: isPublic,
                 isStatic: false,
