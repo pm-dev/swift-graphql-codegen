@@ -82,6 +82,17 @@ struct GraphQLCodeGeneratorTests {
         try OutputFile.allCases.forEach { outputFile in
             try verifyOutputFile(outputFile, generatedDirectory: generatedDirectory)
         }
+        let urlSessionSource = try String(
+            contentsOf: generatedDirectory.appending(
+                path: OutputFile.URLSessionGraphQL.relativePath,
+                directoryHint: .notDirectory
+            ),
+            encoding: .utf8
+        )
+        #expect(urlSessionSource.contains("maximumLineByteCount"))
+        #expect(urlSessionSource.contains("requires version 26 or newer"))
+        #expect(urlSessionSource.contains("UTF8Span(validating: buffer.span)"))
+        #expect(!urlSessionSource.contains("String(bytes: buffer, encoding: .utf8)"))
     }
 
     @Test
