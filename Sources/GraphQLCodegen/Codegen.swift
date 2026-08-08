@@ -14,6 +14,8 @@ public struct Codegen: Sendable {
     }
 
     public func run() async throws {
+        try configuration.validate()
+
         // Input
         let start = Date()
         let graphQLJS = try GraphQLJS()
