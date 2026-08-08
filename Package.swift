@@ -41,6 +41,7 @@ let package = Package(
             ],
             exclude: [
                 "Fixtures/Defaults/Definitions",
+                "Fixtures/OneOf/Definitions",
                 "GraphQLCodegen.xctestplan",
             ]
         ),

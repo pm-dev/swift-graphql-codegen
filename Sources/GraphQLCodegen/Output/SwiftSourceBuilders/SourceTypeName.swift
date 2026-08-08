@@ -58,4 +58,11 @@ extension SourceTypeName {
         case .list, .name: return "GraphQLHasDefault<\(typeName)>"
         }
     }
+
+    func requiredInputTypeName() -> String {
+        switch self {
+        case .optional(let inner): inner.inputTypeName(hasDefaultValue: false)
+        case .list, .name: inputTypeName(hasDefaultValue: false)
+        }
+    }
 }
