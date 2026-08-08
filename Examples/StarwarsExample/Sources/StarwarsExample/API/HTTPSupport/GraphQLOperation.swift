@@ -4,12 +4,12 @@
 protocol GraphQLOperation: Sendable {
 
     /// The optional name of the operation.
-    /// https://spec.graphql.org/October2021/#sel-FAFRDCEAAAAFBBAAD-zM
+    /// https://spec.graphql.org/September2025/#sel-FAFTDCFABAADFCBAAD-zM
     static var operationName: String? { get }
 
     /// The executable string operated on by a GraphQL service, containing
     /// an operation definition and zero or more fragment definitions.
-    /// https://spec.graphql.org/October2021/#sec-Document
+    /// https://spec.graphql.org/September2025/#sec-Document
     static var document: String { get }
 
     /// A precomputed, execution-equivalent document with executable descriptions and ignored characters removed.
@@ -18,7 +18,7 @@ protocol GraphQLOperation: Sendable {
     static var minifiedDocument: String { get }
 
     /// The parameterized variables to execute the operation with.
-    /// https://spec.graphql.org/October2021/#sec-Language.Variables
+    /// https://spec.graphql.org/September2025/#sec-Language.Variables
     var variables: Variables { get }
 
     /// The operation's variables erased for request encoding.
