@@ -5,7 +5,7 @@ struct GeneratedTypeDeclaration {
         case api(String)
         case fragment(name: String, file: URL)
         case operation(name: String?, file: URL)
-        case schema(String)
+        case schema(SchemaCoordinate)
 
         var description: String {
             switch self {
@@ -15,8 +15,8 @@ struct GeneratedTypeDeclaration {
                 "Fragment: \(name)\nFile: \(file)"
             case .operation(let name, let file):
                 "Operation: \(name ?? "<unnamed>")\nFile: \(file)"
-            case .schema(let name):
-                "Schema type: \(name)"
+            case .schema(let coordinate):
+                "Schema coordinate: \(coordinate)"
             }
         }
 

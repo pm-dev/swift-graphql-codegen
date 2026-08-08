@@ -267,12 +267,16 @@ struct GeneratedTypeNameValidator {
         conflictingGraphQLValue: String,
         caseName: String
     ) -> Codegen.Error {
-        Codegen.Error(description: """
+        let coordinate = SchemaCoordinate.member(type: enumName, member: graphQLValue)
+        let conflictingCoordinate = SchemaCoordinate.member(
+            type: enumName,
+            member: conflictingGraphQLValue
+        )
+        return Codegen.Error(description: """
         GraphQL enum values produce conflicting Swift case names after case conversion.
-        Enum: \(enumName)
-        GraphQL values:
-        \(conflictingGraphQLValue)
-        \(graphQLValue)
+        Schema coordinates:
+        \(conflictingCoordinate)
+        \(coordinate)
         Swift case name: \(identifier(caseName))
 
         Change the enum case conversion or rename the GraphQL enum values so the generated case names are distinct.
@@ -353,7 +357,7 @@ struct GeneratedTypeNameValidator {
     ) -> Codegen.Error {
         Codegen.Error(description: """
         A generated schema type shadows a type referenced by generated code.
-        Schema type: \(schemaTypeName.source)
+        Schema coordinate: \(SchemaCoordinate.type(schemaTypeName.unescaped))
         Reference source: \(source)
         File: \(documentURL)
         """)

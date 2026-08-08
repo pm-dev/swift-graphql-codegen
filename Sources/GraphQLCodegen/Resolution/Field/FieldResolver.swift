@@ -4,6 +4,7 @@ struct FieldResolver {
     let fieldSelection: GraphQLAST.Field
     let fieldSchema: __Schema.__Field
     let schema: Schema
+    let schemaCoordinate: SchemaCoordinate
     let documents: Documents
 
     func resolve() throws -> ResolvedField {
@@ -74,7 +75,7 @@ struct FieldResolver {
 
     private func missingSelectionSetError() -> Codegen.Error {
         Codegen.Error(description: """
-        Selected field \(fieldSelection.responseKey) which requires a selection set.
+        Selected field \(schemaCoordinate), which requires a selection set.
 
         Note: Turning on validation can help find other similar errors
         """)
