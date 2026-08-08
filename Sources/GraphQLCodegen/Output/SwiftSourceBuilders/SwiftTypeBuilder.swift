@@ -89,6 +89,10 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         contents.append(_deprecation(deprecationReason))
     }
 
+    mutating func addDeprecationDocumentation(_ deprecationReason: String) {
+        addComment("- Deprecated: \(deprecationReason)")
+    }
+
     mutating func addLine(_ line: String) {
         contents.append(line)
     }

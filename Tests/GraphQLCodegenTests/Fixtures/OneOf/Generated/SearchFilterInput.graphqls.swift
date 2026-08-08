@@ -2,7 +2,7 @@
 
 enum SearchFilterInput: Codable, Hashable, Sendable {
     case name(String)
-    @available(*, deprecated, message: "Use name.")
+    /// - Deprecated: Use name.
     indirect case search(SearchInput)
 
     init(from decoder: Decoder) throws {

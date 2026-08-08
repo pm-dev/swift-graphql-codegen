@@ -32,6 +32,9 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
     }
 
     private var builder: SwiftTypeBuilder
+    private var codingKeys: [(source: String, wire: String)] = []
+    private var hasDeprecationBackingStorage = false
+    private let usesCodingKeys: Bool
 
     init(
         description: String?,
@@ -46,10 +49,25 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             name: identifier(name),
             conformances: conformances
         )
+        usesCodingKeys = conformances.contains { conformance in
+            SwiftConformanceName(source: conformance).usesCodingKeys
+        }
     }
 
     func build(configuration: Configuration) -> [String] {
-        builder.build(configuration: configuration)
+        var builder = builder
+        if hasDeprecationBackingStorage, usesCodingKeys {
+            let indentation = configuration.output.indentation.string
+            builder.addEmptyLine()
+            builder.addLine("private enum CodingKeys: String, CodingKey {")
+            for codingKey in codingKeys {
+                let rawValue = codingKey.source == codingKey.wire ? "" :
+                    " = \(SwiftSource(value: codingKey.wire).singleLineStringLiteral)"
+                builder.addLine("\(indentation)case \(codingKey.source)\(rawValue)")
+            }
+            builder.addLine("}")
+        }
+        return builder.build(configuration: configuration)
     }
 
     mutating func addProperty(
@@ -59,21 +77,36 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         isStatic: Bool,
         immutable: Bool,
         name: String,
-        value: PropertyValue
+        value: PropertyValue,
+        useDeprecationBackingStorage: Bool = false
     ) {
         builder.addEmptyLine()
-        if let description, !description.isEmpty {
-            builder.addComment(description)
-        }
-        if let deprecation {
-            builder.addDeprecation(deprecation.reason)
-        }
         let creator =
             switch value {
             case .computed: "var"
             case .assigned, .unassigned: immutable ? "let" : "var"
             }
         let safeName = identifier(name)
+        let backingName = "__\(name)"
+        let usesBackingStorage = switch value {
+        case .unassigned: useDeprecationBackingStorage && deprecation != nil
+        case .assigned, .computed: false
+        }
+        if isStatic == false {
+            switch value {
+            case .assigned, .unassigned:
+                codingKeys.append((source: usesBackingStorage ? backingName : safeName, wire: name))
+            case .computed: break
+            }
+        }
+        if usesBackingStorage == false {
+            if let description, !description.isEmpty {
+                builder.addComment(description)
+            }
+            if let deprecation {
+                builder.addDeprecation(deprecation.reason)
+            }
+        }
         var declarationLine = "\(isPublic ? "public " : "")\(isStatic ? "static " : "")\(creator) \(safeName)"
         switch value {
         case .computed(let value, type: let type):
@@ -89,12 +122,30 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
                 builder.addLine(line)
             }
         case .unassigned(let type, let initialized):
-            declarationLine.append(": \(type)")
-            builder.addLine(declarationLine)
+            if usesBackingStorage {
+                hasDeprecationBackingStorage = true
+                builder.addLine("private \(creator) \(backingName): \(type)")
+                builder.addEmptyLine()
+                if let description, !description.isEmpty {
+                    builder.addComment(description)
+                }
+                if let deprecation {
+                    builder.addDeprecation(deprecation.reason)
+                }
+                declarationLine = "\(isPublic ? "public " : "")var \(safeName): \(type)"
+                let computedValue = immutable ? backingName : "get { \(backingName) }\nset { \(backingName) = newValue }"
+                for line in declarationLine.addingDefaultValue(computedValue, isComputed: true) {
+                    builder.addLine(line)
+                }
+            } else {
+                declarationLine.append(": \(type)")
+                builder.addLine(declarationLine)
+            }
             switch initialized {
             case .direct(let defaultValue):
                 builder.addPropertyInitializerArguments("\(safeName): \(type)".addingDefaultValue(defaultValue))
-                builder.addPropertyInitializerBody(["self.\(safeName) = \(safeName)"], isThrowing: false)
+                let storedName = usesBackingStorage ? backingName : safeName
+                builder.addPropertyInitializerBody(["self.\(storedName) = \(safeName)"], isThrowing: false)
             case .flattened(let initializerArguments, let indentation):
                 for argument in initializerArguments {
                     builder.addPropertyInitializerArguments(
