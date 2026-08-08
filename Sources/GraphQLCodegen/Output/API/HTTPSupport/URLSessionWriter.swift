@@ -7,22 +7,13 @@ struct URLSessionWriter: APIOutput {
 
     let topLevelTypeNames: [SwiftTypeIdentifier] = []
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n"
-    }
-
     private var includeSubscriptionSupport: Bool {
         hasSubscription && configuration.output.api.HTTPSupport?.subscriptionSupport == true
     }
 
     var source: String {
         """
-        \(header)import Foundation
+        \(headerBeforeImports)import Foundation
 
         /// Defaults conform to https://graphql.github.io/graphql-over-http/draft/
         extension URLSession {

@@ -13,10 +13,6 @@ struct DefaultEncodersWriter: APIOutput {
         return typeNames
     }
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
     private var automaticPersistedOperationHashSource: String {
         """
         private func persistedOperationHash(_ document: String) -> String {
@@ -33,11 +29,6 @@ struct DefaultEncodersWriter: APIOutput {
             }
         }
         """
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n"
     }
 
     private var includeSubscriptionSupport: Bool {
@@ -57,7 +48,7 @@ struct DefaultEncodersWriter: APIOutput {
 
     private func getWithAutomaticPersistedOperations() -> String {
         """
-        \(header)import CryptoKit
+        \(headerBeforeImports)import CryptoKit
         import Foundation
 
         /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
@@ -101,7 +92,7 @@ struct DefaultEncodersWriter: APIOutput {
 
     private func getWithRegisteredPersistedOperations() -> String {
         """
-        \(header)import Foundation
+        \(headerBeforeImports)import Foundation
 
         /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
         /// using the spec described at:
@@ -135,7 +126,7 @@ struct DefaultEncodersWriter: APIOutput {
 
     private func getWithNoPersistedOperations() -> String {
         """
-        \(header)import Foundation
+        \(headerBeforeImports)import Foundation
 
         /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
         /// using the spec described at:
@@ -176,7 +167,7 @@ struct DefaultEncodersWriter: APIOutput {
 
     private func postWithAutomaticPersistedOperations() -> String {
         """
-        \(header)import CryptoKit
+        \(headerBeforeImports)import CryptoKit
         import Foundation
 
         \(httpBodyEncoderWithAutomaticPersistedOperations())
@@ -185,7 +176,7 @@ struct DefaultEncodersWriter: APIOutput {
 
     private func postWithRegisteredPersistedOperations() -> String {
         """
-        \(header)import Foundation
+        \(headerBeforeImports)import Foundation
 
         \(httpBodyEncoderWithRegisteredPersistedOperations())
         """
@@ -193,7 +184,7 @@ struct DefaultEncodersWriter: APIOutput {
 
     private func postWithNoPersistedOperations() -> String {
         """
-        \(header)import Foundation
+        \(headerBeforeImports)import Foundation
 
         \(httpBodyEncoderWithNoPersistedOperations())
         """

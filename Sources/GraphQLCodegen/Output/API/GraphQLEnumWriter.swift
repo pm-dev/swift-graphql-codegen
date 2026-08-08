@@ -4,15 +4,6 @@ struct GraphQLEnumWriter: APIOutput {
     let relativePath = "GraphQLEnum.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLEnum")]
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n\n"
-    }
-
     var source: String {
         """
         \(header)\(accessLevel)enum GraphQLEnum<T>: Decodable, Hashable, Sendable where T: Hashable & RawRepresentable & Sendable, T.RawValue == String {

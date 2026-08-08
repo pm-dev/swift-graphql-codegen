@@ -13,15 +13,6 @@ struct GraphQLRequestWriter: APIOutput {
         return typeNames
     }
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n"
-    }
-
     private var includeSubscriptionSupport: Bool {
         plan.includesSubscriptions
     }
@@ -521,7 +512,7 @@ struct GraphQLRequestWriter: APIOutput {
         subscriptionSupport: String
     ) -> String {
         """
-        \(header)import Foundation
+        \(headerBeforeImports)import Foundation
 
         \(persistedOperationRetryDeclaration())
         \(requestDeclaration())

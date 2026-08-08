@@ -5,15 +5,6 @@ struct GraphQLNullableWriter: APIOutput {
     let relativePath = "GraphQLNullable.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLNullable")]
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n\n"
-    }
-
     var source: String {
         let indirectCase = requiresIndirectNullable ? "indirect " : ""
         return """

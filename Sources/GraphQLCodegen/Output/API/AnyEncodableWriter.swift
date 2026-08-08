@@ -4,15 +4,6 @@ struct AnyEncodableWriter: APIOutput {
     let relativePath = "AnyEncodable.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "AnyEncodable")]
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n\n"
-    }
-
     var source: String {
         """
         \(header)\(accessLevel)struct AnyEncodable: Encodable, Sendable {
