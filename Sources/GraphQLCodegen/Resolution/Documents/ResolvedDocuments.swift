@@ -3,11 +3,12 @@ import Foundation
 struct ResolvedDocuments {
     let documents: [ResolvedDocument]
     let fragmentLookup: [String: ResolvedFragment]
-    let usedTypes: Set<String>
-    let requiresIndirectNullable: Bool
     let fulfilledFragments: Set<String>
     let hasMutation: Bool
     let hasSubscription: Bool
+    let indirectOneOfInputObjectFields: [String: Set<String>]
+    let requiresIndirectNullable: Bool
+    let usedTypes: Set<String>
 }
 
 struct ResolvedDocument {

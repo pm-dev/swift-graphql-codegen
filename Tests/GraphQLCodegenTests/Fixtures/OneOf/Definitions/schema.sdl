@@ -1,0 +1,17 @@
+type Query {
+  search(by: SearchInput!): String!
+}
+
+input SearchInput @oneOf {
+  id: Int
+  name: String
+  tags: [String!]
+  next: SearchInput
+  filter: SearchFilterInput
+  CodingKeys: String
+}
+
+input SearchFilterInput @oneOf {
+  name: String
+  search: SearchInput
+}

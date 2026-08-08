@@ -17,10 +17,12 @@ struct SchemaWriter {
 
     let configuration: Configuration
 
+    let indirectOneOfInputObjectFields: [String: Set<String>]
     let typePlans: [TypePlan]
 
     init(configuration: Configuration, schema: Schema, resolvedDocuments: ResolvedDocuments) {
         self.configuration = configuration
+        self.indirectOneOfInputObjectFields = resolvedDocuments.indirectOneOfInputObjectFields
         self.typePlans = resolvedDocuments.usedTypes.sorted().compactMap { name -> TypePlan? in
             if let scalar = schema.typeCache.scalars[name] {
                 return scalar.ast.isNativeSwiftType ? nil : .scalar(scalar)
@@ -108,7 +110,12 @@ struct SchemaWriter {
             var file = SwiftFileWriter()
             file.setHeader(configuration.output.schema.inputObjects.header)
             file.setImports(configuration.output.schema.inputObjects.importedModules)
-            file.addType(SchemaInputObjectBuilder(inputObject: inputObject))
+            file.addType(
+                SchemaInputObjectBuilder(
+                    inputObject: inputObject,
+                    indirectInputFields: indirectOneOfInputObjectFields[inputObject.ast.name, default: []]
+                )
+            )
             try file.write(
                 to: inputObjectsDir.appending(
                     path: "\(inputObject.ast.name).graphqls.swift",
