@@ -12,6 +12,7 @@ struct SelectionSetResolver {
         try collect(
             selectionSet: selectionSet,
             onType: onType,
+            inConditionalTypeCondition: false,
             inOptionalDirective: false
         )
     }
@@ -19,6 +20,7 @@ struct SelectionSetResolver {
     private func collect(
         selectionSet: GraphQLAST.SelectionSet,
         onType: Schema.SelectionSet,
+        inConditionalTypeCondition: Bool,
         inOptionalDirective: Bool
     ) throws -> ResolvedSelectionSet {
         var resolvedSelectionSet = ResolvedSelectionSet()
@@ -35,7 +37,7 @@ struct SelectionSetResolver {
                         schema: schema,
                         documents: documents
                     ).resolve()
-                let conditional = self.onType.name != onType.name ||
+                let conditional = inConditionalTypeCondition ||
                     inOptionalDirective ||
                     selection.hasOptionalDirective
                 try resolvedSelectionSet.addSelection(
@@ -79,15 +81,20 @@ struct SelectionSetResolver {
                         let fragmentGroupedSelections = try collect(
                             selectionSet: fragment.ast.selectionSet,
                             onType: fragmentType,
+                            inConditionalTypeCondition: inConditionalTypeCondition ||
+                                !schema.isFragment(fragmentType, alwaysFulfilledBy: onType),
                             inOptionalDirective: inOptionalDirective || selection.hasOptionalDirective
                         )
                         try resolvedSelectionSet.merge(fragmentGroupedSelections) { try $0.merging(with: $1) }
                     }
                 }
             case .inlineFragment(let inlineFragment):
+                let fragmentType = try schema.fragmentType(inlineFragment) ?? onType
                 let fragmentGroupedSelections = try collect(
                     selectionSet: inlineFragment.selectionSet,
-                    onType: try schema.fragmentType(inlineFragment) ?? onType,
+                    onType: fragmentType,
+                    inConditionalTypeCondition: inConditionalTypeCondition ||
+                        !schema.isFragment(fragmentType, alwaysFulfilledBy: onType),
                     inOptionalDirective: inOptionalDirective || selection.hasOptionalDirective
                 )
                 try resolvedSelectionSet.merge(fragmentGroupedSelections) { try $0.merging(with: $1) }
