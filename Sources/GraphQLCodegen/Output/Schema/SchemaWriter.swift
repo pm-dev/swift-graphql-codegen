@@ -38,7 +38,7 @@ struct SchemaWriter {
         typePlans.map { type in
             GeneratedTypeDeclaration(
                 name: SwiftTypeIdentifier(swiftName: type.name),
-                origin: .schema(type.name)
+                origin: .schema(.type(type.name))
             )
         }
     }

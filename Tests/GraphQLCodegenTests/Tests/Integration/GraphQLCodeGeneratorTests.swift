@@ -409,8 +409,8 @@ struct GraphQLCodeGeneratorTests {
         await expectCodegenError(
             containing: [
                 "GraphQL enum values produce conflicting Swift case names after case conversion",
-                "NORTH_WEST",
-                "NORTH__WEST",
+                "Direction.NORTH_WEST",
+                "Direction.NORTH__WEST",
                 "Swift case name: northWest",
             ]
         ) {
@@ -424,6 +424,20 @@ struct GraphQLCodeGeneratorTests {
                 type Query { direction: Direction! }
                 """,
                 enumCaseConversion: .conversion(from: .macro, to: .lowerCamel)
+            )
+        }
+    }
+
+    @Test
+    func reportsSchemaCoordinatesInsteadOfFieldAliases() async {
+        await expectCodegenError(containing: "Selected field Query.search, which requires a selection set") {
+            try await runCodegen(
+                document: "query Viewer { result: search }",
+                schema: """
+                type Query { search: SearchResult! }
+                type SearchResult { value: String! }
+                """,
+                validation: false
             )
         }
     }
@@ -619,7 +633,8 @@ struct GraphQLCodeGeneratorTests {
         schema: String,
         enumCaseConversion: Configuration.Output.Schema.Enums.CaseConversion? = nil,
         outputRelativePath: String = "Operations/Viewer.graphql.swift",
-        responseDataConformances: [String] = ["Decodable", "Sendable", "Hashable"]
+        responseDataConformances: [String] = ["Decodable", "Sendable", "Hashable"],
+        validation: Bool = true
     ) async throws -> String {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
             path: UUID().uuidString,
@@ -642,6 +657,7 @@ struct GraphQLCodeGeneratorTests {
                     schemaSource: .SDLSchemaFile(schemaURL),
                     documentDirectories: [operationsDirectory]
                 ),
+                validation: validation,
                 output: .output(
                     schema: .schema(
                         directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory),

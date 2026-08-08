@@ -48,6 +48,7 @@ struct SelectionSetResolver {
                         fieldSelection: field,
                         fieldSchema: onType.field(field),
                         schema: schema,
+                        schemaCoordinate: .member(type: onType.name, member: field.name.value),
                         documents: documents
                     ).resolve()
                 let conditional = typeCondition.isConditional ||
