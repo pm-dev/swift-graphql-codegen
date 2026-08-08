@@ -96,6 +96,27 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func usesCaseLevelIndirectionForRecursiveInputObjects() async throws {
+        let output = try await runCodegen(
+            document: """
+            query Viewer($input: RecursiveInput) {
+              value(input: $input)
+            }
+            """,
+            schema: """
+            input RecursiveInput {
+              nested: RecursiveInput
+            }
+            type Query { value(input: RecursiveInput): String! }
+            """,
+            outputRelativePath: "API/GraphQLNullable.swift"
+        )
+
+        #expect(!output.contains("indirect enum GraphQLNullable"))
+        #expect(output.contains("indirect case value(T)"))
+    }
+
+    @Test
     func preservesConditionalityAcrossNestedTypeConditions() async throws {
         let output = try await runCodegen(
             document: """
@@ -535,6 +556,7 @@ struct GraphQLCodeGeneratorTests {
         document: String,
         schema: String,
         enumCaseConversion: Configuration.Output.Schema.Enums.CaseConversion? = nil,
+        outputRelativePath: String = "Operations/Viewer.graphql.swift",
         responseDataConformances: [String] = ["Decodable", "Sendable", "Hashable"]
     ) async throws -> String {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
@@ -576,7 +598,10 @@ struct GraphQLCodeGeneratorTests {
                 )
             )
         ).run()
-        return try String(contentsOf: documentURL.appendingPathExtension("swift"), encoding: .utf8)
+        return try String(
+            contentsOf: generatedDirectory.appending(path: outputRelativePath, directoryHint: .notDirectory),
+            encoding: .utf8
+        )
     }
 
     private func expectCodegenError(

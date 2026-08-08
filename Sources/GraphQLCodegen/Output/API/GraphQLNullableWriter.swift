@@ -15,11 +15,11 @@ struct GraphQLNullableWriter: APIOutput {
     }
 
     var source: String {
-        let indirect = requiresIndirectNullable ? "indirect " : ""
+        let indirectCase = requiresIndirectNullable ? "indirect " : ""
         return """
-        \(header)\(accessLevel)\(indirect)enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
+        \(header)\(accessLevel)enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
             case null
-            case value(T)
+            \(indirectCase)case value(T)
 
             \(accessLevel)func encode(to encoder: Encoder) throws {
                 var container = encoder.singleValueContainer()
