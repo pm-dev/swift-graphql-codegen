@@ -4,7 +4,7 @@ import Foundation
 /// Mirrors the executable-document AST produced by the bundled graphql-js parser.
 ///
 /// Keep this boundary model aligned with the executable definitions in:
-/// https://github.com/graphql/graphql-js/blob/16.x.x/src/language/ast.ts
+/// https://github.com/graphql/graphql-js/blob/17.x.x/src/language/ast.ts
 enum GraphQLAST {
     /// Verified against the bundled graphql-js parser: location offsets are UTF-16 code units.
     struct Location: Decodable, Hashable {
@@ -48,8 +48,8 @@ enum GraphQLAST {
         let loc: Location
         let operation: OperationType
         let name: Name?
-        let variableDefinitions: [VariableDefinition]
-        let directives: [Directive]
+        let variableDefinitions: [VariableDefinition]?
+        let directives: [Directive]?
         let selectionSet: SelectionSet
     }
 
@@ -90,9 +90,9 @@ enum GraphQLAST {
 
         private var directives: [Directive] {
             switch self {
-            case .field(let field): field.directives
-            case .fragmentSpread(let fragmentSpread): fragmentSpread.directives
-            case .inlineFragment(let inlineFragment): inlineFragment.directives
+            case .field(let field): field.directives ?? []
+            case .fragmentSpread(let fragmentSpread): fragmentSpread.directives ?? []
+            case .inlineFragment(let inlineFragment): inlineFragment.directives ?? []
             }
         }
 
@@ -116,8 +116,8 @@ enum GraphQLAST {
         let loc: Location
         let alias: Name?
         let name: Name
-        let arguments: [Argument]
-        let directives: [Directive]
+        let arguments: [Argument]?
+        let directives: [Directive]?
         let selectionSet: SelectionSet?
 
         var responseKey: String {
@@ -140,13 +140,13 @@ enum GraphQLAST {
     struct FragmentSpread: Decodable {
         let loc: Location
         let name: Name
-        let directives: [Directive]
+        let directives: [Directive]?
     }
 
     struct InlineFragment: Decodable {
         let loc: Location
         let typeCondition: NamedType?
-        let directives: [Directive]
+        let directives: [Directive]?
         let selectionSet: SelectionSet
     }
 
@@ -154,7 +154,7 @@ enum GraphQLAST {
         let loc: Location
         let name: Name
         let typeCondition: NamedType
-        let directives: [Directive]
+        let directives: [Directive]?
         let selectionSet: SelectionSet
     }
 
