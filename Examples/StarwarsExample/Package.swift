@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "StarwarsExample",
     platforms: [
-        .macOS(.v14),
+        .macOS(.v26),
     ],
     dependencies: [
         .package(path: "../.."),

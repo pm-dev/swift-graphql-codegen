@@ -82,6 +82,7 @@ opt_in_rules:
 
 excluded:
   - .build/
+  - Examples/StarwarsExample/.build/
   - Examples/StarwarsExample/Sources/StarwarsExample/
   - Tests/GraphQLCodegenTests/Fixtures/Defaults/Generated/
   - Tests/GraphQLCodegenTests/GeneratedAPI/

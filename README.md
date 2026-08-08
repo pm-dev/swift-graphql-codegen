@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat-square" alt="Swift Package Manager compatible">
   </a>
   <a href="#platform-support">
-    <img src="https://img.shields.io/badge/generator-macOS%2014%2B-333333.svg" alt="Generator host: macOS 14 or newer" />
+    <img src="https://img.shields.io/badge/generator-macOS%2026%2B-333333.svg" alt="Generator host: macOS 26 or newer" />
   </a>
 </p>
 
@@ -35,7 +35,7 @@ Everything you need and nothing you don't. Swift GraphQL Codegen is a lightweigh
 
 ## Platform Support
 
-The code generator runs on macOS 14 or newer because it uses JavaScriptCore to execute the bundled GraphQL reference implementation. The generated source uses portable Foundation APIs and can be included in iOS, macOS, tvOS, and watchOS applications, subject to the APIs enabled in your configuration.
+The code generator runs on macOS 26 or newer because it uses JavaScriptCore to execute the bundled GraphQL reference implementation. The generated source uses portable Foundation APIs and can be included in iOS, macOS, tvOS, and watchOS applications, subject to the APIs enabled in your configuration.
 
 ## Output directory ownership
 
@@ -85,7 +85,7 @@ import PackageDescription
 let package = Package(
     name: "MyCodegenCLI",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v26)
     ],
     products: [
         .executable(name: "my-codegen-cli", targets: ["MyCodegenCLI"]),
