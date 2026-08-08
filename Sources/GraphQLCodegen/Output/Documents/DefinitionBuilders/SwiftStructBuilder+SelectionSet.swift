@@ -34,7 +34,7 @@ extension SwiftStructBuilder {
                             .direct(defaultValue: nil) : nil
                     )
                 )
-            case .fragmentSpread(let fragmentSpreadName, let checkTypename):
+            case .fragmentSpread(let fragmentSpreadName, let checkTypenames):
                 addProperty(
                     description: nil,
                     deprecation: nil,
@@ -44,7 +44,7 @@ extension SwiftStructBuilder {
                     name: responseKey,
                     value: .unassigned(
                         type: SwiftTypeIdentifier(capitalizing: fragmentSpreadName).source +
-                            (checkTypename != nil ? "?" : ""),
+                            (checkTypenames != nil ? "?" : ""),
                         initialized: configuration.output.documents.memberwiseInitializer ?
                             .direct(defaultValue: nil) : nil
                     )
@@ -175,14 +175,19 @@ extension SwiftStructBuilder {
         for (responseKey, selection) in selectionSet {
             switch selection {
             case .field: break
-            case .fragmentSpread(let fragmentSpreadName, let checkTypename):
+            case .fragmentSpread(let fragmentSpreadName, let checkTypenames):
                 let fragmentTypeName = SwiftTypeIdentifier(capitalizing: fragmentSpreadName).source
                 var assignment = "\(identifier(responseKey)) = "
-                if let checkTypename {
+                if let checkTypenames {
                     if !hasNonnilTypenameField {
                         throw SelectionSetError.fragmentSpreadNeedsTypename(fragmentSpread: fragmentSpreadName)
                     }
-                    assignment.append("__typename == \"\(checkTypename)\" ? ")
+                    assignment.append(
+                        checkTypenames
+                            .sorted()
+                            .map { "__typename == \"\($0)\"" }
+                            .joined(separator: " || ") + " ? "
+                    )
                     assignment.append("try \(fragmentTypeName)(from: decoder) : nil")
                 } else {
                     assignment.append("try \(fragmentTypeName)(from: decoder)")
