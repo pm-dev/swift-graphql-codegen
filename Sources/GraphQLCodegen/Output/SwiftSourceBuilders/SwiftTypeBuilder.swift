@@ -4,9 +4,15 @@ protocol SwiftTypeBuildable {
 
 struct SwiftTypeBuilder: SwiftTypeBuildable {
     private struct Initializer {
+        struct ParameterDocumentation {
+            let name: String
+            let description: String
+        }
+
         var isThrowing = false
         var arguments: [String] = []
         var body: [String] = []
+        var parameterDocumentation: [ParameterDocumentation] = []
     }
     private let declaration: [String]
     private let isPublic: Bool
@@ -54,8 +60,20 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         )
     }
 
-    mutating func addPropertyInitializerArguments(_ lines: [String]) {
+    mutating func addPropertyInitializerArguments(
+        _ lines: [String],
+        name: String? = nil,
+        description: String? = nil
+    ) {
         propertyInitializer.arguments.append(contentsOf: lines)
+        if let name, let description, !description.isEmpty {
+            propertyInitializer.parameterDocumentation.append(
+                Initializer.ParameterDocumentation(
+                    name: name,
+                    description: description
+                )
+            )
+        }
     }
 
     mutating func addPropertyInitializerBody(_ lines: [String], isThrowing: Bool) {
@@ -108,6 +126,19 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
     private func buildInitializer(_ initializer: Initializer, indentation: String) -> [String] {
         guard !initializer.body.isEmpty else { return [] }
         var lines: [String] = [""]
+        if !initializer.parameterDocumentation.isEmpty {
+            lines.append(indentation + "/// - Parameters:")
+            for parameter in initializer.parameterDocumentation {
+                let descriptionLines = parameter.description.components(separatedBy: .newlines)
+                for (index, descriptionLine) in descriptionLines.enumerated() {
+                    if index == 0 {
+                        lines.append(indentation + "///   - \(identifier(parameter.name)): \(descriptionLine)")
+                    } else {
+                        lines.append(indentation + "///     \(descriptionLine)")
+                    }
+                }
+            }
+        }
         if initializer.arguments.count > 1 {
             lines.append(indentation + (isPublic ? "public " : "") + "init(")
             for (idx, line) in initializer.arguments.enumerated() {

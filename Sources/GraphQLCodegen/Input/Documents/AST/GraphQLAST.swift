@@ -46,6 +46,7 @@ enum GraphQLAST {
 
     struct OperationDefinition: Decodable, Sendable {
         let loc: Location
+        let description: StringValue?
         let operation: OperationType
         let name: Name?
         let variableDefinitions: [VariableDefinition]?
@@ -61,6 +62,7 @@ enum GraphQLAST {
 
     struct VariableDefinition: Decodable, Sendable {
         let loc: Location
+        let description: StringValue?
         let variable: Variable
         let type: TypeNode
         let defaultValue: ConstValue?
@@ -152,6 +154,7 @@ enum GraphQLAST {
 
     struct FragmentDefinition: Decodable {
         let loc: Location
+        let description: StringValue?
         let name: Name
         let typeCondition: NamedType
         let directives: [Directive]?

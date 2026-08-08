@@ -20,7 +20,7 @@ struct FragmentBuilder {
 
     func buildable() throws -> SwiftTypeBuildable {
         var fragmentStruct = SwiftStructBuilder(
-            description: nil,
+            description: fragment.ast.description?.value,
             isPublic: isPublic,
             name: typeName.source,
             conformances: includesSelectionSet ? configuration.output.documents.fragments.conformances : []
