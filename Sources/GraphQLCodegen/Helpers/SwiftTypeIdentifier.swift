@@ -33,7 +33,25 @@ struct SwiftTypeIdentifier: Hashable {
                 """)
             }
             let fileName = document.url.deletingPathExtension().lastPathComponent
-            unescaped = fileName.hasSuffix(operationType) ? fileName : fileName + operationType
+            let fileNameParts = fileName.split {
+                !$0.isLetter && !$0.isNumber && $0 != "_"
+            }
+            guard let firstFileNamePart = fileNameParts.first else {
+                throw Codegen.Error(description: """
+                Unable to derive a Swift type name for the unnamed operation because its filename contains no Swift identifier characters.
+                URL: \(document.url)
+
+                Name the GraphQL operation or rename the file.
+                """)
+            }
+            var typeName = String(firstFileNamePart)
+            for fileNamePart in fileNameParts.dropFirst() {
+                typeName += String(fileNamePart).capitalizedFirst
+            }
+            if typeName.first?.isNumber == true {
+                typeName = "_" + typeName
+            }
+            unescaped = typeName.hasSuffix(operationType) ? typeName : typeName + operationType
         }
     }
 
