@@ -6,6 +6,7 @@ import {
   graphqlSync,
   stripIgnoredCharacters,
 } from 'graphql';
+import './abort-controller.js';
 
 function execute(operation) {
   try {
