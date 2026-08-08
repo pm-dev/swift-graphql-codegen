@@ -10,19 +10,14 @@ extension Configuration.Input {
         ///   [September 2025 GraphQL specification](https://spec.graphql.org/September2025/#sec-Schema-Introspection).
         ///   Earlier introspection schemas are not supported.
         ///   - headers: Additional HTTP headers, such as authorization, to send to this endpoint.
-        ///   - includeDeprecatedFields: Pass `true` if the GraphQL schema should include fields that have been
-        ///   deprecated by the server. When deprecated fields are included, your GraphQL operations may query against these fields,
-        ///   but they will be annotated with a Swift warning. Pass `false` to exclude deprecated fields. When deprecated fields are excluded
-        ///   codegen will fail if your operations query against those fields.
-        ///   - includeDeprecatedEnumValues: Pass `true` if the GraphQL schema should include enum values (cases) that have
-        ///   been deprecated by the server. When deprecated enum values are included, the generated enum will include those cases,
-        ///   but they will be annotated with a Swift warning. Pass `false` to excluded deprecated enum values. When deprecated enum
-        ///   values are excluded, your code will not be able to reference those values.
+        ///   - includeDeprecated: Pass `true` if the GraphQL schema should include deprecated fields, arguments,
+        ///   input fields, directive arguments, and enum values. Deprecated generated declarations are annotated with a Swift
+        ///   warning where supported. Pass `false` to exclude deprecated schema members. Codegen will fail if an operation
+        ///   references an excluded member.
         case introspectionEndpoint(
             url: URL,
             headers: [String: String] = [:],
-            includeDeprecatedFields: Bool = true,
-            includeDeprecatedEnumValues: Bool = true
+            includeDeprecated: Bool = true
         )
 
         /// Instructs codegen to load your GraphQL schema from a .json file on the local filesystem.
@@ -34,8 +29,7 @@ extension Configuration.Input {
         /// The file should be formatted in valid Server Definition Langauge (SDL)
         case SDLSchemaFile(
             URL,
-            includeDeprecatedFields: Bool = true,
-            includeDeprecatedEnumValues: Bool = true
+            includeDeprecated: Bool = true
         )
     }
 }

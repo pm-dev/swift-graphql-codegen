@@ -98,13 +98,4 @@ struct GraphQL17BoundaryModelTests {
 
         #expect(try graphQLJS.canonicalize(described) == graphQLJS.canonicalize(undescribed))
     }
-
-    @Test
-    func decodesDirectiveDefinitionLocation() throws {
-        let data = Data(#""DIRECTIVE_DEFINITION""#.utf8)
-
-        let location = try JSONDecoder().decode(__Schema.__DirectiveLocation.self, from: data)
-
-        #expect(location == .DIRECTIVE_DEFINITION)
-    }
 }

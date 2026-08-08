@@ -3,10 +3,8 @@ import Foundation
 struct IntrospectionQuery: Encodable {
     let query: String
 
-    init(
-        includeDeprecatedFields: Bool,
-        includeDeprecatedEnumValues: Bool
-    ) {
+    init(includeDeprecated: Bool) {
+        let includeDeprecatedArgument = includeDeprecated ? "true" : "false"
         query = """
         query IntrospectionQuery {
           __schema {
@@ -31,7 +29,7 @@ struct IntrospectionQuery: Encodable {
               description
               locations
               isRepeatable
-              args {
+              args(includeDeprecated: \(includeDeprecatedArgument)) {
                 ...InputValue
               }
             }
@@ -44,10 +42,10 @@ struct IntrospectionQuery: Encodable {
           description
           specifiedByURL
           isOneOf
-          fields(includeDeprecated: \(includeDeprecatedFields ? "true" : "false")) {
+          fields(includeDeprecated: \(includeDeprecatedArgument)) {
             name
             description
-            args {
+            args(includeDeprecated: \(includeDeprecatedArgument)) {
               ...InputValue
             }
             type {
@@ -56,13 +54,13 @@ struct IntrospectionQuery: Encodable {
             isDeprecated
             deprecationReason
           }
-          inputFields {
+          inputFields(includeDeprecated: \(includeDeprecatedArgument)) {
             ...InputValue
           }
           interfaces {
             ...TypeRef
           }
-          enumValues(includeDeprecated: \(includeDeprecatedEnumValues ? "true" : "false")) {
+          enumValues(includeDeprecated: \(includeDeprecatedArgument)) {
             name
             description
             isDeprecated
@@ -80,6 +78,8 @@ struct IntrospectionQuery: Encodable {
             ...TypeRef
           }
           defaultValue
+          isDeprecated
+          deprecationReason
         }
 
         fragment TypeRef on __Type {

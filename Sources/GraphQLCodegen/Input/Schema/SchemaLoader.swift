@@ -104,26 +104,22 @@ struct SchemaLoader {
         case .introspectionEndpoint(
             let endpoint,
             let headers,
-            let includeDeprecatedFields,
-            let includeDeprecatedEnumValues
+            let includeDeprecated
         ):
             try await loadSchemaFromIntrospectionEndpoint(
                 endpoint: endpoint,
                 headers: headers,
-                includeDeprecatedFields: includeDeprecatedFields,
-                includeDeprecatedEnumValues: includeDeprecatedEnumValues
+                includeDeprecated: includeDeprecated
             )
         case .JSONSchemaFile(let schemaFile):
             try loadSchemaFromJSONFile(schemaFile)
         case .SDLSchemaFile(
             let schemaFile,
-            let includeDeprecatedFields,
-            let includeDeprecatedEnumValues
+            let includeDeprecated
         ):
             try loadSchemaFromSDLFile(
                 schemaFile,
-                includeDeprecatedFields: includeDeprecatedFields,
-                includeDeprecatedEnumValues: includeDeprecatedEnumValues
+                includeDeprecated: includeDeprecated
             )
         }
     }
@@ -131,14 +127,12 @@ struct SchemaLoader {
     private func loadSchemaFromIntrospectionEndpoint(
         endpoint: URL,
         headers: [String: String],
-        includeDeprecatedFields: Bool = false,
-        includeDeprecatedEnumValues: Bool = false
+        includeDeprecated: Bool
     ) async throws -> (LoadedSchema.Validation, __Schema) {
         let data = try await IntrospectionRunner(
             endpoint: endpoint,
             headers: headers,
-            includeDeprecatedFields: includeDeprecatedFields,
-            includeDeprecatedEnumValues: includeDeprecatedEnumValues,
+            includeDeprecated: includeDeprecated,
             urlSession: urlSession
         ).run()
         let __schema = try JSONDecoder().decode(IntrospectionResponse.self, from: data).data.__schema
@@ -160,14 +154,10 @@ struct SchemaLoader {
 
     private func loadSchemaFromSDLFile(
         _ schemaFile: URL,
-        includeDeprecatedFields: Bool,
-        includeDeprecatedEnumValues: Bool
+        includeDeprecated: Bool
     ) throws -> (LoadedSchema.Validation, __Schema) {
         let sdlSchemaString = try String(contentsOf: schemaFile, encoding: .utf8)
-        let introspectionQuery = IntrospectionQuery(
-            includeDeprecatedFields: includeDeprecatedFields,
-            includeDeprecatedEnumValues: includeDeprecatedEnumValues
-        ).query
+        let introspectionQuery = IntrospectionQuery(includeDeprecated: includeDeprecated).query
         let jsonSchema = try graphQLJS.convertSDLSchema(
             sdlSchemaString,
             introspectionQuery: introspectionQuery
