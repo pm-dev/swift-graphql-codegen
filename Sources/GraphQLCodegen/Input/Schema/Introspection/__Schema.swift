@@ -62,6 +62,7 @@ struct __Schema: Decodable {
             let description: String?
             let name: String
             let inputFields: [__InputValue]
+            let isOneOf: Bool?
         }
 
         private enum CodingKeys: CodingKey {

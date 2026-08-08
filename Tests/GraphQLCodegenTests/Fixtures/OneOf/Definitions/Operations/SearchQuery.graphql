@@ -1,0 +1,3 @@
+query Search($by: SearchInput!) {
+  search(by: $by)
+}

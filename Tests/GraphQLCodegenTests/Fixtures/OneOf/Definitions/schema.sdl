@@ -1,0 +1,9 @@
+type Query {
+  search(by: SearchInput!): String!
+}
+
+input SearchInput @oneOf {
+  id: Int
+  name: String
+  tags: [String!]
+}
