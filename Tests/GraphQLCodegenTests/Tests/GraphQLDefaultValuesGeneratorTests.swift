@@ -68,19 +68,13 @@ struct GraphQLDefaultValuesGeneratorTests {
             )
         ).run()
 
-        try verifyFiles(
-            expected: files(
-                in: GraphQLDefaultValuesGeneratorTests.testsDirectory.appending(
-                    path: "GeneratedAPI",
+        #expect(
+            !FileManager.default.fileExists(
+                atPath: generatedDirectory.appending(
+                    path: "API/HTTPSupport",
                     directoryHint: .isDirectory
-                ),
-                withSuffix: ".swift"
-            ),
-            generated: files(
-                in: generatedDirectory.appending(path: "API", directoryHint: .isDirectory),
-                withSuffix: ".swift"
-            ),
-            requireSameFileNames: false
+                ).path(percentEncoded: false)
+            )
         )
         try verifyFiles(
             expected: files(in: expectedDirectory, withSuffix: ".graphqls.swift"),
@@ -107,18 +101,13 @@ struct GraphQLDefaultValuesGeneratorTests {
 
     private func verifyFiles(
         expected: [URL],
-        generated: [URL],
-        requireSameFileNames: Bool = true
+        generated: [URL]
     ) throws {
         let expectedFileNames = Set(expected.map(\.lastPathComponent))
         let generatedFileNames = Set(generated.map(\.lastPathComponent))
         #expect(expected.count == expectedFileNames.count)
         #expect(generated.count == generatedFileNames.count)
-        if requireSameFileNames {
-            #expect(generatedFileNames == expectedFileNames)
-        } else {
-            #expect(expectedFileNames.isSubset(of: generatedFileNames))
-        }
+        #expect(generatedFileNames == expectedFileNames)
 
         for expectedURL in expected {
             let generatedURL = try #require(
