@@ -47,12 +47,11 @@ When a schema category's `directoryName` is `nil`, that category writes directly
 schema root itself as an owned output directory. Customized scalar files are preserved while their scalar remains part of the
 generated output; if the scalar is no longer used by an operation, its file may be removed on the next run.
 
-## Server-Sent Events trust requirement
+## Server-Sent Event limits
 
-Only use the generated GraphQL subscription API with a trusted server. Its Foundation-based SSE parser accepts LF, CRLF, and CR line
-endings and bounds both complete event payloads and decoded results waiting for the consumer. The parser buffers bytes until an
-SSE line terminator arrives, however, so the server must not send an arbitrarily long unterminated line. This is an explicit trust
-boundary rather than protection against a malicious or compromised subscription endpoint.
+The generated GraphQL subscription API accepts LF, CRLF, and CR line endings and independently bounds SSE lines, complete event
+payloads, and decoded results waiting for the consumer. Configure these limits with `maximumLineByteCount`,
+`maximumEventByteCount`, and `maximumBufferedResultCount` when subscribing.
 
 ---
 
@@ -60,7 +59,7 @@ boundary rather than protection against a malicious or compromised subscription 
 
 1. [Platform Support](#platform-support)
 2. [Output directory ownership](#output-directory-ownership)
-3. [Server-Sent Events trust requirement](#server-sent-events-trust-requirement)
+3. [Server-Sent Event limits](#server-sent-event-limits)
 4. [Getting Started](#getting-started)
 5. [Example](#example-output)
 6. [Motivation](#motivation)

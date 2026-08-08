@@ -41,7 +41,9 @@ extension URLSession {
         case invalidContentType(String?)
         case invalidMaximumBufferedResultCount(Int)
         case invalidMaximumEventByteCount(Int)
+        case invalidMaximumLineByteCount(Int)
         case invalidUTF8
+        case lineTooLarge(maximumByteCount: Int)
         case missingCompleteEvent
         case resultBufferOverflow(maximumBufferedResultCount: Int)
     }
@@ -52,23 +54,27 @@ extension URLSession {
     /// - Important: Automatic persisted operations are not supported for subscriptions. Subscription
     /// requests always include the full operation document.
     ///
-    /// Only use this API with a trusted GraphQL server. The parser buffers input until it encounters an SSE line
-    /// terminator, so the server must not send an arbitrarily long unterminated line. Complete events and queued
-    /// results remain bounded by `maximumEventByteCount` and `maximumBufferedResultCount`, respectively.
+    /// Lines, complete event payloads, and decoded results waiting for the consumer are bounded independently.
     /// - Parameters:
     ///   - request: The request containing the `URLRequest` to be performed. The `URLRequest` must have
     ///   `text/event-stream` set in the "accept" header.
     ///   - decoder: The function used to turn response data into a Subscription.Data instance.
     ///   - maximumEventByteCount: The largest combined payload allowed across an event's `data` fields.
+    ///   - maximumLineByteCount: The largest SSE line allowed, excluding its terminator. The default provides
+    ///   framing headroom beyond `maximumEventByteCount` for a payload sent on one `data` line.
     ///   - maximumBufferedResultCount: The number of decoded results that may wait for the stream consumer.
     func subscribe<Subscription: GraphQLSubscription>(
         _ request: GraphQLRequest<Subscription>,
         decoder: @escaping @Sendable (Data) throws -> GraphQLResponse<Subscription.Data> = GraphQLRequest<Subscription>.defaultDecoder,
         maximumEventByteCount: Int = 1_048_576,
+        maximumLineByteCount: Int = 1_052_672,
         maximumBufferedResultCount: Int = 16
     ) async throws -> AsyncThrowingStream<GraphQLResponse<Subscription.Data>.Success, Error> {
         guard maximumEventByteCount > 0 else {
             throw SubscriptionError.invalidMaximumEventByteCount(maximumEventByteCount)
+        }
+        guard maximumLineByteCount > 0 else {
+            throw SubscriptionError.invalidMaximumLineByteCount(maximumLineByteCount)
         }
         guard maximumBufferedResultCount > 0 else {
             throw SubscriptionError.invalidMaximumBufferedResultCount(maximumBufferedResultCount)
@@ -86,15 +92,20 @@ extension URLSession {
             let task = Task {
                 do {
                     var accumulator = ServerSentEventAccumulator()
-                    var lineBuffer = ServerSentEventLineBuffer()
+                    var lineBuffer = ServerSentEventLineBuffer(
+                        maximumByteCount: maximumLineByteCount
+                    )
                     for try await byte in asyncBytes {
-                        guard let line = try lineBuffer.append(byte) else { continue }
-                        guard let event = try accumulator.consume(
-                            line,
-                            maximumByteCount: maximumEventByteCount
-                        ) else { continue }
+                        guard try lineBuffer.append(byte) else { continue }
+                        let event = try lineBuffer.consumeLine { line in
+                            try accumulator.consume(
+                                line,
+                                maximumByteCount: maximumEventByteCount
+                            )
+                        }
+                        guard let event else { continue }
                         switch event.name {
-                        case "next":
+                        case .next:
                             switch try decoder(event.data) {
                             case .success(let success):
                                 switch continuation.yield(success) {
@@ -110,10 +121,10 @@ extension URLSession {
                                 // TODO: Support automatic persisted operation fallback for subscriptions.
                                 throw requestError
                         }
-                        case "complete":
+                        case .complete:
                             continuation.finish()
                             return
-                        default: continue
+                        case .other: continue
                         }
                     }
                     throw SubscriptionError.missingCompleteEvent
@@ -129,72 +140,101 @@ extension URLSession {
 
     private struct ServerSentEvent {
         let data: Data
-        let name: String
+        let name: ServerSentEventName
+    }
+
+    private enum ServerSentEventName {
+        case complete
+        case next
+        case other
     }
 
     private struct ServerSentEventAccumulator {
+        private let colon: UInt8 = 0x3A
         private let dataFieldSeparator: UInt8 = 0x0A
+        private let space: UInt8 = 0x20
         private var data = Data()
         private var hasDataField = false
         private var isFirstLine = true
-        private var name = "message"
+        private var name = ServerSentEventName.other
 
         mutating func consume(
-            _ line: String,
+            _ line: UTF8Span,
             maximumByteCount: Int
         ) throws -> ServerSentEvent? {
-            var line = line
+            var bytes = line.span
             if isFirstLine {
                 isFirstLine = false
-                if line.first == "\u{FEFF}" {
-                    line.removeFirst()
+                if startsWithByteOrderMark(bytes) {
+                    bytes = bytes.extracting(droppingFirst: 3)
                 }
             }
-            guard !line.isEmpty else {
+            guard !bytes.isEmpty else {
                 defer { reset() }
                 guard hasDataField else { return nil }
                 return ServerSentEvent(data: data, name: name)
             }
-            guard !line.hasPrefix(":") else { return nil }
+            guard bytes[0] != colon else { return nil }
 
-            let field: Substring
-            let value: Substring
-            if let colonIndex = line.firstIndex(of: ":") {
-                field = line[..<colonIndex]
-                let valueStartIndex = line.index(after: colonIndex)
-                let untrimmedValue = line[valueStartIndex...]
-                value = untrimmedValue.first == " " ? untrimmedValue.dropFirst() : untrimmedValue
+            let field: Span<UInt8>
+            let value: Span<UInt8>
+            if let colonIndex = bytes.indices.first(where: { bytes[$0] == colon }) {
+                field = bytes.extracting(0..<colonIndex)
+                var valueStartIndex = colonIndex + 1
+                if valueStartIndex < bytes.count, bytes[valueStartIndex] == space {
+                    valueStartIndex += 1
+                }
+                value = bytes.extracting(valueStartIndex..<bytes.count)
             } else {
-                field = line[...]
-                value = line[line.endIndex...]
+                field = bytes
+                value = bytes.extracting(bytes.count..<bytes.count)
             }
 
-            switch field {
-            case "data":
+            if matches(field, "data".utf8) {
                 let separatorByteCount = hasDataField ? 1 : 0
                 guard data.count <= maximumByteCount - separatorByteCount else {
                     throw SubscriptionError.eventTooLarge(maximumByteCount: maximumByteCount)
                 }
                 let remainingByteCount = maximumByteCount - separatorByteCount - data.count
-                guard value.utf8.count <= remainingByteCount else {
+                guard value.count <= remainingByteCount else {
                     throw SubscriptionError.eventTooLarge(maximumByteCount: maximumByteCount)
                 }
                 if hasDataField {
                     data.append(dataFieldSeparator)
                 }
-                data.append(contentsOf: value.utf8)
+                value.withUnsafeBufferPointer { buffer in
+                    data.append(contentsOf: buffer)
+                }
                 hasDataField = true
-            case "event":
-                name = String(value)
-            default: break
+            } else if matches(field, "event".utf8) {
+                if matches(value, "complete".utf8) {
+                    name = .complete
+                } else if matches(value, "next".utf8) {
+                    name = .next
+                } else {
+                    name = .other
+                }
             }
             return nil
+        }
+
+        private func matches(
+            _ bytes: Span<UInt8>,
+            _ expected: String.UTF8View
+        ) -> Bool {
+            bytes.withUnsafeBufferPointer { buffer in
+                buffer.elementsEqual(expected)
+            }
         }
 
         private mutating func reset() {
             data.removeAll(keepingCapacity: true)
             hasDataField = false
-            name = "message"
+            name = .other
+        }
+
+        private func startsWithByteOrderMark(_ bytes: Span<UInt8>) -> Bool {
+            bytes.count >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF
         }
     }
 
@@ -203,32 +243,45 @@ extension URLSession {
     private struct ServerSentEventLineBuffer {
         private let carriageReturn: UInt8 = 0x0D
         private let lineFeed: UInt8 = 0x0A
+        private let maximumByteCount: Int
         private var buffer: [UInt8] = []
         private var previousByteWasCarriageReturn = false
 
-        mutating func append(_ byte: UInt8) throws -> String? {
+        init(maximumByteCount: Int) {
+            self.maximumByteCount = maximumByteCount
+        }
+
+        mutating func append(_ byte: UInt8) throws -> Bool {
             if byte == lineFeed {
                 if previousByteWasCarriageReturn {
                     previousByteWasCarriageReturn = false
-                    return nil
+                    return false
                 }
-                return try takeLine()
+                return true
             }
             previousByteWasCarriageReturn = false
             if byte == carriageReturn {
                 previousByteWasCarriageReturn = true
-                return try takeLine()
+                return true
+            }
+            guard buffer.count < maximumByteCount else {
+                throw SubscriptionError.lineTooLarge(maximumByteCount: maximumByteCount)
             }
             buffer.append(byte)
-            return nil
+            return false
         }
 
-        private mutating func takeLine() throws -> String {
+        mutating func consumeLine<Result>(
+            _ body: (UTF8Span) throws -> Result
+        ) throws -> Result {
             defer { buffer.removeAll(keepingCapacity: true) }
-            guard let line = String(bytes: buffer, encoding: .utf8) else {
+            let line: UTF8Span
+            do {
+                line = try UTF8Span(validating: buffer.span)
+            } catch {
                 throw SubscriptionError.invalidUTF8
             }
-            return line
+            return try body(line)
         }
     }
 }
