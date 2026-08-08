@@ -1,5 +1,11 @@
 [tools]
 periphery = "3.8.0"
+swift = "6.3.3"
+swiftlint = "0.65.0"
+
+[tasks.lint]
+description = "Lint Swift sources"
+run = "swiftlint lint --strict"
 
 [tasks.periphery]
 description = "Scan for unused Swift code using the existing debug index store"
