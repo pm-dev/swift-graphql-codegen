@@ -8,32 +8,32 @@ struct Schema {
     let typeCache: TypeCache
 
     struct Object {
-        let ast: __Schema.__Type.Object
+        let ast: __Schema.__NamedType.Object
         let fields: [String: __Schema.__Field]
         let implements: Set<String>
     }
 
     struct Scalar {
-        let ast: __Schema.__Type.Scalar
+        let ast: __Schema.__NamedType.Scalar
     }
 
     struct Interface {
-        let ast: __Schema.__Type.Interface
+        let ast: __Schema.__NamedType.Interface
         let fields: [String: __Schema.__Field]
         let implements: Set<String>
     }
 
     struct Union {
-        let ast: __Schema.__Type.Union
+        let ast: __Schema.__NamedType.Union
         let possibleTypes: Set<String>
     }
 
     struct Enum {
-        let ast: __Schema.__Type.Enum
+        let ast: __Schema.__NamedType.Enum
     }
 
     struct InputObject {
-        let ast: __Schema.__Type.InputObject
+        let ast: __Schema.__NamedType.InputObject
     }
 
     enum SelectionSet {

@@ -4,7 +4,7 @@
 /// Keep this boundary model aligned with:
 /// https://spec.graphql.org/October2021/#sec-Schema-Introspection.Schema-Introspection-Schema
 struct __Schema: Decodable {
-    enum __Type: Decodable {
+    enum __NamedType: Decodable {
         case SCALAR(Scalar)
         case OBJECT(Object)
         case INTERFACE(Interface)
@@ -345,7 +345,7 @@ struct __Schema: Decodable {
     }
 
     let description: String?
-    let types: [__Type]
+    let types: [__NamedType]
     let queryType: __TypeRef.Object
     let mutationType: __TypeRef.Object?
     let subscriptionType: __TypeRef.Object?
