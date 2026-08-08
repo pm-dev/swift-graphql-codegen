@@ -16,6 +16,8 @@ jobs:
   build-lint-test:
     runs-on: macos-26
     timeout-minutes: 30
+    env:
+      MISE_ENABLE_TOOLS: periphery,swiftlint
 
     steps:
       - uses: actions/checkout@v7
@@ -42,6 +44,9 @@ jobs:
           fi
 
       - uses: jdx/mise-action@v4
+        with:
+          add_shims_to_path: false
+          cache_key_prefix: mise-ci-v1
 
       - uses: actions/cache@v6
         with:
