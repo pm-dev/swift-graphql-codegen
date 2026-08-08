@@ -53,6 +53,55 @@ struct DeprecationSupportTests {
     }
 
     @Test
+    func reportsDeprecatedUsageAtFragmentSourceLocation() async throws {
+        let fixture = try makeFixture(
+            document: """
+            query Search {
+              ...SearchFragment
+            }
+            """
+        )
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        let fragmentURL = fixture.operationsDirectory.appending(
+            path: "SearchFragment.graphql",
+            directoryHint: .notDirectory
+        )
+        try #"""
+        fragment SearchFragment on Query {
+          search(old: "value")
+        }
+        """#.write(to: fragmentURL, atomically: true, encoding: .utf8)
+        let configuration = makeConfiguration(
+            schemaSource: .SDLSchemaFile(fixture.schemaURL, deprecationPolicy: .include),
+            fixture: fixture
+        )
+        let graphQLJS = try GraphQLJS()
+        let loadedSchema = try await SchemaLoader(
+            configuration: configuration,
+            graphQLJS: graphQLJS,
+            urlSession: .shared
+        ).load()
+        let documents = try DocumentsLoader(
+            configuration: configuration,
+            graphQLJS: graphQLJS
+        ).load()
+
+        let diagnostic = try #require(
+            DeprecationUsageValidator(
+                documents: documents,
+                graphQLJS: graphQLJS,
+                policy: .include,
+                schemaJSON: loadedSchema.schemaJSON
+            ).validate().first
+        )
+        let location = try #require(diagnostic.issues.first?.locations.first)
+
+        #expect(location.documentURL.resolvingSymlinksInPath() == fragmentURL.resolvingSymlinksInPath())
+        #expect(location.line == 2)
+        #expect(location.column == 10)
+    }
+
+    @Test
     func rejectsDeprecatedUsageFromJSONSchemaWhenValidationIsDisabled() async throws {
         let fixture = try makeFixture(
             document: #"query Search { search(old: "value") }"#

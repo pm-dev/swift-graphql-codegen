@@ -2,13 +2,14 @@ import Foundation
 
 struct DeprecationUsageValidator {
     struct Diagnostic: CustomStringConvertible {
-        struct Issue: Decodable, CustomStringConvertible {
-            struct Location: Decodable, CustomStringConvertible {
+        struct Issue: CustomStringConvertible {
+            struct Location: CustomStringConvertible {
+                let documentURL: URL
                 let line: Int
                 let column: Int
 
                 var description: String {
-                    "line: \(line), column: \(column)"
+                    "File: \(documentURL)\nline: \(line), column: \(column)"
                 }
             }
 
@@ -32,6 +33,16 @@ struct DeprecationUsageValidator {
             \(issues.map(\.description).joined(separator: "\n\n"))
             """
         }
+    }
+
+    private struct GraphQLIssue: Decodable {
+        struct Location: Decodable {
+            let line: Int
+            let column: Int
+        }
+
+        let message: String
+        let locations: [Location]
     }
 
     struct ExcludedUsageError: CustomStringConvertible, Error {
@@ -70,13 +81,28 @@ struct DeprecationUsageValidator {
             schemaJSON: schemaJSON,
             argumentsOnly: argumentsOnly
         )
-        let issuesByOperation = try JSONDecoder().decode([[Diagnostic.Issue]].self, from: issuesJSON)
+        let issuesByOperation = try JSONDecoder().decode([[GraphQLIssue]].self, from: issuesJSON)
 
         var diagnostics: [Diagnostic] = []
         var operationIndex = 0
         for (document, operations) in zip(documents.documents, operationsByDocument) {
             for operation in operations {
-                let issues = issuesByOperation[operationIndex]
+                let issues = issuesByOperation[operationIndex].map { issue in
+                    Diagnostic.Issue(
+                        message: issue.message,
+                        locations: issue.locations.map { location in
+                            let sourceLocation = operation.sourceLocation(
+                                line: location.line,
+                                column: location.column
+                            )
+                            return Diagnostic.Issue.Location(
+                                documentURL: sourceLocation?.url ?? document.url,
+                                line: sourceLocation?.line ?? location.line,
+                                column: sourceLocation?.column ?? location.column
+                            )
+                        }
+                    )
+                }
                 operationIndex += 1
                 guard !issues.isEmpty else { continue }
                 diagnostics.append(

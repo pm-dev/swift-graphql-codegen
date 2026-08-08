@@ -4,7 +4,12 @@ import Foundation
 struct DocumentsLoader {
     private enum ParsedDefinition {
         case fragment(String)
-        case operation(ast: GraphQLAST.OperationDefinition, sourceText: Substring)
+        case operation(
+            ast: GraphQLAST.OperationDefinition,
+            sourceColumn: Int,
+            sourceLine: Int,
+            sourceText: Substring
+        )
     }
 
     private struct ParsedDocument {
@@ -66,8 +71,14 @@ struct DocumentsLoader {
             for definition in ast.definitions {
                 switch definition {
                 case .operation(let operation):
+                    let sourceLocation = sourceLocation(
+                        atUTF16Offset: operation.loc.start,
+                        in: documentText
+                    )
                     definitions.append(.operation(
                         ast: operation,
+                        sourceColumn: sourceLocation.column,
+                        sourceLine: sourceLocation.line,
                         sourceText: documentText[utf16Range: operation.loc.utf16Range]
                     ))
                 case .fragment(let fragment):
@@ -88,10 +99,16 @@ struct DocumentsLoader {
                         https://spec.graphql.org/September2025/#sel-IALVDDFDABhCBrE77W
                         """)
                     }
+                    let sourceLocation = sourceLocation(
+                        atUTF16Offset: fragment.loc.start,
+                        in: documentText
+                    )
                     definitions.append(.fragment(fragment.name.value))
                     fragmentLookup[fragment.name.value] = Document.Fragment(
                         file: documentURL,
                         ast: fragment,
+                        sourceColumn: sourceLocation.column,
+                        sourceLine: sourceLocation.line,
                         sourceText: documentText[utf16Range: fragment.loc.utf16Range]
                     )
                 }
@@ -119,12 +136,43 @@ struct DocumentsLoader {
             updatedDefinitions.reserveCapacity(document.definitions.count)
             for definition in document.definitions {
                 switch definition {
-                case .operation(let operationAST, let operationSourceText):
+                case .operation(
+                    let operationAST,
+                    let operationSourceColumn,
+                    let operationSourceLine,
+                    let operationSourceText
+                ):
+                    var referencedFragments: [Document.Fragment] = []
                     let expandedText = try OperationTextResolver(
                         fragmentLookup: fragmentLookup,
                         operationAST: operationAST,
                         operationSourceText: operationSourceText
-                    ).expandSourceText { $0.sourceText }
+                    ).expandSourceText { fragment in
+                        referencedFragments.append(fragment)
+                        return fragment.sourceText
+                    }
+                    var expandedLine = 1
+                    var sourceSegments = [
+                        Document.Operation.SourceSegment(
+                            expandedLines: expandedLine ..< expandedLine + lineCount(operationSourceText),
+                            sourceColumn: operationSourceColumn,
+                            sourceLine: operationSourceLine,
+                            url: document.url,
+                        ),
+                    ]
+                    expandedLine += lineCount(operationSourceText)
+                    for fragment in referencedFragments {
+                        let fragmentLineCount = lineCount(fragment.sourceText)
+                        sourceSegments.append(
+                            Document.Operation.SourceSegment(
+                                expandedLines: expandedLine ..< expandedLine + fragmentLineCount,
+                                sourceColumn: fragment.sourceColumn,
+                                sourceLine: fragment.sourceLine,
+                                url: fragment.file
+                            )
+                        )
+                        expandedLine += fragmentLineCount
+                    }
                     let canonicalText = try graphQLJS.canonicalize(expandedText)
                     let persistence: Document.Operation.Persistence
                     switch configuration.output.documents.operations.persistedOperations {
@@ -148,7 +196,8 @@ struct DocumentsLoader {
                                 ast: operationAST,
                                 canonicalText: canonicalText,
                                 documentText: expandedText,
-                                persistence: persistence
+                                persistence: persistence,
+                                sourceSegments: sourceSegments
                             )
                         )
                     )
@@ -167,6 +216,17 @@ struct DocumentsLoader {
         return updatedDocuments
     }
 
+    private func lineCount(_ sourceText: Substring) -> Int {
+        sourceText.count(where: \.isNewline) + 1
+    }
+
+    private func sourceLocation(atUTF16Offset offset: Int, in sourceText: String) -> (line: Int, column: Int) {
+        let sourceIndex = String.Index(utf16Offset: offset, in: sourceText)
+        let prefix = sourceText[..<sourceIndex]
+        let line = prefix.count(where: \.isNewline) + 1
+        let lineStart = prefix.lastIndex(where: \.isNewline).map(prefix.index(after:)) ?? prefix.startIndex
+        return (line: line, column: prefix[lineStart...].utf16.count + 1)
+    }
     private func hash(_ sourceText: String) -> String {
         let digits = Array("0123456789abcdef".utf8)
         let capacity = 2 * SHA256.Digest.byteCount
