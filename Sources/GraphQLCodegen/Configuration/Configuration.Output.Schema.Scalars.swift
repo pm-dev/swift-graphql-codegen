@@ -5,7 +5,8 @@ extension Configuration.Output.Schema {
     /// This differs from Enum and Input Object files which will always override existing code.
     /// This behavior allows you to customize scalar types. By default, scalars are simple String typealiases
     /// but you are free to change that and create full types for scalars, or use a typealias to an already existing
-    /// type (i.e. `Foundation.URL` or `Foundation.UUID`)
+    /// type (i.e. `Foundation.URL` or `Foundation.UUID`). A customized scalar file is preserved while its scalar
+    /// remains part of the generated output; if the scalar is no longer used, its file may be removed on the next run.
     public struct Scalars: Sendable {
         /// Call this function to create a new `Scalars` instance.
         ///

@@ -37,6 +37,16 @@ Everything you need and nothing you don't. Swift GraphQL Codegen is a lightweigh
 
 The code generator runs on macOS 14 or newer because it uses JavaScriptCore to execute the bundled GraphQL reference implementation. The generated source uses portable Foundation APIs and can be included in iOS, macOS, tvOS, and watchOS applications, subject to the APIs enabled in your configuration.
 
+## Output directory ownership
+
+Codegen assumes exclusive ownership of the configured schema output directories. Each run may remove and recreate the scalar,
+enum, and input-object directories, including files that are not part of the current generated output. Do not store unrelated or
+independently maintained files in these directories.
+
+When a schema category's `directoryName` is `nil`, that category writes directly into `Schema.directory`, and Codegen treats the
+schema root itself as an owned output directory. Customized scalar files are preserved while their scalar remains part of the
+generated output; if the scalar is no longer used by an operation, its file may be removed on the next run.
+
 ## Server-Sent Events trust requirement
 
 Only use the generated GraphQL subscription API with a trusted server. Its Foundation-based SSE parser accepts LF, CRLF, and CR line
@@ -49,13 +59,14 @@ boundary rather than protection against a malicious or compromised subscription 
 ## Table of Contents
 
 1. [Platform Support](#platform-support)
-2. [Server-Sent Events trust requirement](#server-sent-events-trust-requirement)
-3. [Getting Started](#getting-started)
-4. [Example](#example-output)
-5. [Motivation](#motivation)
-6. [Design](#design)
-7. [Contributing](#contributing)
-8. [License](#license)
+2. [Output directory ownership](#output-directory-ownership)
+3. [Server-Sent Events trust requirement](#server-sent-events-trust-requirement)
+4. [Getting Started](#getting-started)
+5. [Example](#example-output)
+6. [Motivation](#motivation)
+7. [Design](#design)
+8. [Contributing](#contributing)
+9. [License](#license)
 
 ---
 
