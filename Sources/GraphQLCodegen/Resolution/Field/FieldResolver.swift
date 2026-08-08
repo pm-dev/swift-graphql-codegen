@@ -31,46 +31,30 @@ struct FieldResolver {
         case .SCALAR(let scalarType):
             return .scalar(typeName: scalarType.ast.swiftName, isEnum: false)
         case .OBJECT(let objectType):
-            guard let selectionSet = fieldSelection.selectionSet else {
-                throw missingSelectionSetError()
-            }
-            return .map(
-                try SelectionSetResolver(
-                    onType: .OBJECT(objectType),
-                    selectionSet: selectionSet,
-                    schema: schema,
-                    documents: documents
-                ).resolve()
-            )
+            return try resolveSelectionSet(on: .OBJECT(objectType))
         case .INTERFACE(let interfaceType):
-            guard let selectionSet = fieldSelection.selectionSet else {
-                throw missingSelectionSetError()
-            }
-            return .map(
-                try SelectionSetResolver(
-                    onType: .INTERFACE(interfaceType),
-                    selectionSet: selectionSet,
-                    schema: schema,
-                    documents: documents
-                ).resolve()
-            )
+            return try resolveSelectionSet(on: .INTERFACE(interfaceType))
         case .UNION(let unionType):
-            guard let selectionSet = fieldSelection.selectionSet else {
-                throw missingSelectionSetError()
-            }
-            return .map(
-                try SelectionSetResolver(
-                    onType: .UNION(unionType),
-                    selectionSet: selectionSet,
-                    schema: schema,
-                    documents: documents
-                ).resolve()
-            )
+            return try resolveSelectionSet(on: .UNION(unionType))
         case .ENUM(let `enum`):
             return .scalar(typeName: `enum`.ast.name, isEnum: true)
         case .LIST(let innerType):
             return .list(innerType: try resolveFieldType(innerType))
         }
+    }
+
+    private func resolveSelectionSet(on type: Schema.SelectionSet) throws -> ResolvedFieldType {
+        guard let selectionSet = fieldSelection.selectionSet else {
+            throw missingSelectionSetError()
+        }
+        return .map(
+            try SelectionSetResolver(
+                onType: type,
+                selectionSet: selectionSet,
+                schema: schema,
+                documents: documents
+            ).resolve()
+        )
     }
 
     private func missingSelectionSetError() -> Codegen.Error {
