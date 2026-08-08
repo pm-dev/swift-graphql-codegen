@@ -2,6 +2,7 @@
 
 enum SearchInput: Codable, Hashable, Sendable {
     case id(Int)
+    @available(*, deprecated, message: "Use id.")
     case name(String)
     case tags([String])
     indirect case next(SearchInput)

@@ -82,6 +82,19 @@ struct GraphQLJS {
         return (Data(text.utf8), text)
     }
 
+    func findDeprecatedUsages(
+        _ sourceTexts: [String],
+        schemaJSON: String,
+        argumentsOnly: Bool
+    ) throws -> Data {
+        Data(
+            try stringResult(
+                function: "findDeprecatedUsages",
+                arguments: [sourceTexts, schemaJSON, argumentsOnly]
+            ).utf8
+        )
+    }
+
     func parse(_ sourceText: String) throws -> Data {
         Data(try stringResult(function: "parseGraphQL", arguments: [sourceText]).utf8)
     }

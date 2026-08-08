@@ -3,7 +3,9 @@ import {
   validate,
   buildClientSchema,
   buildASTSchema,
+  GraphQLError,
   graphqlSync,
+  NoDeprecatedCustomRule,
   stripIgnoredCharacters,
 } from 'graphql';
 import './abort-controller.js';
@@ -25,6 +27,42 @@ export function validateDocuments(documents, JSONSchemaString) {
     const schema = buildClientSchema(JSON.parse(JSONSchemaString));
     return JSON.stringify(
       documents.map((document) => validate(schema, parse(document))),
+    );
+  });
+}
+
+function deprecatedArgumentsRule(context) {
+  return {
+    Argument(node) {
+      if (context.getDirective() != null) {
+        return;
+      }
+      const argument = context.getArgument();
+      const deprecationReason = argument?.deprecationReason;
+      if (argument && deprecationReason != null) {
+        context.reportError(
+          new GraphQLError(
+            `The argument "${argument}" is deprecated. ${deprecationReason}`,
+            { nodes: node },
+          ),
+        );
+      }
+    },
+  };
+}
+
+export function findDeprecatedUsages(
+  documents,
+  JSONSchemaString,
+  argumentsOnly,
+) {
+  return execute(() => {
+    const schema = buildClientSchema(JSON.parse(JSONSchemaString));
+    const rule = argumentsOnly
+      ? deprecatedArgumentsRule
+      : NoDeprecatedCustomRule;
+    return JSON.stringify(
+      documents.map((document) => validate(schema, parse(document), [rule])),
     );
   });
 }

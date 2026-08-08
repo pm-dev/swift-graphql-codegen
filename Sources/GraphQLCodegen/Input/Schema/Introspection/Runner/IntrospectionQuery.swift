@@ -3,8 +3,7 @@ import Foundation
 struct IntrospectionQuery: Encodable {
     let query: String
 
-    init(includeDeprecated: Bool) {
-        let includeDeprecatedArgument = includeDeprecated ? "true" : "false"
+    init() {
         query = """
         query IntrospectionQuery {
           __schema {
@@ -29,7 +28,7 @@ struct IntrospectionQuery: Encodable {
               description
               locations
               isRepeatable
-              args(includeDeprecated: \(includeDeprecatedArgument)) {
+              args(includeDeprecated: true) {
                 ...InputValue
               }
             }
@@ -42,10 +41,10 @@ struct IntrospectionQuery: Encodable {
           description
           specifiedByURL
           isOneOf
-          fields(includeDeprecated: \(includeDeprecatedArgument)) {
+          fields(includeDeprecated: true) {
             name
             description
-            args(includeDeprecated: \(includeDeprecatedArgument)) {
+            args(includeDeprecated: true) {
               ...InputValue
             }
             type {
@@ -54,13 +53,13 @@ struct IntrospectionQuery: Encodable {
             isDeprecated
             deprecationReason
           }
-          inputFields(includeDeprecated: \(includeDeprecatedArgument)) {
+          inputFields(includeDeprecated: true) {
             ...InputValue
           }
           interfaces {
             ...TypeRef
           }
-          enumValues(includeDeprecated: \(includeDeprecatedArgument)) {
+          enumValues(includeDeprecated: true) {
             name
             description
             isDeprecated

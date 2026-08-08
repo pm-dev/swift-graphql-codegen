@@ -45,7 +45,7 @@ public struct Configuration: Sendable {
         case .automatic, .none: break
         }
         switch input.schemaSource {
-        case .JSONSchemaFile(let url):
+        case .JSONSchemaFile(let url, _):
             try verifyLocalURL(
                 url,
                 expectedExtension: ["json"],

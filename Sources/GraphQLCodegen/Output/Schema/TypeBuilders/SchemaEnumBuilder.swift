@@ -13,7 +13,7 @@ struct SchemaEnumBuilder: SwiftTypeBuildable {
             let caseName = caseConversion?.convert(enumValue.name) ?? enumValue.name
             builder.addCase(
                 description: enumValue.description,
-                deprecation: enumValue.isDeprecated ? Deprecation(reason: enumValue.deprecationReason) : nil,
+                deprecation: enumValue.deprecation,
                 name: caseName,
                 rawValue: caseConversion == nil ? nil : enumValue.name
             )

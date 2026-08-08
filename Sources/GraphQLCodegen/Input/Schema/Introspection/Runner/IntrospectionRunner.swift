@@ -3,7 +3,6 @@ import Foundation
 struct IntrospectionRunner {
     let endpoint: URL
     let headers: [String: String]
-    let includeDeprecated: Bool
     let urlSession: URLSession
 
     func run() async throws -> Data {
@@ -30,7 +29,7 @@ struct IntrospectionRunner {
             urlRequest.setValue(value, forHTTPHeaderField: field)
         }
         urlRequest.httpBody = try JSONEncoder().encode(
-            IntrospectionQuery(includeDeprecated: includeDeprecated)
+            IntrospectionQuery()
         )
         return urlRequest
     }

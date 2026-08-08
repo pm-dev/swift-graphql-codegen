@@ -4,8 +4,10 @@ struct DefaultsInput: Encodable, Hashable, Sendable {
 
     let required: GraphQLHasDefault<Int>
 
+    @available(*, deprecated, message: "No longer supported")
     let optional: GraphQLNullable<Int>?
 
+    @available(*, deprecated, message: "")
     let list: GraphQLHasDefault<[GraphQLNullable<Int>?]>
 
     init(
