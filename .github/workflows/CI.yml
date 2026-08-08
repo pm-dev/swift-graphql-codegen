@@ -19,10 +19,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6
         with:
-          version: "10.33.0"
+          package_json_file: Sources/GraphQLJS/package.json
 
       - uses: actions/setup-node@v7
         with:
@@ -47,13 +49,13 @@ jobs:
             ${{ runner.os }}-swift-
 
       - name: Build
-        run: swift build --build-tests -v
+        run: swift build --build-tests
 
       - name: Periphery
-        run: mise run periphery -- --format github-actions --relative-results --color never
+        run: mise run periphery -- --format github-actions --relative-results --color never --quiet
 
       - name: Lint
         run: mise run lint
 
       - name: Test
-        run: swift test --skip-build -v
+        run: swift test --skip-build

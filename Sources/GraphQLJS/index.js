@@ -1,11 +1,11 @@
-const {
+import {
   parse,
   validate,
   buildClientSchema,
   buildASTSchema,
   graphqlSync,
   stripIgnoredCharacters,
-} = require('graphql');
+} from 'graphql';
 
 function execute(operation) {
   try {
@@ -15,11 +15,11 @@ function execute(operation) {
   }
 }
 
-function parseGraphQL(query) {
+export function parseGraphQL(query) {
   return execute(() => JSON.stringify(parse(query)));
 }
 
-function validateDocuments(documents, JSONSchemaString) {
+export function validateDocuments(documents, JSONSchemaString) {
   return execute(() => {
     const schema = buildClientSchema(JSON.parse(JSONSchemaString));
     return JSON.stringify(
@@ -28,7 +28,7 @@ function validateDocuments(documents, JSONSchemaString) {
   });
 }
 
-function convertSDLSchema(SDLSchemaString, introspectionQueryString) {
+export function convertSDLSchema(SDLSchemaString, introspectionQueryString) {
   return execute(() => {
     const ast = parse(SDLSchemaString);
     const schema = buildASTSchema(ast);
@@ -40,8 +40,6 @@ function convertSDLSchema(SDLSchemaString, introspectionQueryString) {
   });
 }
 
-function canonicalizeDocument(document) {
+export function canonicalizeDocument(document) {
   return execute(() => stripIgnoredCharacters(document));
 }
-
-module.exports = { parseGraphQL, validateDocuments, convertSDLSchema, canonicalizeDocument };
