@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build-lint-test:
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 30
 
     steps:

@@ -292,7 +292,7 @@ final class FileOutput {
     }
 
     private func temporaryURL() -> URL {
-        temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .notDirectory)
     }
 }
 
