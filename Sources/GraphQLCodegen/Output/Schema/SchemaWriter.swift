@@ -25,7 +25,7 @@ struct SchemaWriter {
         self.indirectOneOfInputObjectFields = resolvedDocuments.indirectOneOfInputObjectFields
         self.typePlans = resolvedDocuments.usedTypes.sorted().compactMap { name -> TypePlan? in
             if let scalar = schema.typeCache.scalars[name] {
-                return scalar.ast.isNativeSwiftType ? nil : .scalar(scalar)
+                return scalar.ast.requiresGeneratedTypeDefinition ? .scalar(scalar) : nil
             }
             if let `enum` = schema.typeCache.enums[name] {
                 return `enum`.ast.isSystemType ? nil : .enum(`enum`)

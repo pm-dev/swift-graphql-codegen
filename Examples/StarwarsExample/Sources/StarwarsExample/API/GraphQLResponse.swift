@@ -1,9 +1,9 @@
 // @generated
 
 enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {
-    struct Success: Sendable {
-        let data: Data
-        let fieldErrors: [GraphQLError]?
+    struct ExecutionResult: Sendable {
+        let data: Data?
+        let errors: [GraphQLError]?
         let extensions: [String: JSONValue]?
     }
 
@@ -12,7 +12,7 @@ enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {
         let extensions: [String: JSONValue]?
     }
 
-    case success(Success)
+    case executionResult(ExecutionResult)
     case requestError(RequestError)
 
     private enum CodingKeys: String, CodingKey {
@@ -25,21 +25,22 @@ enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let errors = try container.decodeIfPresent([GraphQLError].self, forKey: .errors)
         let extensions = try container.decodeIfPresent([String: JSONValue].self, forKey: .extensions)
-        if let data = try container.decodeIfPresent(Data.self, forKey: .data) {
+        if container.contains(.data) {
+            let data = try container.decodeIfPresent(Data.self, forKey: .data)
             guard errors?.isEmpty != true else {
                 throw DecodingError.dataCorruptedError(
                     forKey: .errors,
                     in: container,
                     debugDescription: """
                     The errors entry in the response is a non-empty list of errors
-                    https://spec.graphql.org/October2021/#sel-FAPHRDCAACC0B59K
+                    https://spec.graphql.org/September2025/#sec-Execution-Result
                     """
                 )
             }
-            self = .success(
-                GraphQLResponse<Data>.Success(
+            self = .executionResult(
+                GraphQLResponse<Data>.ExecutionResult(
                     data: data,
-                    fieldErrors: errors,
+                    errors: errors,
                     extensions: extensions
                 )
             )
@@ -50,7 +51,7 @@ enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {
                     in: container,
                     debugDescription: """
                     If the data entry in the response is not present, the errors entry in the response must not be empty
-                    https://spec.graphql.org/October2021/#sel-FAPHRHCAACEoBpjW
+                    https://spec.graphql.org/September2025/#sec-Request-Error-Result
                     """
                 )
             }

@@ -14,13 +14,13 @@ extension URLSession {
     func request<Operation: GraphQLSingleResponseOperation>(
         _ request: GraphQLRequest<Operation>,
         decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
-    ) async throws -> GraphQLResponse<Operation.Data>.Success {
+    ) async throws -> GraphQLResponse<Operation.Data>.ExecutionResult {
         let (data, response) = try await data(for: request.urlRequest)
         if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
             throw HTTPError(response: httpResponse)
         }
         switch try decoder(data) {
-        case .success(let success): return success
+        case .executionResult(let executionResult): return executionResult
         case .requestError(let requestError):
             let containsPersistedQueryNotFound = requestError.errors.contains { error in
                 error.message == "PersistedQueryNotFound"
@@ -70,7 +70,7 @@ extension URLSession {
         maximumEventByteCount: Int = 1_048_576,
         maximumLineByteCount: Int = 1_052_672,
         maximumBufferedResultCount: Int = 16
-    ) async throws -> AsyncThrowingStream<GraphQLResponse<Subscription.Data>.Success, Error> {
+    ) async throws -> AsyncThrowingStream<GraphQLResponse<Subscription.Data>.ExecutionResult, Error> {
         guard maximumEventByteCount > 0 else {
             throw SubscriptionError.invalidMaximumEventByteCount(maximumEventByteCount)
         }
@@ -108,8 +108,8 @@ extension URLSession {
                         switch event.name {
                         case .next:
                             switch try decoder(event.data) {
-                            case .success(let success):
-                                switch continuation.yield(success) {
+                            case .executionResult(let executionResult):
+                                switch continuation.yield(executionResult) {
                                 case .enqueued: break
                                 case .dropped:
                                     throw SubscriptionError.resultBufferOverflow(

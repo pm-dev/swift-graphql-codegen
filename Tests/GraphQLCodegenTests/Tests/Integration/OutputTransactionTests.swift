@@ -38,23 +38,35 @@ struct OutputTransactionTests {
     }
 
     @Test
-    func preservesCustomScalarSource() async throws {
+    func preservesCustomScalarSourcesIncludingBuiltInID() async throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
 
-        let customScalarURL = fixture.output
-            .appending(path: "Schema/Scalars", directoryHint: .isDirectory)
-            .appending(path: "Custom.graphqls.swift", directoryHint: .notDirectory)
+        let scalarsDirectory = fixture.output.appending(
+            path: "Schema/Scalars",
+            directoryHint: .isDirectory
+        )
         try FileManager.default.createDirectory(
-            at: customScalarURL.deletingLastPathComponent(),
+            at: scalarsDirectory,
             withIntermediateDirectories: true
+        )
+        let customScalarURL = scalarsDirectory.appending(
+            path: "Custom.graphqls.swift",
+            directoryHint: .notDirectory
         )
         let customSource = "typealias Custom = UUID\n"
         try Data(customSource.utf8).write(to: customScalarURL)
+        let idScalarURL = scalarsDirectory.appending(
+            path: "ID.graphqls.swift",
+            directoryHint: .notDirectory
+        )
+        let idSource = "struct ID: Codable, Sendable { let rawValue: String }\n"
+        try Data(idSource.utf8).write(to: idScalarURL)
 
         try await Codegen(try configuration(for: fixture)).run()
 
         #expect(try String(contentsOf: customScalarURL, encoding: .utf8) == customSource)
+        #expect(try String(contentsOf: idScalarURL, encoding: .utf8) == idSource)
     }
 
     @Test
@@ -142,12 +154,13 @@ struct OutputTransactionTests {
             scalar Custom
             enum Choice { A }
             input Filter { value: Custom, choice: Choice }
-            type Query { value(filter: Filter): Custom! }
+            type Query { id: ID!, value(filter: Filter): Custom! }
             """.utf8
         ).write(to: schema)
         try Data(
             """
             query Value($filter: Filter) {
+              id
               value(filter: $filter)
             }
             """.utf8

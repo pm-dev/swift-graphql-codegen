@@ -9,6 +9,7 @@ indirect enum SourceTypeName {
         case "Int": self = .name("Int")
         case "Float": self = .name("Double")
         case "Boolean": self = .name("Bool")
+        case "ID": self = .name("ID")
         default: return nil
         }
     }
