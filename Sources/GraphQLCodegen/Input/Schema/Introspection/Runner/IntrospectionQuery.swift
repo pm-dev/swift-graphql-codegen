@@ -43,6 +43,7 @@ struct IntrospectionQuery: Encodable {
           name
           description
           specifiedByURL
+          isOneOf
           fields(includeDeprecated: \(includeDeprecatedFields ? "true" : "false")) {
             name
             description
