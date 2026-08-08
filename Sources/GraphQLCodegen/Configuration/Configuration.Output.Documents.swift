@@ -5,8 +5,7 @@ extension Configuration.Output {
         /// Places generated swift documents in the same
         /// directory as its definition
         case definition
-        /// Places generated Swift documents in an explicit directory. Codegen removes obsolete
-        /// `.graphql.swift` files from this directory while preserving its other contents.
+        /// Places generated swift documents in an explicity directory
         case directory(URL)
     }
 

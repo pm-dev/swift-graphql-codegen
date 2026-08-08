@@ -4,7 +4,7 @@ import Testing
 
 struct OutputTransactionTests {
     @Test
-    func removesObsoleteDocumentsFromSeparateOutputDirectory() async throws {
+    func replacesSeparateDocumentOutputDirectory() async throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
 
@@ -34,7 +34,7 @@ struct OutputTransactionTests {
         try await Codegen(configuration).run()
 
         #expect(!FileManager.default.fileExists(atPath: generatedDocument.path(percentEncoded: false)))
-        #expect(try String(contentsOf: unrelatedFile, encoding: .utf8) == unrelatedContents)
+        #expect(!FileManager.default.fileExists(atPath: unrelatedFile.path(percentEncoded: false)))
     }
 
     @Test
