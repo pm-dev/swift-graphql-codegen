@@ -21,13 +21,13 @@ struct EncodersWriter: APIOutput {
     }
 
     var source: String {
-        switch plan.mode {
-        case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
-        case .getWithRegisteredPersistence: getWithRegisteredPersistedOperations()
-        case .getWithoutPersistence: getWithNoPersistedOperations()
-        case .postWithAutomaticPersistence: postWithAutomaticPersistedOperations()
-        case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
-        case .postWithoutPersistence: postWithNoPersistedOperations()
+        switch (plan.enablesGETQueries, plan.persistence) {
+        case (true, .automatic): getWithAutomaticPersistedOperations()
+        case (true, .registered): getWithRegisteredPersistedOperations()
+        case (true, .none): getWithNoPersistedOperations()
+        case (false, .automatic): postWithAutomaticPersistedOperations()
+        case (false, .registered): postWithRegisteredPersistedOperations()
+        case (false, .none): postWithNoPersistedOperations()
         }
     }
 
