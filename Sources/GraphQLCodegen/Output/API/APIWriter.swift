@@ -24,16 +24,20 @@ struct APIWriter {
             JSONValueWriter(configuration: configuration),
         ]
         if configuration.output.api.HTTPSupport != nil {
+            let httpGenerationPlan = HTTPGenerationPlan(
+                configuration: configuration,
+                hasSubscription: hasSubscription
+            )
             let httpOutputs: [any APIOutput] = [
-                DefaultEncodersWriter(hasSubscription: hasSubscription, configuration: configuration),
+                DefaultEncodersWriter(plan: httpGenerationPlan, configuration: configuration),
                 GraphQLOperationWriter(
                     configuration: configuration,
                     hasMutation: hasMutation,
                     hasSubscription: hasSubscription
                 ),
-                EncodersWriter(hasSubscription: hasSubscription, configuration: configuration),
+                EncodersWriter(plan: httpGenerationPlan, configuration: configuration),
                 URLSessionWriter(hasSubscription: hasSubscription, configuration: configuration),
-                GraphQLRequestWriter(hasSubscription: hasSubscription, configuration: configuration),
+                GraphQLRequestWriter(plan: httpGenerationPlan, configuration: configuration),
             ]
             outputs.append(contentsOf: httpOutputs)
         }
@@ -57,16 +61,16 @@ struct APIWriter {
         )
     }
 
-    func write(using fileOutput: FileOutput) async throws {
+    func write(using fileOutput: FileOutput) throws {
         let destinationPath = configuration.output.api.directory
-        await fileOutput.createDirectory(at: destinationPath)
+        fileOutput.createDirectory(at: destinationPath)
         if configuration.output.api.HTTPSupport != nil {
-            await fileOutput.createDirectory(at: httpSupportDirectory)
+            fileOutput.createDirectory(at: httpSupportDirectory)
         } else {
-            await fileOutput.remove(at: httpSupportDirectory)
+            fileOutput.remove(at: httpSupportDirectory)
         }
         for output in outputs {
-            try await output.write(using: fileOutput)
+            try output.write(using: fileOutput)
         }
     }
 }

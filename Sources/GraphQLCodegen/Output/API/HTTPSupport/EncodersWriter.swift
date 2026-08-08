@@ -1,16 +1,16 @@
 import Foundation
 
 struct EncodersWriter: APIOutput {
-    let hasSubscription: Bool
+    let plan: HTTPGenerationPlan
     let configuration: Configuration
     let relativePath = "HTTPSupport/Encoders.swift"
 
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [SwiftTypeIdentifier(swiftName: "HTTPBodyEncoder")]
-        if configuration.output.api.HTTPSupport?.enableGETQueries == true {
+        if plan.enablesGETQueries {
             typeNames.append(SwiftTypeIdentifier(swiftName: "URLQueryEncoder"))
         }
-        if case .automatic = configuration.output.documents.operations.persistedOperations {
+        if case .automatic = plan.persistence {
             typeNames.append(SwiftTypeIdentifier(swiftName: "AutomaticPersistedOperationPhase"))
         }
         return typeNames
@@ -26,26 +26,17 @@ struct EncodersWriter: APIOutput {
     }
 
     private var includeSubscriptionSupport: Bool {
-        hasSubscription && configuration.output.api.HTTPSupport?.subscriptionSupport == true
-    }
-
-    private var enableGETQueries: Bool {
-        configuration.output.api.HTTPSupport?.enableGETQueries == true
+        plan.includesSubscriptions
     }
 
     var source: String {
-        if enableGETQueries {
-            switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: getWithAutomaticPersistedOperations()
-            case .registered: getWithRegisteredPersistedOperations()
-            case .none: getWithNoPersistedOperations()
-            }
-        } else {
-            switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: postWithAutomaticPersistedOperations()
-            case .registered: postWithRegisteredPersistedOperations()
-            case .none: postWithNoPersistedOperations()
-            }
+        switch plan.mode {
+        case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
+        case .getWithRegisteredPersistence: getWithRegisteredPersistedOperations()
+        case .getWithoutPersistence: getWithNoPersistedOperations()
+        case .postWithAutomaticPersistence: postWithAutomaticPersistedOperations()
+        case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
+        case .postWithoutPersistence: postWithNoPersistedOperations()
         }
     }
 

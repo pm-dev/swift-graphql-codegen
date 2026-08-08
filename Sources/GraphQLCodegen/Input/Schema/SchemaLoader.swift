@@ -13,12 +13,12 @@ struct LoadedSchema {
 // Type names are guaranteed to be unique
 // https://spec.graphql.org/October2021/#sel-FAHTLABDBEmrR
 struct TypeASTCache {
-    var scalars: [String: __Schema.__Type.Scalar] = [:]
-    var objects: [String: __Schema.__Type.Object] = [:]
-    var interfaces: [String: __Schema.__Type.Interface] = [:]
-    var unions: [String: __Schema.__Type.Union] = [:]
-    var enums: [String: __Schema.__Type.Enum] = [:]
-    var inputObjects: [String: __Schema.__Type.InputObject] = [:]
+    var scalars: [String: __Schema.__NamedType.Scalar] = [:]
+    var objects: [String: __Schema.__NamedType.Object] = [:]
+    var interfaces: [String: __Schema.__NamedType.Interface] = [:]
+    var unions: [String: __Schema.__NamedType.Union] = [:]
+    var enums: [String: __Schema.__NamedType.Enum] = [:]
+    var inputObjects: [String: __Schema.__NamedType.InputObject] = [:]
     init(_ schema: __Schema) {
         for type in schema.types {
             switch type {
@@ -28,8 +28,6 @@ struct TypeASTCache {
             case .UNION(let union): unions[union.name] = union
             case .ENUM(let `enum`): enums[`enum`.name] = `enum`
             case .INPUT_OBJECT(let inputObject): inputObjects[inputObject.name] = inputObject
-            case .LIST: break
-            case .NON_NULL: break
             }
         }
     }

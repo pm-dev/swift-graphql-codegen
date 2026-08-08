@@ -9,8 +9,9 @@ struct GraphQLCodeGeneratorTests {
         .currentDirectory
         .deletingLastPathComponent() // Inside 'Tests'
         .deletingLastPathComponent() // Inside 'GraphQLCodegenTests'
-        .deletingLastPathComponent() // Inside 'Sources'
-        .appending(path: "StarwarsExample", directoryHint: .isDirectory)
+        .deletingLastPathComponent() // Inside root 'Tests'
+        .deletingLastPathComponent() // Inside the package root
+        .appending(path: "Examples/StarwarsExample/Sources/StarwarsExample", directoryHint: .isDirectory)
 
     @Test
     func testGeneratesCodeForValidSchemaAndDocument() async throws {

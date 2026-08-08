@@ -14,6 +14,8 @@ public struct Codegen: Sendable {
     }
 
     public func run() async throws {
+        try configuration.validate()
+
         // Input
         let start = Date()
         let graphQLJS = try GraphQLJS()
@@ -52,11 +54,11 @@ public struct Codegen: Sendable {
         // Output
         let fileOutput = FileOutput()
         do {
-            try await outputPlan.write(using: fileOutput)
+            try outputPlan.write(using: fileOutput)
         } catch {
             let generationError = error
             do {
-                try await fileOutput.discard()
+                try fileOutput.discard()
             } catch {
                 throw Codegen.Error(description: """
                 Failed to generate output: \(generationError)
@@ -65,7 +67,7 @@ public struct Codegen: Sendable {
             }
             throw generationError
         }
-        try await fileOutput.execute()
+        try fileOutput.execute()
         print("Codegen completed in \((Date().timeIntervalSince(start) * 1000).rounded() / 1000) seconds")
     }
 }

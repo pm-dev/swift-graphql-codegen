@@ -138,7 +138,7 @@ Your CLI will parse the schema and operations, then produce Swift types in the l
 
 ## Example
 
-Below is an illustration of what the generated code might look like for an example Star Wars schema. Explore this codegen yourself by pulling the repository and playing around with the the Starwars example yourself, located in Sources/StarwarsExample
+Below is an illustration of what the generated code might look like for an example Star Wars schema. Explore this codegen yourself by pulling the repository and running the standalone package in `Examples/StarwarsExample`.
 
 Suppose you have the following GraphQL schema:
 

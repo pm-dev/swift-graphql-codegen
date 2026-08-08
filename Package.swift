@@ -22,6 +22,17 @@ let package = Package(
                 .copy("Resources/graphql.bundle.js"),
             ]
         ),
+        .target(
+            name: "StarwarsExample",
+            path: "Examples/StarwarsExample/Sources/StarwarsExample",
+            exclude: [
+                "Codegen.swift",
+                "Operations/FavoriteEpisodeChangedSubscription.graphql",
+                "Operations/HeroQuery.graphql",
+                "Operations/SetFavoriteEpisodeMutation.graphql",
+                "schema.sdl",
+            ]
+        ),
         .testTarget(
             name: "GraphQLCodegenTests",
             dependencies: [
@@ -31,18 +42,6 @@ let package = Package(
             exclude: [
                 "Fixtures/Defaults/Definitions",
                 "GraphQLCodegen.xctestplan",
-            ]
-        ),
-        .executableTarget(
-            name: "StarwarsExample",
-            dependencies: [
-                .target(name: "GraphQLCodegen"),
-            ],
-            exclude: [
-                "Operations/FavoriteEpisodeChangedSubscription.graphql",
-                "Operations/HeroQuery.graphql",
-                "Operations/SetFavoriteEpisodeMutation.graphql",
-                "schema.sdl",
             ]
         ),
     ]

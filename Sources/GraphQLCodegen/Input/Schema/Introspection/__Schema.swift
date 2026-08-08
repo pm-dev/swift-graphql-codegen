@@ -1,17 +1,16 @@
+// periphery:ignore:all - Retain the complete schema projection for future codegen features.
 /// Mirrors the schema introspection response produced by `IntrospectionQuery`.
 ///
 /// Keep this boundary model aligned with:
 /// https://spec.graphql.org/October2021/#sec-Schema-Introspection.Schema-Introspection-Schema
 struct __Schema: Decodable {
-    enum __Type: Decodable {
+    enum __NamedType: Decodable {
         case SCALAR(Scalar)
         case OBJECT(Object)
         case INTERFACE(Interface)
         case UNION(Union)
         case ENUM(Enum)
         case INPUT_OBJECT(InputObject)
-        case LIST(ofType: __TypeRef)
-        case NON_NULL(ofType: __TypeRef)
 
         struct Scalar: Decodable {
             let description: String?
@@ -67,7 +66,6 @@ struct __Schema: Decodable {
 
         private enum CodingKeys: CodingKey {
             case kind
-            case ofType
         }
 
         init(from decoder: Decoder) throws {
@@ -75,15 +73,13 @@ struct __Schema: Decodable {
                 try decoder.singleValueContainer()
             }
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            switch try container.decode(__TypeKind.self, forKey: .kind) {
+            switch try container.decode(__NamedTypeKind.self, forKey: .kind) {
             case .SCALAR: self = try .SCALAR(_container().decode(Scalar.self))
             case .OBJECT: self = try .OBJECT(_container().decode(Object.self))
             case .INTERFACE: self = try .INTERFACE(_container().decode(Interface.self))
             case .UNION: self = try .UNION(_container().decode(Union.self))
             case .ENUM: self = try .ENUM(_container().decode(Enum.self))
             case .INPUT_OBJECT: self = try .INPUT_OBJECT(_container().decode(InputObject.self))
-            case .LIST: self = try .LIST(ofType: container.decode(__TypeRef.self, forKey: .ofType))
-            case .NON_NULL: self = try .NON_NULL(ofType: container.decode(__TypeRef.self, forKey: .ofType))
             }
         }
     }
@@ -96,7 +92,7 @@ struct __Schema: Decodable {
         case ENUM(Enum)
         case INPUT_OBJECT(InputObject)
         case LIST(ofType: __TypeRef)
-        case NON_NULL(ofType: __TypeRef)
+        case NON_NULL(ofType: __NullableTypeRef)
 
         struct Scalar: Decodable {
             let name: String
@@ -211,12 +207,7 @@ struct __Schema: Decodable {
             case .ENUM(let `enum`): return .optional(.name(`enum`.name))
             case .INPUT_OBJECT(let inputObject): return .optional(.name(inputObject.name))
             case .LIST(let innerType): return .optional(.list(innerType.swiftName))
-            case .NON_NULL(let innerType):
-                let resolved = innerType.swiftName
-                switch resolved {
-                case .optional(let unwrapped): return unwrapped
-                case .list, .name: return resolved // Already non-null
-                }
+            case .NON_NULL(let innerType): return innerType.swiftName
             }
         }
 
@@ -233,7 +224,49 @@ struct __Schema: Decodable {
             case .ENUM: self = try .ENUM(_container().decode(Enum.self))
             case .INPUT_OBJECT: self = try .INPUT_OBJECT(_container().decode(InputObject.self))
             case .LIST: self = try .LIST(ofType: container.decode(__TypeRef.self, forKey: .ofType))
-            case .NON_NULL: self = try .NON_NULL(ofType: container.decode(__TypeRef.self, forKey: .ofType))
+            case .NON_NULL:
+                self = try .NON_NULL(ofType: container.decode(__NullableTypeRef.self, forKey: .ofType))
+            }
+        }
+    }
+
+    indirect enum __NullableTypeRef: Decodable {
+        case SCALAR(__TypeRef.Scalar)
+        case OBJECT(__TypeRef.Object)
+        case INTERFACE(__TypeRef.Interface)
+        case UNION(__TypeRef.Union)
+        case ENUM(__TypeRef.Enum)
+        case INPUT_OBJECT(__TypeRef.InputObject)
+        case LIST(ofType: __TypeRef)
+
+        var swiftName: SourceTypeName {
+            switch self {
+            case .SCALAR(let scalar): .name(scalar.swiftName)
+            case .OBJECT(let object): .name(object.name)
+            case .INTERFACE(let interface): .name(interface.name)
+            case .UNION(let union): .name(union.name)
+            case .ENUM(let `enum`): .name(`enum`.name)
+            case .INPUT_OBJECT(let inputObject): .name(inputObject.name)
+            case .LIST(let innerType): .list(innerType.swiftName)
+            }
+        }
+
+        init(from decoder: Decoder) throws {
+            switch try __TypeRef(from: decoder) {
+            case .SCALAR(let scalar): self = .SCALAR(scalar)
+            case .OBJECT(let object): self = .OBJECT(object)
+            case .INTERFACE(let interface): self = .INTERFACE(interface)
+            case .UNION(let union): self = .UNION(union)
+            case .ENUM(let `enum`): self = .ENUM(`enum`)
+            case .INPUT_OBJECT(let inputObject): self = .INPUT_OBJECT(inputObject)
+            case .LIST(let innerType): self = .LIST(ofType: innerType)
+            case .NON_NULL:
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(
+                        codingPath: decoder.codingPath,
+                        debugDescription: "A non-null type cannot wrap another non-null type"
+                    )
+                )
             }
         }
     }
@@ -302,8 +335,17 @@ struct __Schema: Decodable {
         case NON_NULL
     }
 
+    private enum __NamedTypeKind: String, Decodable {
+        case SCALAR
+        case OBJECT
+        case INTERFACE
+        case UNION
+        case ENUM
+        case INPUT_OBJECT
+    }
+
     let description: String?
-    let types: [__Type]
+    let types: [__NamedType]
     let queryType: __TypeRef.Object
     let mutationType: __TypeRef.Object?
     let subscriptionType: __TypeRef.Object?

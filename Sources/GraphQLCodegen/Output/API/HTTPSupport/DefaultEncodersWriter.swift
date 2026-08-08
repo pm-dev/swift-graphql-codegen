@@ -1,13 +1,13 @@
 import Foundation
 
 struct DefaultEncodersWriter: APIOutput {
-    let hasSubscription: Bool
+    let plan: HTTPGenerationPlan
     let configuration: Configuration
     let relativePath = "HTTPSupport/DefaultEncoders.swift"
 
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [SwiftTypeIdentifier(swiftName: "JSONBodyEncoder")]
-        if configuration.output.api.HTTPSupport?.enableGETQueries == true {
+        if plan.enablesGETQueries {
             typeNames.append(SwiftTypeIdentifier(swiftName: "DefaultURLQueryEncoder"))
         }
         return typeNames
@@ -41,26 +41,17 @@ struct DefaultEncodersWriter: APIOutput {
     }
 
     private var includeSubscriptionSupport: Bool {
-        hasSubscription && configuration.output.api.HTTPSupport?.subscriptionSupport == true
-    }
-
-    private var enableGETQueries: Bool {
-        configuration.output.api.HTTPSupport?.enableGETQueries == true
+        plan.includesSubscriptions
     }
 
     var source: String {
-        if enableGETQueries {
-            switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: getWithAutomaticPersistedOperations()
-            case .registered: getWithRegisteredPersistedOperations()
-            case .none: getWithNoPersistedOperations()
-            }
-        } else {
-            switch configuration.output.documents.operations.persistedOperations {
-            case .automatic: postWithAutomaticPersistedOperations()
-            case .registered: postWithRegisteredPersistedOperations()
-            case .none: postWithNoPersistedOperations()
-            }
+        switch plan.mode {
+        case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
+        case .getWithRegisteredPersistence: getWithRegisteredPersistedOperations()
+        case .getWithoutPersistence: getWithNoPersistedOperations()
+        case .postWithAutomaticPersistence: postWithAutomaticPersistedOperations()
+        case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
+        case .postWithoutPersistence: postWithNoPersistedOperations()
         }
     }
 
