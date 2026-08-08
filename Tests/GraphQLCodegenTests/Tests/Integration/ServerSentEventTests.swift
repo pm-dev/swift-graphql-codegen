@@ -94,6 +94,8 @@ struct ServerSentEventTests {
                 switch url.path {
                 case "/standards":
                     body = Data("\u{FEFF}event: next\r\ndata: {\"data\":\rdata: {\"updates\":\"first\"}}\n\r\nevent: complete\rdata:\r\r".utf8)
+                case "/complete-without-data":
+                    body = Data("event: complete\n\n".utf8)
                 case "/missing-complete":
                     body = Data("event: next\ndata: {\"data\":{\"updates\":\"first\"}}\n\n".utf8)
                 case "/oversized":
@@ -174,6 +176,11 @@ struct ServerSentEventTests {
                     throw VerificationError.failed("Standards verification failed: \(error)")
                 }
                 do {
+                    try await harness.verifyCompletionWithoutData()
+                } catch {
+                    throw VerificationError.failed("Data-free completion verification failed: \(error)")
+                }
+                do {
                     try await harness.verifyMissingCompletionFails()
                 } catch {
                     throw VerificationError.failed("Completion verification failed: \(error)")
@@ -233,6 +240,15 @@ struct ServerSentEventTests {
                 }
                 guard values == ["first"] else {
                     throw VerificationError.failed("Standards-compliant event was not decoded")
+                }
+            }
+
+            private func verifyCompletionWithoutData() async throws {
+                let session = makeSession()
+                defer { session.invalidateAndCancel() }
+                let stream = try await session.subscribe(try makeRequest(path: "complete-without-data"))
+                for try await _ in stream {
+                    throw VerificationError.failed("Complete event unexpectedly yielded a result")
                 }
             }
 
