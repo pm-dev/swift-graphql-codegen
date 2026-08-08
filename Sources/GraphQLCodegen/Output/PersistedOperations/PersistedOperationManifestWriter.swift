@@ -4,7 +4,7 @@ struct PersistedOperationManifestWriter {
     let manifestURL: URL
     let documents: Documents
 
-    func write(using fileOutput: FileOutput) async throws {
+    func write(using fileOutput: FileOutput) throws {
         var operations: [PersistedOperationManifest.Operation] = []
         for document in documents.documents {
             for definition in document.definitions {
@@ -27,6 +27,6 @@ struct PersistedOperationManifestWriter {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(manifest)
-        try await fileOutput.write(data, to: manifestURL)
+        try fileOutput.write(data, to: manifestURL)
     }
 }
