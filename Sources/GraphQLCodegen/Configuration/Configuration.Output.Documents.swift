@@ -2,10 +2,16 @@ import Foundation
 
 extension Configuration.Output {
     public enum DocumentOutputLocation: Sendable {
-        /// Places generated swift documents in the same
-        /// directory as its definition
+        /// Places each generated Swift document in the same directory as its definition.
+        ///
+        /// On each run, Codegen removes obsolete files ending in `.graphql.swift` from the configured
+        /// document directories. Do not use that suffix for independently maintained files in those directories.
         case definition
-        /// Places generated swift documents in an explicity directory
+
+        /// Places generated Swift documents in a separate directory.
+        ///
+        /// Codegen assumes exclusive ownership of this directory and may remove all of its existing contents
+        /// before writing the current generated output. Do not store unrelated or independently maintained files here.
         case directory(URL)
     }
 
@@ -16,7 +22,9 @@ extension Configuration.Output {
         /// Call this function to create a new `Documents` instance.
         ///
         /// - Parameters:
-        ///   - directory: Where the generated fragment files will be located
+        ///   - directory: Where generated document files will be located. A separately configured directory is
+        ///   exclusively owned by Codegen and may have all of its existing contents removed on each run. When files
+        ///   are placed beside their definitions, obsolete files ending in `.graphql.swift` may be removed instead.
         ///   - header: An optional string to include at the top of generated document files.
         ///   - importedModules: A list of modules to import into generated document files.
         ///   Just include the module name, the "import" keyword will be added automatically.
