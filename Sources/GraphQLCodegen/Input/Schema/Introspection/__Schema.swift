@@ -275,32 +275,8 @@ struct __Schema: Decodable {
     struct __Directive: Decodable {
         let name: String
         let description: String?
-        let locations: [__DirectiveLocation]
         let args: [__InputValue]
         let isRepeatable: Bool
-    }
-
-    enum __DirectiveLocation: String, Decodable {
-        case QUERY
-        case MUTATION
-        case SUBSCRIPTION
-        case FIELD
-        case FRAGMENT_DEFINITION
-        case FRAGMENT_SPREAD
-        case INLINE_FRAGMENT
-        case VARIABLE_DEFINITION
-        case SCHEMA
-        case SCALAR
-        case OBJECT
-        case FIELD_DEFINITION
-        case ARGUMENT_DEFINITION
-        case INTERFACE
-        case UNION
-        case ENUM
-        case ENUM_VALUE
-        case INPUT_OBJECT
-        case INPUT_FIELD_DEFINITION
-        case DIRECTIVE_DEFINITION
     }
 
     struct __Field: Decodable {
@@ -324,6 +300,8 @@ struct __Schema: Decodable {
         let description: String?
         let type: __TypeRef
         let defaultValue: String?
+        let isDeprecated: Bool
+        let deprecationReason: String?
     }
 
     private enum __TypeKind: String, Decodable {

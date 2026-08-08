@@ -52,7 +52,7 @@ public struct Configuration: Sendable {
                 parameter: "JSONSchemaFile",
                 configuration: "schema source"
             )
-        case .SDLSchemaFile(let url, _, _):
+        case .SDLSchemaFile(let url, _):
             try verifyLocalURL(
                 url,
                 expectedExtension: ["graphqls", "sdl"],
