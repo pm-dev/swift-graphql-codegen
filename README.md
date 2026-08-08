@@ -437,7 +437,7 @@ struct Character: Decodable, Sendable, Hashable {
 ## Design
 
 This library focuses on simplicity and ease of use. The generated types use structs, stored properties, Swift’s compiler-generated Encodable/Decodable and Equatable/Hashable where possible to greatly reduce boilerplate. Operation response types mirror your documents, with fields ordered consistently with the GraphQL spec. No underlying types or reflection-based logic. You can also optionally generate networking helpers using URLRequest and URLSession whose API is generated taking into consideration your Configuration options, giving you fine-grained control over how you integrate network requests in your project.
-This library leverages the reference implementation [graphql-js](https://github.com/graphql/graphql-js) to ensure correctness. By bridging to graphql-js via Apple’s JavaScriptCore framework, we can parse and validate GraphQL schema and documents precisely according to the specification. This means as the GraphQL spec evolves, we can easily stay up to date by updating to the newest reference implementation.
+This library uses a pinned version of the reference implementation [graphql-js](https://github.com/graphql/graphql-js) through Apple’s JavaScriptCore framework to parse and validate GraphQL schemas and documents. The supported target is the September 2025 edition of the GraphQL specification.
 
 Key design points:
 
