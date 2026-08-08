@@ -7,21 +7,15 @@ struct DocumentScanner {
 
     let directories: [URL]
 
-    func scan() throws -> DocumentScan {
-        let scan = try directories
+    func scan() throws -> [URL] {
+        let documentFileURLs = try directories
             .sorted { $0.path < $1.path }
             .map(scanDirectory)
-            .reduce(into: DocumentScan()) { result, scan in
-                result.documentFileURLs.append(contentsOf: scan.documentFileURLs)
-                result.generatedFileURLs.append(contentsOf: scan.generatedFileURLs)
-            }
-        return DocumentScan(
-            documentFileURLs: Set(scan.documentFileURLs).sorted { $0.path < $1.path },
-            generatedFileURLs: Set(scan.generatedFileURLs).sorted { $0.path < $1.path }
-        )
+            .flatMap { $0 }
+        return Set(documentFileURLs).sorted { $0.path < $1.path }
     }
 
-    private func scanDirectory(_ directory: URL) throws -> DocumentScan {
+    private func scanDirectory(_ directory: URL) throws -> [URL] {
         let resourceKeys: Set<URLResourceKey> = [.isRegularFileKey]
         guard let directoryEnumerator = FileManager.default.enumerator(
             at: directory,
@@ -32,18 +26,12 @@ struct DocumentScanner {
             throw DocumentFileFinderError.failedToEnumerateDirectory(directory)
         }
         var documentFileURLs: [URL] = []
-        var generatedFileURLs: [URL] = []
         for case let url as URL in directoryEnumerator
             where try url.resourceValues(forKeys: resourceKeys).isRegularFile == true {
-            switch url {
-            case let url where url.pathExtension == "graphql": documentFileURLs.append(url)
-            case let url where url.lastPathComponent.hasSuffix(".graphql.swift"): generatedFileURLs.append(url)
-            default: break
+            if url.pathExtension == "graphql" {
+                documentFileURLs.append(url)
             }
         }
-        return DocumentScan(
-            documentFileURLs: documentFileURLs,
-            generatedFileURLs: generatedFileURLs
-        )
+        return documentFileURLs
     }
 }

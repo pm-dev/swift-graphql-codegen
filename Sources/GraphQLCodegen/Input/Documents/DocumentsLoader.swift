@@ -17,14 +17,15 @@ struct DocumentsLoader {
     let graphQLJS: GraphQLJS
 
     func load() throws -> Documents {
-        let scan = try DocumentScanner(directories: configuration.input.documentDirectories).scan()
+        let documentFileURLs = try DocumentScanner(
+            directories: configuration.input.documentDirectories
+        ).scan()
         var fragmentLookup: [String: Document.Fragment] = [:]
         let parsedDocuments = try parse(
-            scan.documentFileURLs,
+            documentFileURLs,
             fragmentLookup: &fragmentLookup
         )
         return Documents(
-            previouslyGenerated: scan.generatedFileURLs,
             documents: try prepare(parsedDocuments, fragmentLookup: fragmentLookup),
             fragmentLookup: fragmentLookup
         )

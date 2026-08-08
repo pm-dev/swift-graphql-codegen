@@ -17,7 +17,6 @@ struct DocumentsResolver {
         let resolvedDocuments = try resolveDocuments(documents)
         let usage = try usage(in: resolvedDocuments, resolvedFragments: resolvedFragments)
         return ResolvedDocuments(
-            previouslyGenerated: documents.previouslyGenerated,
             documents: resolvedDocuments,
             fragmentLookup: resolvedFragments,
             usedTypes: usage.usedTypes,

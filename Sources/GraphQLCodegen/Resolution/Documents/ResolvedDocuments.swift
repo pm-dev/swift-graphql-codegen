@@ -1,7 +1,6 @@
 import Foundation
 
 struct ResolvedDocuments {
-    let previouslyGenerated: [URL]
     let documents: [ResolvedDocument]
     let fragmentLookup: [String: ResolvedFragment]
     let usedTypes: Set<String>
