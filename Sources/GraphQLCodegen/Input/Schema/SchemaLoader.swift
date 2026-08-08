@@ -126,7 +126,7 @@ struct SchemaLoader {
                 typeCache: TypeCache(
                     TypeASTCache(
                         introspection.schema,
-                        deprecationPolicy: configuration.input.schemaSource.deprecationPolicy
+                        deprecationPolicy: configuration.input.deprecationPolicy
                     )
                 )
             ),
@@ -139,19 +139,15 @@ struct SchemaLoader {
         switch configuration.input.schemaSource {
         case .introspectionEndpoint(
             let endpoint,
-            let headers,
-            _
+            let headers
         ):
             try await loadSchemaFromIntrospectionEndpoint(
                 endpoint: endpoint,
                 headers: headers
             )
-        case .JSONSchemaFile(let schemaFile, _):
+        case .JSONSchemaFile(let schemaFile):
             try loadSchemaFromJSONFile(schemaFile)
-        case .SDLSchemaFile(
-            let schemaFile,
-            _
-        ):
+        case .SDLSchemaFile(let schemaFile):
             try loadSchemaFromSDLFile(schemaFile)
         }
     }

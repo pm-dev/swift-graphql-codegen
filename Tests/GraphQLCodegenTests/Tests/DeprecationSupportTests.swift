@@ -30,7 +30,8 @@ struct DeprecationSupportTests {
         )
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
         let configuration = makeConfiguration(
-            schemaSource: .SDLSchemaFile(fixture.schemaURL, deprecationPolicy: .include),
+            schemaSource: .SDLSchemaFile(fixture.schemaURL),
+            deprecationPolicy: .include,
             fixture: fixture
         )
         let graphQLJS = try GraphQLJS()
@@ -64,7 +65,8 @@ struct DeprecationSupportTests {
         )
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
         let configuration = makeConfiguration(
-            schemaSource: .SDLSchemaFile(fixture.schemaURL, deprecationPolicy: .include),
+            schemaSource: .SDLSchemaFile(fixture.schemaURL),
+            deprecationPolicy: .include,
             fixture: fixture
         )
         let graphQLJS = try GraphQLJS()
@@ -109,7 +111,8 @@ struct DeprecationSupportTests {
         }
         """#.write(to: fragmentURL, atomically: true, encoding: .utf8)
         let configuration = makeConfiguration(
-            schemaSource: .SDLSchemaFile(fixture.schemaURL, deprecationPolicy: .include),
+            schemaSource: .SDLSchemaFile(fixture.schemaURL),
+            deprecationPolicy: .include,
             fixture: fixture
         )
         let graphQLJS = try GraphQLJS()
@@ -152,7 +155,8 @@ struct DeprecationSupportTests {
         let schemaJSONURL = fixture.directory.appending(path: "schema.json", directoryHint: .notDirectory)
         try introspection.text.write(to: schemaJSONURL, atomically: true, encoding: .utf8)
         let configuration = makeConfiguration(
-            schemaSource: .JSONSchemaFile(schemaJSONURL, deprecationPolicy: .exclude),
+            schemaSource: .JSONSchemaFile(schemaJSONURL),
+            deprecationPolicy: .exclude,
             fixture: fixture
         )
 
@@ -173,7 +177,8 @@ struct DeprecationSupportTests {
         )
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
         let configuration = makeConfiguration(
-            schemaSource: .SDLSchemaFile(fixture.schemaURL, deprecationPolicy: .exclude),
+            schemaSource: .SDLSchemaFile(fixture.schemaURL),
+            deprecationPolicy: .exclude,
             fixture: fixture
         )
 
@@ -192,12 +197,14 @@ struct DeprecationSupportTests {
 
     private func makeConfiguration(
         schemaSource: Configuration.Input.SchemaSource,
+        deprecationPolicy: Configuration.Input.DeprecationPolicy,
         fixture: Fixture
     ) -> Configuration {
         .configuration(
             input: .input(
                 schemaSource: schemaSource,
-                documentDirectories: [fixture.operationsDirectory]
+                documentDirectories: [fixture.operationsDirectory],
+                deprecationPolicy: deprecationPolicy
             ),
             validation: false,
             output: .output(

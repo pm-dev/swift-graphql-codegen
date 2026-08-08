@@ -32,7 +32,7 @@ public struct Codegen: Sendable {
         let deprecationDiagnostics = try DeprecationUsageValidator(
             documents: documents,
             graphQLJS: graphQLJS,
-            policy: configuration.input.schemaSource.deprecationPolicy,
+            policy: configuration.input.deprecationPolicy,
             schemaJSON: loadedSchema.schemaJSON
         ).validate()
 
