@@ -172,7 +172,7 @@ extension URLSession {
             }
             guard !bytes.isEmpty else {
                 defer { reset() }
-                guard hasDataField else { return nil }
+                guard hasDataField || name == .complete else { return nil }
                 return ServerSentEvent(data: data, name: name)
             }
             guard bytes[0] != colon else { return nil }
