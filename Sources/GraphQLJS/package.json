@@ -2,11 +2,6 @@
   "name": "GraphQLJS",
   "version": "1.0.0",
   "packageManager": "pnpm@10.34.5",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  },
   "type": "module",
   "description": "",
   "main": "index.js",
