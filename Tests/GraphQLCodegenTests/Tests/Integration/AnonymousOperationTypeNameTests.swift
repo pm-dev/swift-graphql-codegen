@@ -40,6 +40,34 @@ struct AnonymousOperationTypeNameTests {
         }
     }
 
+    @Test
+    func usesNearestConfiguredDocumentRootForOutputPath() async throws {
+        let fileName = "current-user.graphql"
+        let fixture = try makeFixture(documentFileName: fileName)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        var configuration = configuration(for: fixture)
+        configuration.input.documentDirectories = [
+            fixture.operations.deletingLastPathComponent(),
+            fixture.operations,
+        ]
+
+        try await Codegen(configuration).run()
+
+        let outputDirectory = fixture.output.appending(path: "Operations", directoryHint: .isDirectory)
+        #expect(
+            FileManager.default.fileExists(
+                atPath: outputDirectory.appending(path: fileName + ".swift").path(percentEncoded: false)
+            )
+        )
+        #expect(
+            !FileManager.default.fileExists(
+                atPath: outputDirectory
+                    .appending(path: "Operations/" + fileName + ".swift")
+                    .path(percentEncoded: false)
+            )
+        )
+    }
+
     private func configuration(for fixture: AnonymousOperationFixture) -> Configuration {
         .configuration(
             input: .input(

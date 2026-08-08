@@ -17,12 +17,12 @@ struct DocumentsLoader {
     let graphQLJS: GraphQLJS
 
     func load() throws -> Documents {
-        let documentFileURLs = try DocumentScanner(
+        let documentFiles = try DocumentScanner(
             directories: configuration.input.documentDirectories
         ).scan()
         var fragmentLookup: [String: Document.Fragment] = [:]
         let parsedDocuments = try parse(
-            documentFileURLs,
+            documentFiles,
             fragmentLookup: &fragmentLookup
         )
         var manifestOperations: [PersistedOperationManifest.Operation] = []
@@ -49,12 +49,13 @@ struct DocumentsLoader {
     }
 
     private func parse(
-        _ documentURLs: [URL],
+        _ documentFiles: [DocumentScanner.DocumentFile],
         fragmentLookup: inout [String: Document.Fragment]
     ) throws -> [ParsedDocument] {
         var documents: [ParsedDocument] = []
-        documents.reserveCapacity(documentURLs.count)
-        for documentURL in documentURLs {
+        documents.reserveCapacity(documentFiles.count)
+        for documentFile in documentFiles {
+            let documentURL = documentFile.url
             let documentText = try String(contentsOf: documentURL, encoding: .utf8)
             let ast = try DocumentASTParser(
                 graphQLJS: graphQLJS,
@@ -98,7 +99,7 @@ struct DocumentsLoader {
             documents.append(
                 ParsedDocument(
                     definitions: definitions,
-                    relativePath: try relativePath(for: documentURL),
+                    relativePath: documentFile.relativePath,
                     url: documentURL
                 )
             )
@@ -164,18 +165,6 @@ struct DocumentsLoader {
             )
         }
         return updatedDocuments
-    }
-
-    private func relativePath(for documentURL: URL) throws -> String {
-        let documentComponents = documentURL.standardizedFileURL.pathComponents
-        let sourceRoot = configuration.input.documentDirectories
-            .map(\.standardizedFileURL.pathComponents)
-            .filter { documentComponents.starts(with: $0) }
-            .max { $0.count < $1.count }
-        guard let sourceRoot else {
-            throw Codegen.Error(description: "Document is outside the configured input directories: \(documentURL)")
-        }
-        return documentComponents.dropFirst(sourceRoot.count).joined(separator: "/")
     }
 
     private func hash(_ sourceText: String) -> String {
