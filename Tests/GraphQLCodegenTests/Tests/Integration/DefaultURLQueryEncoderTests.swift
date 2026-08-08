@@ -102,6 +102,7 @@ struct DefaultURLQueryEncoderTests {
         ]
 
         struct Variables: Encodable, Sendable {
+            // periphery:ignore - Used through the synthesized Encodable implementation.
             let includeDetails: Bool
         }
     }
