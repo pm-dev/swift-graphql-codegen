@@ -28,7 +28,7 @@ struct SwiftTypeIdentifier: Hashable {
             guard operationCount == 1 else {
                 throw Codegen.Error(description: """
                 Missing operation name. Operations may only be unnamed if they're the only operation in the document.
-                https://spec.graphql.org/October2021/#sel-FAFPTABABoC6of
+                https://spec.graphql.org/September2025/#sel-DAFRCSBDTAoC6of
                 URL: \(document.url)
                 """)
             }

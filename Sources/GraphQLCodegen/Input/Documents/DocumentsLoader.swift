@@ -67,7 +67,7 @@ struct DocumentsLoader {
                         This allows reusing fragments declared in other .graphql files.
                         If you think this is the wrong decision, please open an issue on github
                         and explain your use-case.
-                        https://spec.graphql.org/October2021/#sel-IALVDDFDABhCBrE77W
+                        https://spec.graphql.org/September2025/#sel-IALVDDFDABhCBrE77W
                         """)
                     }
                     definitions.append(.fragment(fragment.name.value))

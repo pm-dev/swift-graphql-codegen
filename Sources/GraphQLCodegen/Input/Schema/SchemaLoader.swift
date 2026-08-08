@@ -11,7 +11,7 @@ struct LoadedSchema {
 }
 
 // Type names are guaranteed to be unique
-// https://spec.graphql.org/October2021/#sel-FAHTLABDBEmrR
+// https://spec.graphql.org/September2025/#sel-DAHTCKBDLA5BotN
 struct TypeASTCache {
     var scalars: [String: __Schema.__NamedType.Scalar] = [:]
     var objects: [String: __Schema.__NamedType.Object] = [:]

@@ -68,7 +68,7 @@ struct Schema {
                 throw Codegen.Error(description: """
                 Unexpectedly querying a field \(field.responseKey) directly from a union type \(union.ast.name).
                 Fields may not be queried directly from union types.
-                https://spec.graphql.org/October2021/#sel-EAHdJDBAACCiDzyP
+                https://spec.graphql.org/September2025/#sel-EAHdJCApHCCiDzyP
 
                 Turn on type validation to catch errors like this.
                 """)
@@ -154,7 +154,7 @@ struct Schema {
             throw Codegen.Error(description: """
             Selected a field \(typeRef) whose type is an input object.
             Input objects are not supported as field types
-            https://spec.graphql.org/October2021/#sec-Input-Objects.Result-Coercion
+            https://spec.graphql.org/September2025/#sec-Input-Objects.Result-Coercion
 
             Note: Turning on validation can help find other similar errors
             """)
@@ -219,7 +219,7 @@ struct Schema {
             throw Codegen.Error(description: """
             Fragment was specified on type `\(name)`.
             Fragments must be specified on a valid object, interface or union type.
-            https://spec.graphql.org/October2021/#sel-GAFbdJABeBiC2vU
+            https://spec.graphql.org/September2025/#sel-GAFddJABeBiC2vU
 
             Note: Turning on validation can help find other similar errors
             """)

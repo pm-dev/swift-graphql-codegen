@@ -20,7 +20,7 @@ struct SelectionSetResolver {
     let documents: Documents
 
     /// Ensure field ordering matches response ordering by following a similar algorithm to:
-    /// https://spec.graphql.org/October2021/#sec-Field-Collection
+    /// https://spec.graphql.org/September2025/#sec-Field-Collection
     func resolve() throws -> ResolvedSelectionSet {
         try collect(
             selectionSet: selectionSet,
