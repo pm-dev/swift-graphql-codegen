@@ -84,6 +84,31 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func preservesConditionalityAcrossNestedTypeConditions() async throws {
+        let output = try await runCodegen(
+            document: """
+            query Hero {
+              hero {
+                ... on Human {
+                  ... on Character {
+                    name
+                  }
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { name: String! }
+            type Human implements Character { name: String! }
+            type Droid implements Character { name: String! }
+            """
+        )
+
+        #expect(output.contains("let name: String?"))
+    }
+
+    @Test
     func rejectsAliasesThatProduceConflictingNestedTypeNames() async {
         await expectCodegenError(containing: "conflicting Swift nested type names") {
             try await runCodegen(
