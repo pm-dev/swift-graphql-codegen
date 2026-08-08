@@ -6,8 +6,9 @@ extension Configuration.Input {
         /// Instructs codegen to obtain your GraphQL schema by introspecting a GraphQL endpoint.
         ///
         /// - Parameters:
-        ///   - url: The URL of the GraphQL endpoint. Make sure the GraphQL endpoint has introspection enabled.
-        ///   Refer to the spec for more info on introspection.
+        ///   - url: The URL of the GraphQL endpoint. The endpoint must enable and implement introspection from the
+        ///   [September 2025 GraphQL specification](https://spec.graphql.org/September2025/#sec-Schema-Introspection).
+        ///   Earlier introspection schemas are not supported.
         ///   - headers: Additional HTTP headers, such as authorization, to send to this endpoint.
         ///   - includeDeprecatedFields: Pass `true` if the GraphQL schema should include fields that have been
         ///   deprecated by the server. When deprecated fields are included, your GraphQL operations may query against these fields,
@@ -26,7 +27,7 @@ extension Configuration.Input {
 
         /// Instructs codegen to load your GraphQL schema from a .json file on the local filesystem.
         /// The JSON must match the object returned in the `data` field by the introspection query bundled with
-        /// this version of the codegen.
+        /// this version of the codegen and conform to the September 2025 GraphQL specification.
         case JSONSchemaFile(URL)
 
         /// Instructs codegen to load your GraphQL schema from a  .graphqls file on the local filesystem.

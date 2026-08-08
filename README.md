@@ -39,6 +39,12 @@ The code generator runs on macOS 26 or newer because it uses JavaScriptCore to e
 Generated source deployment requirements depend on the APIs enabled in your configuration. Subscription support requires version
 26 or newer of macOS, iOS, tvOS, watchOS, or visionOS.
 
+## GraphQL Compatibility
+
+Swift GraphQL Codegen targets the [September 2025 edition of the GraphQL specification](https://spec.graphql.org/September2025/).
+Schemas and introspection endpoints must conform to that edition. Earlier introspection schemas are not supported; in particular,
+an introspection endpoint must expose `__Type.isOneOf`.
+
 ## Output directory ownership
 
 Codegen assumes exclusive ownership of the configured schema output directories. Each run may remove and recreate the scalar,
@@ -61,14 +67,15 @@ tvOS, watchOS, or visionOS.
 ## Table of Contents
 
 1. [Platform Support](#platform-support)
-2. [Output directory ownership](#output-directory-ownership)
-3. [Server-Sent Event limits](#server-sent-event-limits)
-4. [Getting Started](#getting-started)
-5. [Example](#example-output)
-6. [Motivation](#motivation)
-7. [Design](#design)
-8. [Contributing](#contributing)
-9. [License](#license)
+2. [GraphQL Compatibility](#graphql-compatibility)
+3. [Output directory ownership](#output-directory-ownership)
+4. [Server-Sent Event limits](#server-sent-event-limits)
+5. [Getting Started](#getting-started)
+6. [Example](#example-output)
+7. [Motivation](#motivation)
+8. [Design](#design)
+9. [Contributing](#contributing)
+10. [License](#license)
 
 ---
 
