@@ -18,6 +18,6 @@
   "license": "ISC",
   "devDependencies": {
     "esbuild": "0.28.1",
-    "graphql": "^16.10.0"
+    "graphql": "17.0.2"
   }
 }
