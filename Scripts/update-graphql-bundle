@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -eu
+
+script_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repository_directory=$(dirname "$script_directory")
+
+cd "$repository_directory/Sources/GraphQLJS"
+pnpm install --frozen-lockfile
+pnpm run bundle
