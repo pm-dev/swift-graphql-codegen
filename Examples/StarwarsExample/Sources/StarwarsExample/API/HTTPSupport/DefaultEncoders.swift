@@ -19,12 +19,20 @@ struct DefaultURLQueryEncoder: URLQueryEncoder {
         )
         let encoder = JSONEncoder()
         return [
-            URLQueryItem(name: "operationName", value: body.operationName),
+            body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
             body.query.map { URLQueryItem(name: "query", value: $0) },
-            URLQueryItem(name: "variables", value: String(data: try encoder.encode(body.variables), encoding: .utf8)),
-            URLQueryItem(name: "extensions", value: try body.extensions.map { extensions in
-                String(decoding: try encoder.encode(extensions), as: UTF8.self)
-            })
+            try body.variables.map { variables in
+                URLQueryItem(
+                    name: "variables",
+                    value: String(decoding: try encoder.encode(variables), as: UTF8.self)
+                )
+            },
+            try body.extensions.map { extensions in
+                URLQueryItem(
+                    name: "extensions",
+                    value: String(decoding: try encoder.encode(extensions), as: UTF8.self)
+                )
+            }
         ].compactMap { $0 }
     }
 }
@@ -73,7 +81,7 @@ private struct Body: Encodable {
         }
         self.operationName = Operation.operationName
         self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
-        self.variables = AnyEncodable(operation.variables)
+        self.variables = operation.requestVariables
         self.extensions = extensions
     }
 }
