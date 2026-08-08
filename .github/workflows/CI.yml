@@ -49,7 +49,7 @@ jobs:
             ${{ runner.os }}-swift-
 
       - name: Build
-        run: swift build --build-tests -v
+        run: swift build --build-tests
 
       - name: Periphery
         run: mise run periphery -- --format github-actions --relative-results --color never --quiet
@@ -58,4 +58,4 @@ jobs:
         run: mise run lint
 
       - name: Test
-        run: swift test --skip-build -v
+        run: swift test --skip-build
