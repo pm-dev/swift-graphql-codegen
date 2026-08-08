@@ -1,3 +1,4 @@
+// periphery:ignore:all - Retain the complete schema projection for future codegen features.
 /// Mirrors the schema introspection response produced by `IntrospectionQuery`.
 ///
 /// Keep this boundary model aligned with:

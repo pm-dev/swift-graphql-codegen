@@ -1,3 +1,4 @@
+// periphery:ignore:all - Retain the complete document projection for future codegen features.
 import Foundation
 
 /// Mirrors the executable-document AST produced by the bundled graphql-js parser.
