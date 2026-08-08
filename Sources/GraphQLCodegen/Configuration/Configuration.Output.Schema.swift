@@ -3,12 +3,16 @@ import Foundation
 extension Configuration.Output {
     /// Options controlling generated schema types.
     /// A GraphQL schema defines scalars, enums and input objects which can be used by your operations.
+    /// Codegen assumes exclusive ownership of the schema output directories selected by this configuration
+    /// and may remove their existing contents before writing the current generated output.
     public struct Schema: Sendable {
         /// Call this function to create a new `Schema` instance.
         ///
         /// - Parameters:
-        ///   - directory: A directory URL on the local file system where generated schema files will
-        ///   be written to.
+        ///   - directory: The root directory on the local file system for generated schema files. Codegen may
+        ///   remove and recreate the configured scalar, enum, and input-object directories within this root.
+        ///   If a schema category's `directoryName` is `nil`, Codegen treats this root itself as that category's
+        ///   exclusively owned output directory. Do not store unrelated files in directories owned by Codegen.
         ///   - scalars: Options controlling the code generated to represent scalar types.
         ///   - enums: Options controlling the code generated to represent enum types
         ///   - inputObjects: Options controlling the code generated to represent input object types.
