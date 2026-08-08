@@ -21,15 +21,6 @@ struct GraphQLOperationWriter: APIOutput {
         return typeNames
     }
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n\n"
-    }
-
     var source: String {
         """
         \(header)/// A `GraphQLOperation` represents a GraphQL document containing a single operation.

@@ -4,15 +4,6 @@ struct JSONValueWriter: APIOutput {
     let relativePath = "JSONValue.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "JSONValue")]
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n\n"
-    }
-
     var source: String {
         """
         \(header)\(accessLevel)enum JSONValue: Decodable, Sendable {

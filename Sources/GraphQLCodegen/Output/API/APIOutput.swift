@@ -16,6 +16,18 @@ protocol APIOutput: Sendable {
 }
 
 extension APIOutput {
+    var accessLevel: String {
+        configuration.output.api.accessLevel == .public ? "public " : ""
+    }
+
+    var header: String {
+        configuration.output.api.header.map { "\($0)\n\n" } ?? ""
+    }
+
+    var headerBeforeImports: String {
+        configuration.output.api.header.map { "\($0)\n" } ?? ""
+    }
+
     func write(using fileOutput: FileOutput) throws {
         try source.write(
             to: configuration.output.api.directory.appending(

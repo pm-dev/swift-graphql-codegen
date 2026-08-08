@@ -4,15 +4,6 @@ struct GraphQLHasDefaultWriter: APIOutput {
     let relativePath = "GraphQLHasDefault.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLHasDefault")]
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n\n"
-    }
-
     var source: String {
         """
         \(header)\(accessLevel)enum GraphQLHasDefault<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {

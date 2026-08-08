@@ -4,15 +4,6 @@ struct GraphQLResponseWriter: APIOutput {
     let relativePath = "GraphQLResponse.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLResponse")]
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n\n"
-    }
-
     var source: String {
         """
         \(header)\(accessLevel)enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {

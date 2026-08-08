@@ -4,15 +4,6 @@ struct GraphQLErrorWriter: APIOutput {
     let relativePath = "GraphQLError.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLError")]
 
-    private var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
-    }
-
-    private var header: String {
-        guard let header = configuration.output.api.header else { return "" }
-        return "\(header)\n\n"
-    }
-
     var source: String {
         """
         \(header)/// https://spec.graphql.org/September2025/#sec-Errors
