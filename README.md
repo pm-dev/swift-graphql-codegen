@@ -36,8 +36,8 @@ Everything you need and nothing you don't. Swift GraphQL Codegen is a lightweigh
 ## Platform Support
 
 The code generator runs on macOS 26 or newer because it uses JavaScriptCore to execute the bundled GraphQL reference implementation.
-Generated source deployment requirements depend on the APIs enabled in your configuration. Subscription support uses `UTF8Span`
-and requires version 26 or newer of macOS, iOS, tvOS, watchOS, or visionOS.
+Generated source deployment requirements depend on the APIs enabled in your configuration. Subscription support requires version
+26 or newer of macOS, iOS, tvOS, watchOS, or visionOS.
 
 ## Output directory ownership
 
@@ -53,8 +53,8 @@ generated output; if the scalar is no longer used by an operation, its file may 
 
 The generated GraphQL subscription API accepts LF, CRLF, and CR line endings and independently bounds SSE lines, complete event
 payloads, and decoded results waiting for the consumer. Configure these limits with `maximumLineByteCount`,
-`maximumEventByteCount`, and `maximumBufferedResultCount` when subscribing. This API uses `UTF8Span` and requires version 26 or
-newer of macOS, iOS, tvOS, watchOS, or visionOS.
+`maximumEventByteCount`, and `maximumBufferedResultCount` when subscribing. This API requires version 26 or newer of macOS, iOS,
+tvOS, watchOS, or visionOS.
 
 ---
 
