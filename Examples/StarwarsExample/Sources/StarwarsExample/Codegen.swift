@@ -16,7 +16,8 @@ struct StarwarsCodegen {
                 ),
                 output: .output(
                     schema: .schema(
-                        directory: currentFileDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory)
+                        directory: currentFileDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory),
+                        enums: .enums(caseConversion: .conversion(from: .macro, to: .lowerCamel))
                     ),
                     api: .api(
                         directory: currentFileDirectory.appending(path: "API", directoryHint: .isDirectory),

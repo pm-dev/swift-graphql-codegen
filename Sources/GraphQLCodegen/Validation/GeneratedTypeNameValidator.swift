@@ -16,6 +16,7 @@ struct GeneratedTypeNameValidator {
 
     func validate() throws {
         try validateTopLevelDeclarations()
+        try validateSchemaEnumCaseNames()
         try validateDocumentScopes()
     }
 
@@ -33,6 +34,26 @@ struct GeneratedTypeNameValidator {
                 )
             }
             declarationByTypeName[declaration.name] = declaration
+        }
+    }
+
+    private func validateSchemaEnumCaseNames() throws {
+        guard let caseConversion = configuration.output.schema.enums.caseConversion else { return }
+        for typePlan in outputPlan.schemaWriter.typePlans {
+            guard case .enum(let `enum`) = typePlan else { continue }
+            var graphQLValueByCaseName: [String: String] = [:]
+            for enumValue in `enum`.ast.enumValues {
+                let caseName = caseConversion.convert(enumValue.name)
+                if let conflictingGraphQLValue = graphQLValueByCaseName[caseName] {
+                    throw enumCaseNameConflictError(
+                        enumName: `enum`.ast.name,
+                        graphQLValue: enumValue.name,
+                        conflictingGraphQLValue: conflictingGraphQLValue,
+                        caseName: caseName
+                    )
+                }
+                graphQLValueByCaseName[caseName] = enumValue.name
+            }
         }
     }
 
@@ -237,6 +258,24 @@ struct GeneratedTypeNameValidator {
         Swift type name: \(declaration.name.source)
 
         \(declaration.origin.resolution)
+        """)
+    }
+
+    private func enumCaseNameConflictError(
+        enumName: String,
+        graphQLValue: String,
+        conflictingGraphQLValue: String,
+        caseName: String
+    ) -> Codegen.Error {
+        Codegen.Error(description: """
+        GraphQL enum values produce conflicting Swift case names after case conversion.
+        Enum: \(enumName)
+        GraphQL values:
+        \(conflictingGraphQLValue)
+        \(graphQLValue)
+        Swift case name: \(identifier(caseName))
+
+        Change the enum case conversion or rename the GraphQL enum values so the generated case names are distinct.
         """)
     }
 

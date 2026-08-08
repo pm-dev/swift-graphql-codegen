@@ -23,7 +23,8 @@ struct SwiftEnumBuilder: SwiftTypeBuildable {
     mutating func addCase(
         description: String?,
         deprecation: Deprecation?,
-        name: String
+        name: String,
+        rawValue: String? = nil
     ) {
         if let description {
             builder.addComment(description)
@@ -31,6 +32,10 @@ struct SwiftEnumBuilder: SwiftTypeBuildable {
         if let deprecation {
             builder.addDeprecation(deprecation.reason)
         }
-        builder.addLine("case \(identifier(name))")
+        var declaration = "case \(identifier(name))"
+        if let rawValue {
+            declaration.append(" = \(SwiftSource(value: rawValue).singleLineStringLiteral)")
+        }
+        builder.addLine(declaration)
     }
 }

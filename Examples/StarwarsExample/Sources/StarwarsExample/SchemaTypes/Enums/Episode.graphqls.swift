@@ -1,8 +1,8 @@
 // @generated
 
 enum Episode: String, Encodable, Sendable {
-    case NEW_HOPE
-    case EMPIRE
-    case JEDI
+    case newHope = "NEW_HOPE"
+    case empire = "EMPIRE"
+    case jedi = "JEDI"
 }
 

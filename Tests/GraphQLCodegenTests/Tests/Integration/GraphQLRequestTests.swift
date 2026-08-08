@@ -68,12 +68,19 @@ struct GraphQLRequestTests {
     }
 
     private let endpoint = URL(string: "https://example.com/graphql")!
-    private let operation = HeroQuery(episode: .JEDI)
+    private let operation = HeroQuery(episode: .jedi)
+
+    @Test
+    func convertedEnumCasesPreserveGraphQLWireValues() throws {
+        #expect(Episode.newHope.rawValue == "NEW_HOPE")
+        let decoded = try JSONDecoder().decode(GraphQLEnum<Episode>.self, from: Data(#""NEW_HOPE""#.utf8))
+        #expect(decoded == .known(.newHope))
+    }
 
     @Test
     func compiledFixtureSupportsMutationAndSubscriptionRequests() throws {
         let mutationRequest = try GraphQLRequest(
-            operation: SetFavoriteEpisodeMutation(episode: .JEDI),
+            operation: SetFavoriteEpisodeMutation(episode: .jedi),
             endpoint: endpoint
         )
         #expect(mutationRequest.urlRequest.httpMethod == "POST")

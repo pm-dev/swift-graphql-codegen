@@ -61,7 +61,8 @@ struct GraphQLCodeGeneratorTests {
                 ),
                 output: .output(
                     schema: .schema(
-                        directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory)
+                        directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory),
+                        enums: .enums(caseConversion: .conversion(from: .macro, to: .lowerCamel))
                     ),
                     documents: .documents(
                         directory: .directory(
@@ -249,6 +250,30 @@ struct GraphQLCodeGeneratorTests {
                 enum ViewerQuery { VALUE }
                 type Query { value: ViewerQuery! }
                 """
+            )
+        }
+    }
+
+    @Test
+    func rejectsEnumCaseNamesThatCollideAfterConversion() async {
+        await expectCodegenError(
+            containing: [
+                "GraphQL enum values produce conflicting Swift case names after case conversion",
+                "NORTH_WEST",
+                "NORTH__WEST",
+                "Swift case name: northWest",
+            ]
+        ) {
+            try await runCodegen(
+                document: "query Compass { direction }",
+                schema: """
+                enum Direction {
+                  NORTH_WEST
+                  NORTH__WEST
+                }
+                type Query { direction: Direction! }
+                """,
+                enumCaseConversion: .conversion(from: .macro, to: .lowerCamel)
             )
         }
     }
@@ -442,6 +467,7 @@ struct GraphQLCodeGeneratorTests {
     private func runCodegen(
         document: String,
         schema: String,
+        enumCaseConversion: Configuration.Output.Schema.Enums.CaseConversion? = nil,
         responseDataConformances: [String] = ["Decodable", "Sendable", "Hashable"]
     ) async throws -> String {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
@@ -467,7 +493,8 @@ struct GraphQLCodeGeneratorTests {
                 ),
                 output: .output(
                     schema: .schema(
-                        directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory)
+                        directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory),
+                        enums: .enums(caseConversion: enumCaseConversion)
                     ),
                     documents: .documents(
                         directory: .directory(operationsDirectory),
