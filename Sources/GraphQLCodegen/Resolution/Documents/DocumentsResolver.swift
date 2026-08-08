@@ -171,13 +171,13 @@ struct DocumentsResolver {
     ) throws {
         var inputTypes = [try schema.inputType(variableDefinition)]
         while let inputType = inputTypes.popLast() {
-            switch inputType {
+            switch inputType.value {
             case .SCALAR(let scalar): usedTypes.insert(scalar.ast.name)
             case .ENUM(let `enum`): usedTypes.insert(`enum`.ast.name)
             case .INPUT_OBJECT(let inputObject):
                 guard usedTypes.insert(inputObject.ast.name).inserted else { continue }
                 inputTypes.append(contentsOf: try inputObject.ast.inputFields.map { try schema.inputType($0) })
-            case .LIST(let innerType), .NON_NULL(let innerType): inputTypes.append(innerType)
+            case .LIST(let innerType): inputTypes.append(innerType)
             }
         }
     }
@@ -197,11 +197,8 @@ struct DocumentsResolver {
             defer { visiting.remove(name) }
 
             for field in inputObject.ast.inputFields {
-                var type = try schema.inputType(field)
-                while case .NON_NULL(let innerType) = type {
-                    type = innerType
-                }
-                guard case .INPUT_OBJECT(let nestedInputObject) = type else { continue }
+                let type = try schema.inputType(field)
+                guard case .INPUT_OBJECT(let nestedInputObject) = type.value else { continue }
                 if try visit(nestedInputObject) {
                     return true
                 }
