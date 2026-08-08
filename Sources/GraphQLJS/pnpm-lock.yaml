@@ -12,8 +12,8 @@ importers:
         specifier: 0.28.1
         version: 0.28.1
       graphql:
-        specifier: ^16.10.0
-        version: 16.14.2
+        specifier: ^17.0.0
+        version: 17.0.2
 
 packages:
 
@@ -178,9 +178,9 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  graphql@16.14.2:
-    resolution: {integrity: sha512-Chq1s4CY7jmh8gO2qvLIJyfCDIN+EHLFW/9iShnp1z8FjBQMoodWP1kDC36VAMXXIvAjj4ARa7ntfAV2BrjsbA==}
-    engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
+  graphql@17.0.2:
+    resolution: {integrity: sha512-FRWbddMxfkjiB7z+aQDWIR+E34xo9I8c9mtK2RPv8PmMzKRvrdsreHL/Ui/TmwHJfhHChEtsFPyMHKI+xuarQQ==}
+    engines: {node: ^22.0.0 || ^24.0.0 || ^25.0.0 || >=26.0.0}
 
 snapshots:
 
@@ -291,4 +291,4 @@ snapshots:
       '@esbuild/win32-ia32': 0.28.1
       '@esbuild/win32-x64': 0.28.1
 
-  graphql@16.14.2: {}
+  graphql@17.0.2: {}
