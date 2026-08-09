@@ -84,9 +84,7 @@ excluded:
   - .build/
   - Examples/StarwarsExample/.build/
   - Examples/StarwarsExample/Sources/StarwarsExample/
-  - Tests/GraphQLCodegenTests/Fixtures/Defaults/Generated/
-  - Tests/GraphQLCodegenTests/GeneratedAPI/
-  - Tests/GraphQLCodegenTests/Tests/Integration/ExpectedOutput/
+  - Tests/Fixtures/Generated/
 
 trailing_comma:
   mandatory_comma: true

@@ -1,0 +1,32 @@
+{
+  "configurations" : [
+    {
+      "id" : "06865317-0825-49EB-818E-65171FBAF38D",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+        {
+          "containerPath" : "container:",
+          "identifier" : "GraphQLCodegen",
+          "name" : "GraphQLCodegen"
+        }
+      ]
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "GraphQLCodegenTests",
+        "name" : "GraphQLCodegenTests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -1,0 +1,23 @@
+query Node($state: State!) {
+  node(state: $state) {
+    __typename
+    ...person
+    ...service
+  }
+}
+
+fragment person on Person {
+  ...entityFields
+  email
+}
+
+fragment service on Service {
+  ...entityFields
+  purpose
+  owner
+}
+
+fragment entityFields on Entity {
+  id
+  name
+}
