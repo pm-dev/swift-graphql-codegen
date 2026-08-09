@@ -1,3 +1,4 @@
+@testable import Fixtures
 import Foundation
 import Testing
 

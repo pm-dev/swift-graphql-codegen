@@ -3,15 +3,14 @@ import GraphQLCodegen
 import Testing
 
 struct GraphQLCodeGeneratorTests {
-    private static let currentDirectory = URL(fileURLWithPath: #filePath)
+    private static let testsDirectory = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent() // Inside 'Integration'
-    private let starwarsExampleDirectory = GraphQLCodeGeneratorTests
-        .currentDirectory
         .deletingLastPathComponent() // Inside 'Tests'
-        .deletingLastPathComponent() // Inside 'GraphQLCodegenTests'
         .deletingLastPathComponent() // Inside root 'Tests'
-        .deletingLastPathComponent() // Inside the package root
-        .appending(path: "Examples/StarwarsExample/Sources/StarwarsExample", directoryHint: .isDirectory)
+    private let definitionsDirectory = GraphQLCodeGeneratorTests.testsDirectory
+        .appending(path: "Fixtures/Definitions/Integration", directoryHint: .isDirectory)
+    private let expectedDirectory = GraphQLCodeGeneratorTests.testsDirectory
+        .appending(path: "Fixtures/Generated", directoryHint: .isDirectory)
 
     @Test
     func preservesExecutableDescriptionsAsDocumentation() async throws {
@@ -126,12 +125,12 @@ struct GraphQLCodeGeneratorTests {
         let operationsDirectory = generatedDirectory.appending(path: "Operations", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: operationsDirectory, withIntermediateDirectories: true)
         for operationFile in [
-            "FavoriteEpisodeChangedSubscription.graphql",
-            "HeroQuery.graphql",
-            "SetFavoriteEpisodeMutation.graphql",
+            "NodeQuery.graphql",
+            "SetStateMutation.graphql",
+            "StateChangedSubscription.graphql",
         ] {
             try FileManager.default.copyItem(
-                at: starwarsExampleDirectory.appending(
+                at: definitionsDirectory.appending(
                     path: "Operations/\(operationFile)",
                     directoryHint: .notDirectory
                 ),
@@ -144,7 +143,7 @@ struct GraphQLCodeGeneratorTests {
         )
         try FileManager.default.createDirectory(at: scalarsDirectory, withIntermediateDirectories: true)
         try FileManager.default.copyItem(
-            at: starwarsExampleDirectory.appending(
+            at: expectedDirectory.appending(
                 path: "SchemaTypes/Scalars/ID.graphqls.swift",
                 directoryHint: .notDirectory
             ),
@@ -154,7 +153,10 @@ struct GraphQLCodeGeneratorTests {
             .configuration(
                 input: .input(
                     schemaSource: .SDLSchemaFile(
-                        starwarsExampleDirectory.appending(path: "schema.sdl", directoryHint: .notDirectory)
+                        definitionsDirectory.appending(
+                            path: "schema.sdl",
+                            directoryHint: .notDirectory
+                        )
                     ),
                     documentDirectories: [operationsDirectory]
                 ),
@@ -777,7 +779,7 @@ struct GraphQLCodeGeneratorTests {
     }
 
     private func verifyOutputFile(_ outputFile: OutputFile, generatedDirectory: URL) throws {
-        let expectedFileURL = starwarsExampleDirectory.appending(
+        let expectedFileURL = expectedDirectory.appending(
             path: outputFile.relativePath,
             directoryHint: .notDirectory
         )
@@ -796,7 +798,7 @@ struct GraphQLCodeGeneratorTests {
 enum OutputFile: String, CaseIterable {
     case DefaultEncoders
     case Encoders
-    case FavoriteEpisodeChangedSubscription
+    case StateChangedSubscription
     case GraphQLOperation
     case GraphQLRequest
     case URLSessionGraphQL
@@ -807,17 +809,17 @@ enum OutputFile: String, CaseIterable {
     case GraphQLNullable
     case GraphQLResponse
     case JSONValue
-    case HeroQuery
-    case SetFavoriteEpisodeMutation
-    case Episode
+    case NodeQuery
+    case SetStateMutation
+    case State
     case ID
 
     var relativePath: String {
         switch self {
         case .DefaultEncoders: "API/HTTPSupport/DefaultEncoders.swift"
         case .Encoders: "API/HTTPSupport/Encoders.swift"
-        case .FavoriteEpisodeChangedSubscription:
-            "Operations/FavoriteEpisodeChangedSubscription.graphql.swift"
+        case .StateChangedSubscription:
+            "Operations/StateChangedSubscription.graphql.swift"
         case .GraphQLOperation: "API/HTTPSupport/GraphQLOperation.swift"
         case .GraphQLRequest: "API/HTTPSupport/GraphQLRequest.swift"
         case .URLSessionGraphQL: "API/HTTPSupport/URLSession+GraphQL.swift"
@@ -828,9 +830,9 @@ enum OutputFile: String, CaseIterable {
         case .GraphQLNullable: "API/GraphQLNullable.swift"
         case .GraphQLResponse: "API/GraphQLResponse.swift"
         case .JSONValue: "API/JSONValue.swift"
-        case .HeroQuery: "Operations/HeroQuery.graphql.swift"
-        case .SetFavoriteEpisodeMutation: "Operations/SetFavoriteEpisodeMutation.graphql.swift"
-        case .Episode: "SchemaTypes/Enums/Episode.graphqls.swift"
+        case .NodeQuery: "Operations/NodeQuery.graphql.swift"
+        case .SetStateMutation: "Operations/SetStateMutation.graphql.swift"
+        case .State: "SchemaTypes/Enums/State.graphqls.swift"
         case .ID: "SchemaTypes/Scalars/ID.graphqls.swift"
         }
     }

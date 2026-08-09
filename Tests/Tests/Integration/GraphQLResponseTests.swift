@@ -1,5 +1,5 @@
+@testable import Fixtures
 import Foundation
-@testable import StarwarsExample
 import Testing
 
 struct GraphQLResponseTests {

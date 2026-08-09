@@ -1,6 +1,6 @@
 retain_public: true
 report_exclude:
-  - "Tests/GraphQLCodegenTests/Fixtures/Defaults/Generated/**"
-  - "Tests/GraphQLCodegenTests/GeneratedAPI/**"
+  - "Tests/Fixtures/Generated/**"
 exclude_targets:
   - "StarwarsExample"
+  - "Fixtures"

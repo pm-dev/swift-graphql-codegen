@@ -1,0 +1,35 @@
+type Query {
+  node(state: State): Entity!
+}
+
+type Mutation {
+  setState(state: State!): State!
+}
+
+type Subscription {
+  stateChanged: State!
+}
+
+interface Entity {
+  id: ID!
+  name: String!
+}
+
+type Person implements Entity {
+  id: ID!
+  name: String!
+  email: String!
+}
+
+type Service implements Entity {
+  id: ID!
+  name: String!
+  purpose: String
+  owner: String
+}
+
+enum State {
+  READY
+  RUNNING
+  STOPPED
+}

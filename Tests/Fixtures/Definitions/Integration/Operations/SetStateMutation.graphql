@@ -1,0 +1,3 @@
+mutation SetState($state: State!) {
+  setState(state: $state)
+}
