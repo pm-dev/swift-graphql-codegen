@@ -8,6 +8,10 @@ extension Configuration.Output.Documents {
         ///   use `let`. Pass false to make the property a `var`.
         ///   - immutableVariables: Pass `true` to make the variables property of generated operations
         ///   use `let`. Pass false to make the property a `var`.
+        ///   - minifyDocument: Pass `true` to remove descriptions and ignored characters from the generated
+        ///   `document`, optimizing for a smaller transport payload. Pass `false` to preserve source formatting,
+        ///   which makes the document easier to read while debugging and reduces merge conflicts when parallel
+        ///   edits change different lines of the document.
         ///   - conformances: A list of protocols each generated operation will conform to.
         ///   - variables: Options controlling generated code for the variables struct.
         ///   - persistedOperations: Controls whether operations support persisted operations. Pass nil to remove
@@ -17,6 +21,7 @@ extension Configuration.Output.Documents {
         public static func operations(
             immutableExtensions: Bool = true,
             immutableVariables: Bool = true,
+            minifyDocument: Bool = true,
             conformances: [String] = [],
             variables: Variables = .variables(),
             persistedOperations: PersistedOperations? = .automatic,
@@ -25,6 +30,7 @@ extension Configuration.Output.Documents {
             Operations(
                 immutableExtensions: immutableExtensions,
                 immutableVariables: immutableVariables,
+                minifyDocument: minifyDocument,
                 conformances: conformances,
                 variables: variables,
                 persistedOperations: persistedOperations,
@@ -34,6 +40,7 @@ extension Configuration.Output.Documents {
 
         public var immutableExtensions: Bool
         public var immutableVariables: Bool
+        public var minifyDocument: Bool
         public var conformances: [String]
         public var variables: Variables
         public var persistedOperations: PersistedOperations?

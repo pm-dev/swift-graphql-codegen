@@ -5,11 +5,10 @@ import Testing
 
 struct DefaultURLQueryEncoderTests {
     @Test
-    func persistedHashUsesDescriptionlessDocument() throws {
+    func persistedHashUsesDocument() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
             operation: DescribedQuery(),
-            automaticPersistedOperationPhase: .initialRequestWithHash,
-            minifyDocument: false
+            automaticPersistedOperationPhase: .initialRequestWithHash
         )
         let extensionsValue = try #require(queryItems.first { $0.name == "extensions" }?.value)
         let extensions = try JSONDecoder().decode(
@@ -17,16 +16,14 @@ struct DefaultURLQueryEncoderTests {
             from: Data(extensionsValue.utf8)
         )
 
-        #expect(extensions.persistedQuery.sha256Hash == hash(DescribedQuery.minifiedDocument))
-        #expect(extensions.persistedQuery.sha256Hash != hash(DescribedQuery.document))
+        #expect(extensions.persistedQuery.sha256Hash == hash(DescribedQuery.document))
     }
 
     @Test
     func omitsDocumentFromPersistedQuery() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
             operation: CurrentUserQuery(),
-            automaticPersistedOperationPhase: .initialRequestWithHash,
-            minifyDocument: true
+            automaticPersistedOperationPhase: .initialRequestWithHash
         )
 
         #expect(queryItems.map(\.name) == ["operationName", "extensions"])
@@ -37,20 +34,19 @@ struct DefaultURLQueryEncoderTests {
     func includesDocumentInStandardQuery() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
             operation: CurrentUserQuery(),
-            automaticPersistedOperationPhase: nil,
-            minifyDocument: true
+            automaticPersistedOperationPhase: nil
         )
 
         #expect(queryItems.map(\.name) == ["operationName", "query"])
         #expect(queryItems.allSatisfy { $0.value != nil })
+        #expect(queryItems.first { $0.name == "query" }?.value == CurrentUserQuery.document)
     }
 
     @Test
     func omitsAbsentOperationName() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
             operation: AnonymousQuery(),
-            automaticPersistedOperationPhase: nil,
-            minifyDocument: true
+            automaticPersistedOperationPhase: nil
         )
 
         #expect(queryItems.map(\.name) == ["query"])
@@ -60,8 +56,7 @@ struct DefaultURLQueryEncoderTests {
     func encodesPresentVariablesAndExtensionsAsJSONMaps() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
             operation: ParameterizedQuery(),
-            automaticPersistedOperationPhase: nil,
-            minifyDocument: true
+            automaticPersistedOperationPhase: nil
         )
 
         #expect(queryItems.map(\.name) == ["operationName", "query", "variables", "extensions"])
@@ -81,8 +76,7 @@ struct DefaultURLQueryEncoderTests {
         struct Data: Decodable, Sendable {}
 
         static let operationName: String? = nil
-        static let document = "{ viewer { id } }"
-        static let minifiedDocument = "{viewer{id}}"
+        static let document = "{viewer{id}}"
 
         let variables: Never? = nil
         let extensions: [String: StarwarsExample.AnyEncodable]? = nil
@@ -92,8 +86,7 @@ struct DefaultURLQueryEncoderTests {
         struct Data: Decodable, Sendable {}
 
         static let operationName: String? = "CurrentUser"
-        static let document = "query CurrentUser { viewer { id } }"
-        static let minifiedDocument = "query CurrentUser{viewer{id}}"
+        static let document = "query CurrentUser{viewer{id}}"
 
         let variables: Never? = nil
         let extensions: [String: StarwarsExample.AnyEncodable]? = nil
@@ -103,11 +96,7 @@ struct DefaultURLQueryEncoderTests {
         struct Data: Decodable, Sendable {}
 
         static let operationName: String? = "Described"
-        static let document = #"""
-        "Documentation."
-        query Described { viewer { id } }
-        """#
-        static let minifiedDocument = "query Described{viewer{id}}"
+        static let document = "query Described{viewer{id}}"
 
         let variables: Never? = nil
         let extensions: [String: StarwarsExample.AnyEncodable]? = nil
@@ -125,8 +114,7 @@ struct DefaultURLQueryEncoderTests {
         struct Data: Decodable, Sendable {}
 
         static let operationName: String? = "Parameterized"
-        static let document = "query Parameterized($includeDetails: Boolean!) { viewer { id } }"
-        static let minifiedDocument = "query Parameterized($includeDetails:Boolean!){viewer{id}}"
+        static let document = "query Parameterized($includeDetails:Boolean!){viewer{id}}"
 
         let variables = Variables(includeDetails: true)
         let extensions: [String: StarwarsExample.AnyEncodable]? = [

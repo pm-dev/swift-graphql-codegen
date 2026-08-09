@@ -72,6 +72,12 @@ struct OperationBuilder {
         switch configuration.output.documents.operations.persistedOperations {
         case .registered: break
         case .automatic, .none:
+            let documentText =
+                if configuration.output.documents.operations.minifyDocument {
+                    operation.canonicalText
+                } else {
+                    operation.documentText
+                }
             operationStruct.addProperty(
                 description: nil,
                 deprecation: nil,
@@ -79,19 +85,8 @@ struct OperationBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "document",
-                value: .assigned(SwiftSource(value: operation.documentText).multilineStringLiteral, type: nil)
-            )
-            operationStruct.addProperty(
-                description: nil,
-                deprecation: nil,
-                isPublic: isPublic,
-                isStatic: true,
-                immutable: true,
-                name: "minifiedDocument",
                 value: .assigned(
-                    SwiftSource(
-                        value: operation.canonicalText
-                    ).multilineStringLiteral,
+                    SwiftSource(value: documentText).multilineStringLiteral,
                     type: nil
                 )
             )

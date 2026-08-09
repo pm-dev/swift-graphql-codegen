@@ -44,12 +44,10 @@ struct EncodersWriter: APIOutput {
             ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
             ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
             ///   should always be sent.
-            ///   minifyDocument: Pass `true` if the document should remove unnecessary whitespace.
             /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
             func encode<Operation: GraphQLOperation>(
                 operation: Operation,
-                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-                minifyDocument: Bool
+                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
             ) throws -> [URLQueryItem]
         }
 
@@ -87,12 +85,8 @@ struct EncodersWriter: APIOutput {
             /// Encodes a query operation for a GET request.
             /// - Parameters:
             ///   query: The query operation to encode.
-            ///   minifyDocument: Pass `true` if the document should remove unnecessary whitespace.
             /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
-            func encode<Query: GraphQLQuery>(
-                query: Query,
-                minifyDocument: Bool
-            ) throws -> [URLQueryItem]\(subscriptionSupportWithNoPersistedOperations())
+            func encode<Query: GraphQLQuery>(query: Query) throws -> [URLQueryItem]\(subscriptionSupportWithNoPersistedOperations())
         }
 
         \(httpBodyEncoderWithNoPersistedOperations())
@@ -138,12 +132,10 @@ struct EncodersWriter: APIOutput {
             ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
             ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
             ///   should always be sent.
-            ///   minifyDocument: Pass `true` if the document should remove unnecessary whitespace.
             /// - Returns: The encoded data to be set as the HTTP body of the POST request.
             func encode<Operation: GraphQLOperation>(
                 operation: Operation,
-                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-                minifyDocument: Bool
+                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
             ) throws -> Data
         }
 
@@ -191,12 +183,8 @@ struct EncodersWriter: APIOutput {
             /// Encodes an operation into body data for a POST request.
             /// - Parameters:
             ///   operation: The GraphQL operation to encode.
-            ///   minifyDocument: Pass `true` if the document should remove unnecessary whitespace.
             /// - Returns: The encoded data to be set as the HTTP body of the POST request.
-            func encode<Operation: GraphQLOperation>(
-                operation: Operation,
-                minifyDocument: Bool
-            ) throws -> Data
+            func encode<Operation: GraphQLOperation>(operation: Operation) throws -> Data
         }
         """
     }
@@ -222,12 +210,8 @@ struct EncodersWriter: APIOutput {
             /// Encodes a subscription operation for a GET request.
             /// - Parameters:
             ///   subscription: The subscription operation to encode.
-            ///   minifyDocument: Pass `true` if the document should remove unnecessary whitespace.
             /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
-            func encode<Subscription: GraphQLSubscription>(
-                subscription: Subscription,
-                minifyDocument: Bool
-            ) throws -> [URLQueryItem]
+            func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLQueryItem]
         """
     }
 }

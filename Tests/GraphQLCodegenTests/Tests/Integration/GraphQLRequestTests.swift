@@ -10,8 +10,7 @@ struct GraphQLRequestTests {
 
         func encode<Operation: GraphQLOperation>(
             operation: Operation,
-            automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-            minifyDocument: Bool
+            automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
         ) throws -> Data {
             switch automaticPersistedOperationPhase {
             case .some(.initialRequestWithHash): initialRequestCount += 1
@@ -20,8 +19,7 @@ struct GraphQLRequestTests {
             }
             return try JSONBodyEncoder().encode(
                 operation: operation,
-                automaticPersistedOperationPhase: automaticPersistedOperationPhase,
-                minifyDocument: minifyDocument
+                automaticPersistedOperationPhase: automaticPersistedOperationPhase
             )
         }
     }
@@ -31,14 +29,12 @@ struct GraphQLRequestTests {
 
         func encode<Operation: GraphQLOperation>(
             operation: Operation,
-            automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-            minifyDocument: Bool
+            automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
         ) throws -> [URLQueryItem] {
             encodeCount += 1
             return try DefaultURLQueryEncoder().encode(
                 operation: operation,
-                automaticPersistedOperationPhase: automaticPersistedOperationPhase,
-                minifyDocument: minifyDocument
+                automaticPersistedOperationPhase: automaticPersistedOperationPhase
             )
         }
     }
@@ -98,7 +94,7 @@ struct GraphQLRequestTests {
         let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
         #expect(
             queryItems.first { $0.name == "query" }?.value
-                == FavoriteEpisodeChangedSubscription.minifiedDocument
+                == FavoriteEpisodeChangedSubscription.document
         )
 
         let postSubscriptionRequest = try GraphQLRequest(
@@ -112,7 +108,7 @@ struct GraphQLRequestTests {
             EncodedDocument.self,
             from: try #require(postSubscriptionRequest.urlRequest.httpBody)
         )
-        #expect(body.query == FavoriteEpisodeChangedSubscription.minifiedDocument)
+        #expect(body.query == FavoriteEpisodeChangedSubscription.document)
     }
 
     @Test
@@ -154,7 +150,7 @@ struct GraphQLRequestTests {
         let url = try #require(urlRequest.url)
         let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
         #expect(queryItems.first { $0.name == "operationName" }?.value == "Hero")
-        #expect(queryItems.first { $0.name == "query" }?.value == HeroQuery.minifiedDocument)
+        #expect(queryItems.first { $0.name == "query" }?.value == HeroQuery.document)
 
         let variablesData = try #require(queryItems.first { $0.name == "variables" }?.value?.data(using: .utf8))
         let variables = try JSONDecoder().decode(EncodedRequest.Variables.self, from: variablesData)
@@ -187,7 +183,7 @@ struct GraphQLRequestTests {
 
         let body = try JSONDecoder().decode(EncodedRequest.self, from: try #require(urlRequest.httpBody))
         #expect(body.operationName == "Hero")
-        #expect(body.query == HeroQuery.minifiedDocument)
+        #expect(body.query == HeroQuery.document)
         #expect(body.variables.episode == "JEDI")
         #expect(body.extensions.persistedQuery.version == 1)
         #expect(body.extensions.persistedQuery.sha256Hash.count == 64)
@@ -211,7 +207,7 @@ struct GraphQLRequestTests {
         #expect(urlRequest.httpBody == nil)
         let url = try #require(urlRequest.url)
         let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
-        #expect(queryItems.first { $0.name == "query" }?.value == HeroQuery.minifiedDocument)
+        #expect(queryItems.first { $0.name == "query" }?.value == HeroQuery.document)
     }
 
     @Test

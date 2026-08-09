@@ -9,13 +9,11 @@ struct DefaultURLQueryEncoder: URLQueryEncoder {
     init() {}
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-        minifyDocument: Bool
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) throws -> [URLQueryItem] {
         let body = Body(
             operation: operation,
-            automaticPersistedOperationPhase: automaticPersistedOperationPhase,
-            minifyDocument: minifyDocument
+            automaticPersistedOperationPhase: automaticPersistedOperationPhase
         )
         let encoder = JSONEncoder()
         return [
@@ -45,14 +43,12 @@ struct JSONBodyEncoder: HTTPBodyEncoder {
     let contentType = "application/json"
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-        minifyDocument: Bool
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) throws -> Data {
         try JSONEncoder().encode(
             Body(
                 operation: operation,
-                automaticPersistedOperationPhase: automaticPersistedOperationPhase,
-                minifyDocument: minifyDocument
+                automaticPersistedOperationPhase: automaticPersistedOperationPhase
             )
         )
     }
@@ -66,22 +62,19 @@ private struct Body: Encodable {
 
     init<Operation: GraphQLOperation>(
         operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-        minifyDocument: Bool
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) {
-        let query = minifyDocument ? Operation.minifiedDocument : Operation.document
-        let persistedDocument = Operation.minifiedDocument
         var extensions = operation.extensions
         if automaticPersistedOperationPhase != nil {
             var persistedExtensions = extensions ?? [:]
             persistedExtensions["persistedQuery"] = AnyEncodable([
                 "version": AnyEncodable(1),
-                "sha256Hash": AnyEncodable(persistedOperationHash(persistedDocument))
+                "sha256Hash": AnyEncodable(persistedOperationHash(Operation.document))
             ])
             extensions = persistedExtensions
         }
         self.operationName = Operation.operationName
-        self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
+        self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : Operation.document
         self.variables = operation.requestVariables
         self.extensions = extensions
     }

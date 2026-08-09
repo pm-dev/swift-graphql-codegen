@@ -168,15 +168,6 @@ struct HeroQuery: GraphQLQuery {
     static let operationName: String? = "Hero"
 
     static let document = #"""
-    query Hero($episode: Episode!) {
-      hero(episode: $episode) {
-        id
-        name
-      }
-    }
-    """#
-
-    static let minifiedDocument = #"""
     query Hero($episode:Episode!){hero(episode:$episode){id name}}
     """#
 
