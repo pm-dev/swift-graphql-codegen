@@ -14,6 +14,7 @@ extension SwiftStructBuilder {
         configuration: Configuration
     ) throws {
         let typePlan = SelectionSetTypePlan(selectionSet: selectionSet, conformances: conformances)
+        reservePropertyNames(selectionSet.map { responseKey, _ in responseKey })
 
         var hasNonnilTypenameField = false
         for (responseKey, selection) in selectionSet {

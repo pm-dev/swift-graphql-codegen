@@ -37,6 +37,7 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
     }
 
     private var builder: SwiftTypeBuilder
+    private var reservedPropertyNames: Set<String> = []
     private var storedProperties: [StoredProperty] = []
     private let usesCodingKeys: Bool
 
@@ -56,6 +57,10 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         usesCodingKeys = conformances.contains { conformance in
             SwiftConformanceName(source: conformance).usesCodingKeys
         }
+    }
+
+    mutating func reservePropertyNames(_ names: [String]) {
+        reservedPropertyNames.formUnion(names)
     }
 
     func build(configuration: Configuration) -> [String] {
@@ -90,11 +95,11 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             case .assigned, .unassigned: immutable ? "let" : "var"
             }
         let safeName = identifier(name)
-        let backingName = "__\(name)"
         let usesBackingStorage = switch value {
         case .unassigned: deprecation != nil
         case .assigned, .computed: false
         }
+        let backingName = usesBackingStorage ? backingStorageName(for: name) : safeName
         if isStatic == false {
             switch value {
             case .assigned, .unassigned:
@@ -180,6 +185,15 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
 
     func storageName(forProperty name: String) -> String {
         storedProperties.first { $0.name == name }?.storageName ?? identifier(name)
+    }
+
+    private func backingStorageName(for propertyName: String) -> String {
+        var name = "__\(propertyName)"
+        let storedPropertyNames = Set(storedProperties.map(\.storageName))
+        while reservedPropertyNames.contains(name) || storedPropertyNames.contains(name) {
+            name = "_\(name)"
+        }
+        return name
     }
 
     mutating func addNestedType(_ type: SwiftTypeBuildable) {
