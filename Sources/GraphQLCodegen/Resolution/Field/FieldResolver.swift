@@ -10,7 +10,7 @@ struct FieldResolver {
     func resolve() throws -> ResolvedField {
         ResolvedField(
             type: try resolveFieldType(schema.fieldType(fieldSchema)),
-            deprecation: fieldSchema.isDeprecated ? Deprecation(reason: fieldSchema.deprecationReason) : nil,
+            deprecation: fieldSchema.deprecation,
             description: fieldSchema.description
         )
     }

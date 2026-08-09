@@ -4,7 +4,7 @@ type Query {
 
 input SearchInput @oneOf {
   id: Int
-  name: String
+  name: String @deprecated(reason: "Use id.")
   tags: [String!]
   next: SearchInput
   filter: SearchFilterInput
@@ -13,5 +13,5 @@ input SearchInput @oneOf {
 
 input SearchFilterInput @oneOf {
   name: String
-  search: SearchInput
+  search: SearchInput @deprecated(reason: "Use name.")
 }

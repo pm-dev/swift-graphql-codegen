@@ -1,4 +1,9 @@
 struct SwiftStructBuilder: SwiftTypeBuildable {
+    private struct StoredProperty {
+        let name: String
+        let storageName: String
+    }
+
     enum PropertyValue {
         case unassigned(type: String, initialized: Initialized?)
         case assigned(String, type: String?)
@@ -32,6 +37,8 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
     }
 
     private var builder: SwiftTypeBuilder
+    private var storedProperties: [StoredProperty] = []
+    private let usesCodingKeys: Bool
 
     init(
         description: String?,
@@ -46,10 +53,25 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             name: identifier(name),
             conformances: conformances
         )
+        usesCodingKeys = conformances.contains { conformance in
+            SwiftConformanceName(source: conformance).usesCodingKeys
+        }
     }
 
     func build(configuration: Configuration) -> [String] {
-        builder.build(configuration: configuration)
+        var builder = builder
+        if storedProperties.contains(where: { $0.storageName != identifier($0.name) }), usesCodingKeys {
+            let indentation = configuration.output.indentation.string
+            builder.addEmptyLine()
+            builder.addLine("private enum CodingKeys: String, CodingKey {")
+            for property in storedProperties {
+                let rawValue = property.storageName == property.name ? "" :
+                    " = \(SwiftSource(value: property.name).singleLineStringLiteral)"
+                builder.addLine("\(indentation)case \(property.storageName)\(rawValue)")
+            }
+            builder.addLine("}")
+        }
+        return builder.build(configuration: configuration)
     }
 
     mutating func addProperty(
@@ -62,18 +84,37 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         value: PropertyValue
     ) {
         builder.addEmptyLine()
-        if let description, !description.isEmpty {
-            builder.addComment(description)
-        }
-        if let deprecation {
-            builder.addDeprecation(deprecation.reason)
-        }
         let creator =
             switch value {
             case .computed: "var"
             case .assigned, .unassigned: immutable ? "let" : "var"
             }
         let safeName = identifier(name)
+        let backingName = "__\(name)"
+        let usesBackingStorage = switch value {
+        case .unassigned: deprecation != nil
+        case .assigned, .computed: false
+        }
+        if isStatic == false {
+            switch value {
+            case .assigned, .unassigned:
+                storedProperties.append(
+                    StoredProperty(
+                        name: name,
+                        storageName: usesBackingStorage ? backingName : safeName
+                    )
+                )
+            case .computed: break
+            }
+        }
+        if usesBackingStorage == false {
+            if let description, !description.isEmpty {
+                builder.addComment(description)
+            }
+            if let deprecation {
+                builder.addDeprecation(deprecation.reason)
+            }
+        }
         var declarationLine = "\(isPublic ? "public " : "")\(isStatic ? "static " : "")\(creator) \(safeName)"
         switch value {
         case .computed(let value, type: let type):
@@ -89,12 +130,29 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
                 builder.addLine(line)
             }
         case .unassigned(let type, let initialized):
-            declarationLine.append(": \(type)")
-            builder.addLine(declarationLine)
+            if usesBackingStorage {
+                builder.addLine("private \(creator) \(backingName): \(type)")
+                builder.addEmptyLine()
+                if let description, !description.isEmpty {
+                    builder.addComment(description)
+                }
+                if let deprecation {
+                    builder.addDeprecation(deprecation.reason)
+                }
+                declarationLine = "\(isPublic ? "public " : "")var \(safeName): \(type)"
+                let computedValue = immutable ? backingName : "get { \(backingName) }\nset { \(backingName) = newValue }"
+                for line in declarationLine.addingDefaultValue(computedValue, isComputed: true) {
+                    builder.addLine(line)
+                }
+            } else {
+                declarationLine.append(": \(type)")
+                builder.addLine(declarationLine)
+            }
             switch initialized {
             case .direct(let defaultValue):
                 builder.addPropertyInitializerArguments("\(safeName): \(type)".addingDefaultValue(defaultValue))
-                builder.addPropertyInitializerBody(["self.\(safeName) = \(safeName)"], isThrowing: false)
+                let storedName = usesBackingStorage ? backingName : safeName
+                builder.addPropertyInitializerBody(["self.\(storedName) = \(safeName)"], isThrowing: false)
             case .flattened(let initializerArguments, let indentation):
                 for argument in initializerArguments {
                     builder.addPropertyInitializerArguments(
@@ -118,6 +176,10 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             case .none: break
             }
         }
+    }
+
+    func storageName(forProperty name: String) -> String {
+        storedProperties.first { $0.name == name }?.storageName ?? identifier(name)
     }
 
     mutating func addNestedType(_ type: SwiftTypeBuildable) {

@@ -2,6 +2,7 @@
 
 enum SearchInput: Codable, Hashable, Sendable {
     case id(Int)
+    /// - Deprecated: Use id.
     case name(String)
     case tags([String])
     indirect case next(SearchInput)

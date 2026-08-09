@@ -30,7 +30,7 @@ struct SwiftEnumBuilder: SwiftTypeBuildable {
             builder.addComment(description)
         }
         if let deprecation {
-            builder.addDeprecation(deprecation.reason)
+            builder.addDeprecationDocumentation(deprecation.reason)
         }
         var declaration = "case \(identifier(name))"
         if let rawValue {

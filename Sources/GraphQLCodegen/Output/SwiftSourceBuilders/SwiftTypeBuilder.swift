@@ -85,8 +85,12 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         contents.append(contentsOf: comment.documentationCommentLines)
     }
 
-    mutating func addDeprecation(_ deprecationReason: String?) {
+    mutating func addDeprecation(_ deprecationReason: String) {
         contents.append(_deprecation(deprecationReason))
+    }
+
+    mutating func addDeprecationDocumentation(_ deprecationReason: String) {
+        addComment("- Deprecated: \(deprecationReason)")
     }
 
     mutating func addLine(_ line: String) {
@@ -167,14 +171,8 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         return lines
     }
 
-    private func _deprecation(_ deprecationReason: String?) -> String {
-        var line = "@available(*, deprecated"
-        if let deprecationReason, !deprecationReason.isEmpty {
-            line.append(", message: \(SwiftSource(value: deprecationReason).singleLineStringLiteral))")
-        } else {
-            line.append(")")
-        }
-        return line
+    private func _deprecation(_ deprecationReason: String) -> String {
+        "@available(*, deprecated, message: \(SwiftSource(value: deprecationReason).singleLineStringLiteral))"
     }
 }
 

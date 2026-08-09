@@ -49,6 +49,7 @@ struct Document: Sendable {
     let url: URL
     let definitions: [Definition]
     let relativePath: String
+    let sourceText: String
 
     func outputURL(_ configuration: Configuration) -> URL {
         switch configuration.output.documents.directory {

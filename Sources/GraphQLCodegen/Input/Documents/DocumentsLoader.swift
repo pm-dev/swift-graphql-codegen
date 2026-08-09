@@ -10,6 +10,7 @@ struct DocumentsLoader {
     private struct ParsedDocument {
         let definitions: [ParsedDefinition]
         let relativePath: String
+        let sourceText: String
         let url: URL
     }
 
@@ -100,6 +101,7 @@ struct DocumentsLoader {
                 ParsedDocument(
                     definitions: definitions,
                     relativePath: documentFile.relativePath,
+                    sourceText: documentText,
                     url: documentURL
                 )
             )
@@ -160,7 +162,8 @@ struct DocumentsLoader {
                 Document(
                     url: document.url,
                     definitions: updatedDefinitions,
-                    relativePath: document.relativePath
+                    relativePath: document.relativePath,
+                    sourceText: document.sourceText
                 )
             )
         }

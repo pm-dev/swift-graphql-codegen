@@ -29,10 +29,17 @@ public struct Codegen: Sendable {
             graphQLJS: graphQLJS
         ).load()
 
+        let deprecationDiagnostics = try DeprecationUsageValidator(
+            documents: documents,
+            graphQLJS: graphQLJS,
+            policy: configuration.input.deprecationPolicy,
+            schemaJSON: loadedSchema.schemaJSON
+        ).validate()
+
         // Validation
-        if case .enabled(let schemaJSON) = loadedSchema.validation {
+        if configuration.validation {
             try DocumentsValidator(
-                schemaJSON: schemaJSON,
+                schemaJSON: loadedSchema.schemaJSON,
                 documents: documents,
                 graphQLJS: graphQLJS
             ).validate()
@@ -50,6 +57,9 @@ public struct Codegen: Sendable {
             schema: loadedSchema.schema
         )
         try outputPlan.validate()
+        for diagnostic in deprecationDiagnostics {
+            print("Warning: \(diagnostic)")
+        }
 
         // Output
         let fileOutput = FileOutput()

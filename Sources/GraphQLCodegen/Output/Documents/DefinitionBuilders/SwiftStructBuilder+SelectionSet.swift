@@ -156,7 +156,7 @@ extension SwiftStructBuilder {
         for (responseKey, selection) in selectionSet {
             switch selection {
             case .field(let field, let conditional):
-                var assignment = "\(identifier(responseKey)) = "
+                var assignment = "\(storageName(forProperty: responseKey)) = "
                 assignment.append("try container.")
                 let typename: String
                 if conditional {

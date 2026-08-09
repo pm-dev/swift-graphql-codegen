@@ -1,3 +1,3 @@
 struct Deprecation: Hashable {
-    let reason: String?
+    let reason: String
 }

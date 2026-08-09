@@ -284,15 +284,13 @@ struct __Schema: Decodable {
         let description: String?
         let args: [__InputValue]
         let type: __TypeRef
-        let isDeprecated: Bool
-        let deprecationReason: String?
+        let deprecation: Deprecation?
     }
 
     struct __EnumValue: Decodable {
         let name: String
         let description: String?
-        let isDeprecated: Bool
-        let deprecationReason: String?
+        let deprecation: Deprecation?
     }
 
     struct __InputValue: Decodable {
@@ -300,8 +298,7 @@ struct __Schema: Decodable {
         let description: String?
         let type: __TypeRef
         let defaultValue: String?
-        let isDeprecated: Bool
-        let deprecationReason: String?
+        let deprecation: Deprecation?
     }
 
     private enum __TypeKind: String, Decodable {
@@ -330,4 +327,168 @@ struct __Schema: Decodable {
     let mutationType: __TypeRef.Object?
     let subscriptionType: __TypeRef.Object?
     let directives: [__Directive]
+}
+
+private enum IntrospectionDeprecationCodingKeys: String, CodingKey {
+    case args
+    case defaultValue
+    case deprecationReason
+    case description
+    case isDeprecated
+    case name
+    case type
+}
+
+extension Deprecation {
+    fileprivate init?(introspection decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: IntrospectionDeprecationCodingKeys.self)
+        guard try container.decode(Bool.self, forKey: .isDeprecated) else {
+            guard try container.decodeIfPresent(String.self, forKey: .deprecationReason) == nil else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .deprecationReason,
+                    in: container,
+                    debugDescription: "A nondeprecated schema member cannot have a deprecation reason"
+                )
+            }
+            return nil
+        }
+        reason = try container.decode(String.self, forKey: .deprecationReason)
+    }
+}
+
+extension __Schema.__Field {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: IntrospectionDeprecationCodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        args = try container.decode([__Schema.__InputValue].self, forKey: .args)
+        type = try container.decode(__Schema.__TypeRef.self, forKey: .type)
+        deprecation = try Deprecation(introspection: decoder)
+    }
+}
+
+extension __Schema.__EnumValue {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: IntrospectionDeprecationCodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        deprecation = try Deprecation(introspection: decoder)
+    }
+}
+
+extension __Schema.__InputValue {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: IntrospectionDeprecationCodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        type = try container.decode(__Schema.__TypeRef.self, forKey: .type)
+        defaultValue = try container.decodeIfPresent(String.self, forKey: .defaultValue)
+        deprecation = try Deprecation(introspection: decoder)
+    }
+}
+
+extension __Schema {
+    func applying(_ policy: Configuration.Input.DeprecationPolicy) -> Self {
+        switch policy {
+        case .include: self
+        case .exclude:
+            Self(
+                description: description,
+                types: types.map { $0.applying(policy) },
+                queryType: queryType,
+                mutationType: mutationType,
+                subscriptionType: subscriptionType,
+                directives: directives.map { $0.applying(policy) }
+            )
+        }
+    }
+}
+
+extension __Schema.__NamedType {
+    fileprivate func applying(_ policy: Configuration.Input.DeprecationPolicy) -> Self {
+        switch self {
+        case .SCALAR, .UNION: self
+        case .OBJECT(let object):
+            .OBJECT(
+                Object(
+                    description: object.description,
+                    name: object.name,
+                    fields: object.fields.compactMap { $0.applying(policy) },
+                    interfaces: object.interfaces
+                )
+            )
+        case .INTERFACE(let interface):
+            .INTERFACE(
+                Interface(
+                    description: interface.description,
+                    name: interface.name,
+                    fields: interface.fields.compactMap { $0.applying(policy) },
+                    interfaces: interface.interfaces
+                )
+            )
+        case .ENUM(let `enum`):
+            .ENUM(
+                Enum(
+                    description: `enum`.description,
+                    name: `enum`.name,
+                    enumValues: `enum`.enumValues.compactMap { $0.applying(policy) }
+                )
+            )
+        case .INPUT_OBJECT(let inputObject):
+            .INPUT_OBJECT(
+                InputObject(
+                    description: inputObject.description,
+                    name: inputObject.name,
+                    inputFields: inputObject.inputFields.compactMap { $0.applying(policy) },
+                    isOneOf: inputObject.isOneOf
+                )
+            )
+        }
+    }
+}
+
+extension __Schema.__Field {
+    fileprivate func applying(_ policy: Configuration.Input.DeprecationPolicy) -> Self? {
+        switch policy {
+        case .include: return self
+        case .exclude:
+            guard deprecation == nil else { return nil }
+            return Self(
+                name: name,
+                description: description,
+                args: args.compactMap { $0.applying(policy) },
+                type: type,
+                deprecation: nil
+            )
+        }
+    }
+}
+
+extension __Schema.__Directive {
+    fileprivate func applying(_ policy: Configuration.Input.DeprecationPolicy) -> Self {
+        Self(
+            name: name,
+            description: description,
+            args: args.compactMap { $0.applying(policy) },
+            isRepeatable: isRepeatable
+        )
+    }
+}
+
+extension __Schema.__EnumValue {
+    fileprivate func applying(_ policy: Configuration.Input.DeprecationPolicy) -> Self? {
+        switch policy {
+        case .include: self
+        case .exclude: deprecation == nil ? self : nil
+        }
+    }
+}
+
+extension __Schema.__InputValue {
+    fileprivate func applying(_ policy: Configuration.Input.DeprecationPolicy) -> Self? {
+        switch policy {
+        case .include: self
+        case .exclude: deprecation == nil ? self : nil
+        }
+    }
 }

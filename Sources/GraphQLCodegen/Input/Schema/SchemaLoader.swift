@@ -1,13 +1,13 @@
 import Foundation
 
 struct LoadedSchema {
-    enum Validation {
-        case disabled
-        case enabled(String)
-    }
-
     let schema: Schema
-    let validation: Validation
+    let schemaJSON: String
+}
+
+private struct LoadedIntrospection {
+    let schema: __Schema
+    let schemaJSON: String
 }
 
 // Type names are guaranteed to be unique
@@ -87,84 +87,78 @@ struct SchemaLoader {
     let urlSession: URLSession
 
     func load() async throws -> LoadedSchema {
-        let (validation, typedSchema) = try await loadIntrospection()
+        let introspection = try await loadIntrospection()
+        let projectedSchema = introspection.schema.applying(configuration.input.deprecationPolicy)
         return LoadedSchema(
             schema: Schema(
-                queryTypeRef: typedSchema.queryType,
-                mutationTypeRef: typedSchema.mutationType,
-                subscriptionTypeRef: typedSchema.subscriptionType,
-                typeCache: TypeCache(TypeASTCache(typedSchema))
+                queryTypeRef: projectedSchema.queryType,
+                mutationTypeRef: projectedSchema.mutationType,
+                subscriptionTypeRef: projectedSchema.subscriptionType,
+                typeCache: TypeCache(TypeASTCache(projectedSchema))
             ),
-            validation: validation
+            schemaJSON: introspection.schemaJSON
         )
     }
 
-    private func loadIntrospection() async throws -> (LoadedSchema.Validation, __Schema) {
+    private func loadIntrospection() async throws -> LoadedIntrospection {
         switch configuration.input.schemaSource {
         case .introspectionEndpoint(
             let endpoint,
-            let headers,
-            let includeDeprecated
+            let headers
         ):
             try await loadSchemaFromIntrospectionEndpoint(
                 endpoint: endpoint,
-                headers: headers,
-                includeDeprecated: includeDeprecated
+                headers: headers
             )
         case .JSONSchemaFile(let schemaFile):
             try loadSchemaFromJSONFile(schemaFile)
-        case .SDLSchemaFile(
-            let schemaFile,
-            let includeDeprecated
-        ):
-            try loadSchemaFromSDLFile(
-                schemaFile,
-                includeDeprecated: includeDeprecated
-            )
+        case .SDLSchemaFile(let schemaFile):
+            try loadSchemaFromSDLFile(schemaFile)
         }
     }
 
     private func loadSchemaFromIntrospectionEndpoint(
         endpoint: URL,
-        headers: [String: String],
-        includeDeprecated: Bool
-    ) async throws -> (LoadedSchema.Validation, __Schema) {
+        headers: [String: String]
+    ) async throws -> LoadedIntrospection {
         let data = try await IntrospectionRunner(
             endpoint: endpoint,
             headers: headers,
-            includeDeprecated: includeDeprecated,
             urlSession: urlSession
         ).run()
         let __schema = try JSONDecoder().decode(IntrospectionResponse.self, from: data).data.__schema
-        guard configuration.validation else { return (.disabled, __schema) }
         guard let response = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let schemaObject = response["data"] else {
             throw Codegen.Error(description: "The introspection endpoint returned an invalid GraphQL response.")
         }
         let schemaJSON = try JSONSerialization.data(withJSONObject: schemaObject)
-        return (.enabled(try decodeUTF8(schemaJSON, source: endpoint)), __schema)
+        return LoadedIntrospection(
+            schema: __schema,
+            schemaJSON: try decodeUTF8(schemaJSON, source: endpoint)
+        )
     }
 
-    private func loadSchemaFromJSONFile(_ schemaFile: URL) throws -> (LoadedSchema.Validation, __Schema) {
+    private func loadSchemaFromJSONFile(_ schemaFile: URL) throws -> LoadedIntrospection {
         let data = try Data(contentsOf: schemaFile)
         let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: data).__schema
-        guard configuration.validation else { return (.disabled, __schema) }
-        return (.enabled(try decodeUTF8(data, source: schemaFile)), __schema)
+        return LoadedIntrospection(
+            schema: __schema,
+            schemaJSON: try decodeUTF8(data, source: schemaFile)
+        )
     }
 
-    private func loadSchemaFromSDLFile(
-        _ schemaFile: URL,
-        includeDeprecated: Bool
-    ) throws -> (LoadedSchema.Validation, __Schema) {
+    private func loadSchemaFromSDLFile(_ schemaFile: URL) throws -> LoadedIntrospection {
         let sdlSchemaString = try String(contentsOf: schemaFile, encoding: .utf8)
-        let introspectionQuery = IntrospectionQuery(includeDeprecated: includeDeprecated).query
+        let introspectionQuery = IntrospectionQuery().query
         let jsonSchema = try graphQLJS.convertSDLSchema(
             sdlSchemaString,
             introspectionQuery: introspectionQuery
         )
         let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: jsonSchema.data).__schema
-        guard configuration.validation else { return (.disabled, __schema) }
-        return (.enabled(jsonSchema.text), __schema)
+        return LoadedIntrospection(
+            schema: __schema,
+            schemaJSON: jsonSchema.text
+        )
     }
 
     private func decodeUTF8(_ data: Data, source: URL) throws -> String {

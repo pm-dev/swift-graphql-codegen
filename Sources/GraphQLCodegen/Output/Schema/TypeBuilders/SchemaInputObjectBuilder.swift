@@ -25,6 +25,9 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
             if let description = inputField.description, !description.isEmpty {
                 builder.addComment(description)
             }
+            if let deprecation = inputField.deprecation {
+                builder.addDeprecationDocumentation(deprecation.reason)
+            }
             let indirect = indirectInputFields.contains(inputField.name) ? "indirect " : ""
             builder.addLine("\(indirect)case \(identifier(inputField.name))(\(inputField.oneOfTypeName))")
         }
@@ -105,7 +108,7 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
         for inputField in inputObject.ast.inputFields {
             builder.addProperty(
                 description: inputField.description,
-                deprecation: nil,
+                deprecation: inputField.deprecation,
                 isPublic: isPublic,
                 isStatic: false,
                 immutable: configuration.output.schema.inputObjects.immutable,

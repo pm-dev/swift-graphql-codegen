@@ -4,6 +4,6 @@ type Query {
 
 input DefaultsInput {
   required: Int! = 1
-  optional: Int = 2
-  list: [Int]! = [1]
+  optional: Int = 2 @deprecated
+  list: [Int]! = [1] @deprecated(reason: "")
 }
