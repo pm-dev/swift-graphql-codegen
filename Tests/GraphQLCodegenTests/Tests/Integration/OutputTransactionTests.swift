@@ -8,7 +8,7 @@ struct OutputTransactionTests {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
 
-        let configuration = try configuration(for: fixture)
+        let configuration = configuration(for: fixture)
         try await Codegen(configuration).run()
 
         let documentsDirectory = fixture.output.appending(
@@ -63,7 +63,7 @@ struct OutputTransactionTests {
         let idSource = "struct ID: Codable, Sendable { let rawValue: String }\n"
         try Data(idSource.utf8).write(to: idScalarURL)
 
-        try await Codegen(try configuration(for: fixture)).run()
+        try await Codegen(configuration(for: fixture)).run()
 
         #expect(try String(contentsOf: customScalarURL, encoding: .utf8) == customSource)
         #expect(try String(contentsOf: idScalarURL, encoding: .utf8) == idSource)
@@ -85,7 +85,7 @@ struct OutputTransactionTests {
 
         let blockingFile = fixture.root.appending(path: "0-blocker", directoryHint: .notDirectory)
         try Data().write(to: blockingFile)
-        let configuration = try configuration(
+        let configuration = configuration(
             for: fixture,
             schema: .schema(
                 directory: fixture.output.appending(path: "Schema", directoryHint: .isDirectory),
@@ -118,8 +118,8 @@ struct OutputTransactionTests {
         for fixture: Fixture,
         schema: Configuration.Output.Schema? = nil,
         apiDirectory: URL? = nil
-    ) throws -> Configuration {
-        try .configuration(
+    ) -> Configuration {
+        .configuration(
             input: .input(
                 schemaSource: .SDLSchemaFile(fixture.schema),
                 documentDirectories: [fixture.operations]

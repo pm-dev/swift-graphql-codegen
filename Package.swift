@@ -1,6 +1,10 @@
 // swift-tools-version: 6.3
 import PackageDescription
 
+let warningsAsErrors: [SwiftSetting] = [
+    .treatAllWarnings(as: .error),
+]
+
 let package = Package(
     name: "swift-graphql-codegen",
     platforms: [
@@ -20,7 +24,8 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources/graphql.bundle.js"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .target(
             name: "StarwarsExample",
@@ -31,7 +36,8 @@ let package = Package(
                 "Operations/HeroQuery.graphql",
                 "Operations/SetFavoriteEpisodeMutation.graphql",
                 "schema.sdl",
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .testTarget(
             name: "GraphQLCodegenTests",
@@ -43,7 +49,8 @@ let package = Package(
                 "Fixtures/Defaults/Definitions",
                 "Fixtures/OneOf/Definitions",
                 "GraphQLCodegen.xctestplan",
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
     ]
 )
