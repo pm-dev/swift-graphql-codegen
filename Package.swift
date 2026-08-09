@@ -1,10 +1,6 @@
 // swift-tools-version: 6.3
 import PackageDescription
 
-let warningsAsErrors: [SwiftSetting] = [
-    .treatAllWarnings(as: .error),
-]
-
 let package = Package(
     name: "swift-graphql-codegen",
     platforms: [
@@ -25,32 +21,24 @@ let package = Package(
             resources: [
                 .copy("Resources/graphql.bundle.js"),
             ],
-            swiftSettings: warningsAsErrors
         ),
         .target(
-            name: "StarwarsExample",
-            path: "Examples/StarwarsExample/Sources/StarwarsExample",
-            exclude: [
-                "Codegen.swift",
-                "Operations/FavoriteEpisodeChangedSubscription.graphql",
-                "Operations/HeroQuery.graphql",
-                "Operations/SetFavoriteEpisodeMutation.graphql",
-                "schema.sdl",
-            ],
-            swiftSettings: warningsAsErrors
+            name: "Fixtures",
+            path: "Tests/Fixtures/Generated",
+            swiftSettings: [
+                .treatAllWarnings(as: .error),
+            ]
         ),
         .testTarget(
             name: "GraphQLCodegenTests",
             dependencies: [
                 .target(name: "GraphQLCodegen"),
-                .target(name: "StarwarsExample"),
+                .target(name: "Fixtures"),
             ],
-            exclude: [
-                "Fixtures/Defaults/Definitions",
-                "Fixtures/OneOf/Definitions",
-                "GraphQLCodegen.xctestplan",
-            ],
-            swiftSettings: warningsAsErrors
+            path: "Tests/Tests",
+            swiftSettings: [
+                .treatAllWarnings(as: .error),
+            ]
         ),
     ]
 )

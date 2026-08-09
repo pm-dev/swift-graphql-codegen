@@ -1,3 +1,4 @@
+@testable import Fixtures
 import Foundation
 import GraphQLCodegen
 import Testing
@@ -6,8 +7,10 @@ struct GraphQLOneOfGeneratorTests {
     private static let testsDirectory = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
-    private let fixtureDirectory = GraphQLOneOfGeneratorTests.testsDirectory
-        .appending(path: "Fixtures/OneOf", directoryHint: .isDirectory)
+    private let definitionsDirectory = GraphQLOneOfGeneratorTests.testsDirectory
+        .appending(path: "Fixtures/Definitions/OneOf", directoryHint: .isDirectory)
+    private let expectedDirectory = GraphQLOneOfGeneratorTests.testsDirectory
+        .appending(path: "Fixtures/Generated/OneOf", directoryHint: .isDirectory)
 
     @Test
     func generatesEnumsWithGraphQLObjectEncodingAndIndirectRecursion() async throws {
@@ -19,7 +22,6 @@ struct GraphQLOneOfGeneratorTests {
         defer {
             try? FileManager.default.removeItem(at: generatedDirectory)
         }
-        let definitionsDirectory = fixtureDirectory.appending(path: "Definitions", directoryHint: .isDirectory)
         let operationsDirectory = generatedDirectory.appending(path: "Operations", directoryHint: .isDirectory)
         try FileManager.default.copyItem(
             at: definitionsDirectory.appending(path: "Operations", directoryHint: .isDirectory),
@@ -50,7 +52,7 @@ struct GraphQLOneOfGeneratorTests {
             encoding: .utf8
         ).trimmingCharacters(in: .newlines)
         let expected = try String(
-            contentsOf: fixtureDirectory.appending(path: "Generated/SearchInput.graphqls.swift"),
+            contentsOf: expectedDirectory.appending(path: "SearchInput.graphqls.swift"),
             encoding: .utf8
         ).trimmingCharacters(in: .newlines)
         #expect(generated == expected)
@@ -60,7 +62,7 @@ struct GraphQLOneOfGeneratorTests {
             encoding: .utf8
         ).trimmingCharacters(in: .newlines)
         let expectedFilter = try String(
-            contentsOf: fixtureDirectory.appending(path: "Generated/SearchFilterInput.graphqls.swift"),
+            contentsOf: expectedDirectory.appending(path: "SearchFilterInput.graphqls.swift"),
             encoding: .utf8
         ).trimmingCharacters(in: .newlines)
         #expect(generatedFilter == expectedFilter)

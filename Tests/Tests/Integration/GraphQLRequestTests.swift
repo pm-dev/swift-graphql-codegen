@@ -1,5 +1,5 @@
+@testable import Fixtures
 import Foundation
-@testable import StarwarsExample
 import Testing
 
 struct GraphQLRequestTests {
@@ -54,7 +54,7 @@ struct GraphQLRequestTests {
 
     private struct EncodedRequest: Decodable {
         struct Variables: Decodable {
-            let episode: String
+            let state: String
         }
 
         let extensions: EncodedExtensions
@@ -64,26 +64,26 @@ struct GraphQLRequestTests {
     }
 
     private let endpoint = URL(string: "https://example.com/graphql")!
-    private let operation = HeroQuery(episode: .jedi)
+    private let operation = NodeQuery(state: .stopped)
 
     @Test
     func convertedEnumCasesPreserveGraphQLWireValues() throws {
-        #expect(Episode.newHope.rawValue == "NEW_HOPE")
-        let decoded = try JSONDecoder().decode(GraphQLEnum<Episode>.self, from: Data(#""NEW_HOPE""#.utf8))
-        #expect(decoded == .known(.newHope))
+        #expect(State.ready.rawValue == "READY")
+        let decoded = try JSONDecoder().decode(GraphQLEnum<State>.self, from: Data(#""READY""#.utf8))
+        #expect(decoded == .known(.ready))
     }
 
     @Test
     func compiledFixtureSupportsMutationAndSubscriptionRequests() throws {
         let mutationRequest = try GraphQLRequest(
-            operation: SetFavoriteEpisodeMutation(episode: .jedi),
+            operation: SetStateMutation(state: .stopped),
             endpoint: endpoint
         )
         #expect(mutationRequest.urlRequest.httpMethod == "POST")
         #expect(mutationRequest.persistedOperationRetry != nil)
 
         let subscriptionRequest = try GraphQLRequest(
-            subscription: FavoriteEpisodeChangedSubscription(),
+            subscription: StateChangedSubscription(),
             endpoint: endpoint
         )
         #expect(subscriptionRequest.urlRequest.httpMethod == "GET")
@@ -94,11 +94,11 @@ struct GraphQLRequestTests {
         let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
         #expect(
             queryItems.first { $0.name == "query" }?.value
-                == FavoriteEpisodeChangedSubscription.document
+                == StateChangedSubscription.document
         )
 
         let postSubscriptionRequest = try GraphQLRequest(
-            subscription: FavoriteEpisodeChangedSubscription(),
+            subscription: StateChangedSubscription(),
             endpoint: endpoint,
             strategy: .POST()
         )
@@ -108,7 +108,7 @@ struct GraphQLRequestTests {
             EncodedDocument.self,
             from: try #require(postSubscriptionRequest.urlRequest.httpBody)
         )
-        #expect(body.query == FavoriteEpisodeChangedSubscription.document)
+        #expect(body.query == StateChangedSubscription.document)
     }
 
     @Test
@@ -149,12 +149,12 @@ struct GraphQLRequestTests {
 
         let url = try #require(urlRequest.url)
         let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
-        #expect(queryItems.first { $0.name == "operationName" }?.value == "Hero")
-        #expect(queryItems.first { $0.name == "query" }?.value == HeroQuery.document)
+        #expect(queryItems.first { $0.name == "operationName" }?.value == "Node")
+        #expect(queryItems.first { $0.name == "query" }?.value == NodeQuery.document)
 
         let variablesData = try #require(queryItems.first { $0.name == "variables" }?.value?.data(using: .utf8))
         let variables = try JSONDecoder().decode(EncodedRequest.Variables.self, from: variablesData)
-        #expect(variables.episode == "JEDI")
+        #expect(variables.state == "STOPPED")
 
         let extensionsData = try #require(queryItems.first { $0.name == "extensions" }?.value?.data(using: .utf8))
         let extensions = try JSONDecoder().decode(EncodedExtensions.self, from: extensionsData)
@@ -182,9 +182,9 @@ struct GraphQLRequestTests {
         #expect(urlRequest.value(forHTTPHeaderField: "authorization") == "Bearer token")
 
         let body = try JSONDecoder().decode(EncodedRequest.self, from: try #require(urlRequest.httpBody))
-        #expect(body.operationName == "Hero")
-        #expect(body.query == HeroQuery.document)
-        #expect(body.variables.episode == "JEDI")
+        #expect(body.operationName == "Node")
+        #expect(body.query == NodeQuery.document)
+        #expect(body.variables.state == "STOPPED")
         #expect(body.extensions.persistedQuery.version == 1)
         #expect(body.extensions.persistedQuery.sha256Hash.count == 64)
     }
@@ -207,7 +207,7 @@ struct GraphQLRequestTests {
         #expect(urlRequest.httpBody == nil)
         let url = try #require(urlRequest.url)
         let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
-        #expect(queryItems.first { $0.name == "query" }?.value == HeroQuery.document)
+        #expect(queryItems.first { $0.name == "query" }?.value == NodeQuery.document)
     }
 
     @Test
