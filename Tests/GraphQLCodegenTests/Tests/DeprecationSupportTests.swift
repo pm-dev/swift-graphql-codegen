@@ -168,6 +168,43 @@ struct DeprecationSupportTests {
         #expect(`enum`.contains("NEW"))
     }
 
+    @Test
+    func backsDeprecatedResponsePropertiesUsedByCustomDecoders() async throws {
+        let fixture = try makeFixture(
+            document: """
+            query Search {
+              oldField
+              ...SearchFragment
+            }
+
+            fragment SearchFragment on Query {
+              search
+            }
+            """
+        )
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+
+        try await Codegen(
+            makeConfiguration(
+                schemaSource: .SDLSchemaFile(fixture.schemaURL),
+                deprecationPolicy: .include,
+                fixture: fixture
+            )
+        ).run()
+
+        let generated = try String(
+            contentsOf: fixture.operationsDirectory.appending(
+                path: "Search.graphql.swift",
+                directoryHint: .notDirectory
+            ),
+            encoding: .utf8
+        )
+        #expect(generated.contains("private let __oldField: String?"))
+        #expect(generated.contains("var oldField: String? { __oldField }"))
+        #expect(generated.contains("case __oldField = \"oldField\""))
+        #expect(generated.contains("__oldField = try container.decode(String?.self, forKey: .oldField)"))
+    }
+
     private func diagnostics(
         in fixture: Fixture,
         policy: Configuration.Input.DeprecationPolicy

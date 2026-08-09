@@ -1,4 +1,9 @@
 struct SwiftStructBuilder: SwiftTypeBuildable {
+    private struct StoredProperty {
+        let name: String
+        let storageName: String
+    }
+
     enum PropertyValue {
         case unassigned(type: String, initialized: Initialized?)
         case assigned(String, type: String?)
@@ -32,8 +37,7 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
     }
 
     private var builder: SwiftTypeBuilder
-    private var codingKeys: [(source: String, wire: String)] = []
-    private var hasDeprecationBackingStorage = false
+    private var storedProperties: [StoredProperty] = []
     private let usesCodingKeys: Bool
 
     init(
@@ -56,14 +60,14 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
 
     func build(configuration: Configuration) -> [String] {
         var builder = builder
-        if hasDeprecationBackingStorage, usesCodingKeys {
+        if storedProperties.contains(where: { $0.storageName != identifier($0.name) }), usesCodingKeys {
             let indentation = configuration.output.indentation.string
             builder.addEmptyLine()
             builder.addLine("private enum CodingKeys: String, CodingKey {")
-            for codingKey in codingKeys {
-                let rawValue = codingKey.source == codingKey.wire ? "" :
-                    " = \(SwiftSource(value: codingKey.wire).singleLineStringLiteral)"
-                builder.addLine("\(indentation)case \(codingKey.source)\(rawValue)")
+            for property in storedProperties {
+                let rawValue = property.storageName == property.name ? "" :
+                    " = \(SwiftSource(value: property.name).singleLineStringLiteral)"
+                builder.addLine("\(indentation)case \(property.storageName)\(rawValue)")
             }
             builder.addLine("}")
         }
@@ -77,8 +81,7 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         isStatic: Bool,
         immutable: Bool,
         name: String,
-        value: PropertyValue,
-        useDeprecationBackingStorage: Bool = false
+        value: PropertyValue
     ) {
         builder.addEmptyLine()
         let creator =
@@ -89,13 +92,18 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         let safeName = identifier(name)
         let backingName = "__\(name)"
         let usesBackingStorage = switch value {
-        case .unassigned: useDeprecationBackingStorage && deprecation != nil
+        case .unassigned: deprecation != nil
         case .assigned, .computed: false
         }
         if isStatic == false {
             switch value {
             case .assigned, .unassigned:
-                codingKeys.append((source: usesBackingStorage ? backingName : safeName, wire: name))
+                storedProperties.append(
+                    StoredProperty(
+                        name: name,
+                        storageName: usesBackingStorage ? backingName : safeName
+                    )
+                )
             case .computed: break
             }
         }
@@ -123,7 +131,6 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             }
         case .unassigned(let type, let initialized):
             if usesBackingStorage {
-                hasDeprecationBackingStorage = true
                 builder.addLine("private \(creator) \(backingName): \(type)")
                 builder.addEmptyLine()
                 if let description, !description.isEmpty {
@@ -169,6 +176,10 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             case .none: break
             }
         }
+    }
+
+    func storageName(forProperty name: String) -> String {
+        storedProperties.first { $0.name == name }?.storageName ?? identifier(name)
     }
 
     mutating func addNestedType(_ type: SwiftTypeBuildable) {

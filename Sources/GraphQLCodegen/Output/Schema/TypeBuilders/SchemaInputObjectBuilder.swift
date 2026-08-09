@@ -133,8 +133,7 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
                             }
                         }()
                     )
-                ),
-                useDeprecationBackingStorage: true
+                )
             )
         }
         return builder.build(configuration: configuration)
