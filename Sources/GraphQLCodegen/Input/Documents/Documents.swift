@@ -36,7 +36,6 @@ struct Document: Sendable {
 
         let ast: GraphQLAST.OperationDefinition
         let canonicalText: String
-        let documentText: String
         let persistence: Persistence
     }
 

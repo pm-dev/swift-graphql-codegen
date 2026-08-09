@@ -7,15 +7,9 @@ protocol GraphQLOperation: Sendable {
     /// https://spec.graphql.org/September2025/#sel-FAFTDCFABAADFCBAAD-zM
     static var operationName: String? { get }
 
-    /// The executable string operated on by a GraphQL service, containing
-    /// an operation definition and zero or more fragment definitions.
+    /// A precomputed executable document with descriptions and ignored characters removed.
     /// https://spec.graphql.org/September2025/#sec-Document
     static var document: String { get }
-
-    /// A precomputed, execution-equivalent document with executable descriptions and ignored characters removed.
-    /// The generated HTTP encoders use this representation for persisted-operation hashes and when
-    /// `minifyDocument` is enabled.
-    static var minifiedDocument: String { get }
 
     /// The parameterized variables to execute the operation with.
     /// https://spec.graphql.org/September2025/#sec-Language.Variables

@@ -58,13 +58,11 @@ struct DefaultEncodersWriter: APIOutput {
             \(accessLevel)init() {}
             \(accessLevel)func encode<Operation: GraphQLOperation>(
                 operation: Operation,
-                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-                minifyDocument: Bool
+                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
             ) throws -> [URLQueryItem] {
                 let body = Body(
                     operation: operation,
-                    automaticPersistedOperationPhase: automaticPersistedOperationPhase,
-                    minifyDocument: minifyDocument
+                    automaticPersistedOperationPhase: automaticPersistedOperationPhase
                 )
                 let encoder = JSONEncoder()
                 return [
@@ -133,14 +131,8 @@ struct DefaultEncodersWriter: APIOutput {
         /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
         \(accessLevel)struct DefaultURLQueryEncoder: URLQueryEncoder {
             \(accessLevel)init() {}
-            \(accessLevel)func encode<Query: GraphQLQuery>(
-                query: Query,
-                minifyDocument: Bool
-            ) throws -> [URLQueryItem] {
-                let body = Body(
-                    operation: query,
-                    minifyDocument: minifyDocument
-                )
+            \(accessLevel)func encode<Query: GraphQLQuery>(query: Query) throws -> [URLQueryItem] {
+                let body = Body(operation: query)
                 let encoder = JSONEncoder()
                 return [
                     body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
@@ -200,14 +192,12 @@ struct DefaultEncodersWriter: APIOutput {
             \(accessLevel)let contentType = "application/json"
             \(accessLevel)func encode<Operation: GraphQLOperation>(
                 operation: Operation,
-                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-                minifyDocument: Bool
+                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
             ) throws -> Data {
                 try JSONEncoder().encode(
                     Body(
                         operation: operation,
-                        automaticPersistedOperationPhase: automaticPersistedOperationPhase,
-                        minifyDocument: minifyDocument
+                        automaticPersistedOperationPhase: automaticPersistedOperationPhase
                     )
                 )
             }
@@ -221,22 +211,19 @@ struct DefaultEncodersWriter: APIOutput {
 
             init<Operation: GraphQLOperation>(
                 operation: Operation,
-                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-                minifyDocument: Bool
+                automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
             ) {
-                let query = minifyDocument ? Operation.minifiedDocument : Operation.document
-                let persistedDocument = Operation.minifiedDocument
                 var extensions = operation.extensions
                 if automaticPersistedOperationPhase != nil {
                     var persistedExtensions = extensions ?? [:]
                     persistedExtensions["persistedQuery"] = AnyEncodable([
                         "version": AnyEncodable(1),
-                        "sha256Hash": AnyEncodable(persistedOperationHash(persistedDocument))
+                        "sha256Hash": AnyEncodable(persistedOperationHash(Operation.document))
                     ])
                     extensions = persistedExtensions
                 }
                 self.operationName = Operation.operationName
-                self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : query
+                self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : Operation.document
                 self.variables = operation.requestVariables
                 self.extensions = extensions
             }
@@ -286,16 +273,8 @@ struct DefaultEncodersWriter: APIOutput {
         \(accessLevel)struct JSONBodyEncoder: HTTPBodyEncoder {
             \(accessLevel)init() {}
             \(accessLevel)let contentType = "application/json"
-            \(accessLevel)func encode<Operation: GraphQLOperation>(
-                operation: Operation,
-                minifyDocument: Bool
-            ) throws -> Data {
-                try JSONEncoder().encode(
-                    Body(
-                        operation: operation,
-                        minifyDocument: minifyDocument
-                    )
-                )
+            \(accessLevel)func encode<Operation: GraphQLOperation>(operation: Operation) throws -> Data {
+                try JSONEncoder().encode(Body(operation: operation))
             }
         }
 
@@ -305,12 +284,9 @@ struct DefaultEncodersWriter: APIOutput {
             let variables: AnyEncodable?
             let extensions: [String: AnyEncodable]?
 
-            init<Operation: GraphQLOperation>(
-                operation: Operation,
-                minifyDocument: Bool
-            ) {
+            init<Operation: GraphQLOperation>(operation: Operation) {
                 self.operationName = Operation.operationName
-                self.query = minifyDocument ? Operation.minifiedDocument : Operation.document
+                self.query = Operation.document
                 self.variables = operation.requestVariables
                 self.extensions = operation.extensions
             }
@@ -351,14 +327,8 @@ struct DefaultEncodersWriter: APIOutput {
         return """
 
 
-            \(accessLevel)func encode<Subscription: GraphQLSubscription>(
-                subscription: Subscription,
-                minifyDocument: Bool
-            ) throws -> [URLQueryItem] {
-                let body = Body(
-                    operation: subscription,
-                    minifyDocument: minifyDocument
-                )
+            \(accessLevel)func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLQueryItem] {
+                let body = Body(operation: subscription)
                 let encoder = JSONEncoder()
                 return [
                     body.operationName.map { URLQueryItem(name: "operationName", value: $0) },

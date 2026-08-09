@@ -5,12 +5,6 @@ struct SetFavoriteEpisodeMutation: GraphQLMutation {
     static let operationName: String? = "SetFavoriteEpisode"
 
     static let document = #"""
-    mutation SetFavoriteEpisode($episode: Episode!) {
-      setFavoriteEpisode(episode: $episode)
-    }
-    """#
-
-    static let minifiedDocument = #"""
     mutation SetFavoriteEpisode($episode:Episode!){setFavoriteEpisode(episode:$episode)}
     """#
 

@@ -275,8 +275,6 @@ private struct OverflowProbeData: Decodable, Sendable {}
 private struct OverflowProbeSubscription: GraphQLSubscription {
     static let operationName: String? = "OverflowProbe"
     static let document = "subscription OverflowProbe { favoriteEpisodeChanged }"
-    static let minifiedDocument = document
-
     let variables: Never? = nil
     let extensions: [String: StarwarsExample.AnyEncodable]? = nil
 

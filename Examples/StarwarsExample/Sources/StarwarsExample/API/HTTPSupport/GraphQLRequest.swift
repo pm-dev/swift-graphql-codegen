@@ -18,10 +18,6 @@ struct GraphQLRequest<Operation: GraphQLOperation> {
 
     /// The GraphQL operation executed in the request.
     let operation: Operation
-
-    /// Whether the request uses the operation's precomputed canonical document.
-    let minifyDocument: Bool
-
     /// The retry configuration for an unknown persisted operation.
     let persistedOperationRetry: PersistedOperationRetry?
 
@@ -29,13 +25,11 @@ struct GraphQLRequest<Operation: GraphQLOperation> {
         urlRequest: URLRequest,
         endpoint: URL,
         operation: Operation,
-        minifyDocument: Bool,
         persistedOperationRetry: PersistedOperationRetry?
     ) {
         self.urlRequest = urlRequest
         self.endpoint = endpoint
         self.operation = operation
-        self.minifyDocument = minifyDocument
         self.persistedOperationRetry = persistedOperationRetry
     }
 }
@@ -56,8 +50,7 @@ extension GraphQLRequest {
             urlRequest.url = endpoint.appending(
                 queryItems: try queryEncoder.encode(
                     operation: operation,
-                    automaticPersistedOperationPhase: .persistRequestWithDocument,
-                    minifyDocument: minifyDocument
+                    automaticPersistedOperationPhase: .persistRequestWithDocument
                 )
             )
             urlRequest.httpMethod = "GET"
@@ -68,8 +61,7 @@ extension GraphQLRequest {
             urlRequest.httpMethod = "POST"
             urlRequest.httpBody = try bodyEncoder.encode(
                 operation: operation,
-                automaticPersistedOperationPhase: .persistRequestWithDocument,
-                minifyDocument: minifyDocument
+                automaticPersistedOperationPhase: .persistRequestWithDocument
             )
             urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
         }
@@ -77,7 +69,6 @@ extension GraphQLRequest {
             urlRequest: urlRequest,
             endpoint: endpoint,
             operation: operation,
-            minifyDocument: minifyDocument,
             persistedOperationRetry: nil
         )
     }
@@ -132,8 +123,6 @@ extension GraphQLRequest {
     ///   automatic persisted operations is enabled. By default `GET` is used
     ///   and automatic persisted operations is enabled. If the initial request results in a
     ///   "PersistedQueryNotFound" error, the configured retry policy sends the full query document.
-    ///   - minifyDocument: Whether the query document text should be minified
-    ///   (unnecessary whitespace removed) when sent. `true` by default.
     ///   - accept: The value to use in the "accept" header field. By default this is
     ///   "application/graphql-response+json". This field is required by the spec:
     ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
@@ -141,7 +130,6 @@ extension GraphQLRequest {
         query: Operation,
         endpoint: URL,
         strategy: QueryStrategy = .GETWithAutomaticPersistedOperations(),
-        minifyDocument: Bool = true,
         accept: String = "application/graphql-response+json"
     ) throws where Operation: GraphQLQuery {
         let persistedOperationRetry: PersistedOperationRetry?
@@ -151,8 +139,7 @@ extension GraphQLRequest {
             let url = endpoint.appending(
                 queryItems: try queryEncoder.encode(
                     operation: query,
-                    automaticPersistedOperationPhase: nil,
-                    minifyDocument: minifyDocument
+                    automaticPersistedOperationPhase: nil
                 )
             )
             self.urlRequest = URLRequest(url: url)
@@ -163,8 +150,7 @@ extension GraphQLRequest {
             self.urlRequest.httpMethod = "POST"
             self.urlRequest.httpBody = try bodyEncoder.encode(
                 operation: query,
-                automaticPersistedOperationPhase: nil,
-                minifyDocument: minifyDocument
+                automaticPersistedOperationPhase: nil
             )
             self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
         case .GETWithAutomaticPersistedOperations(let queryEncoder, let retryPolicy):
@@ -172,8 +158,7 @@ extension GraphQLRequest {
             let url = endpoint.appending(
                 queryItems: try queryEncoder.encode(
                     operation: query,
-                    automaticPersistedOperationPhase: .initialRequestWithHash,
-                    minifyDocument: minifyDocument
+                    automaticPersistedOperationPhase: .initialRequestWithHash
                 )
             )
             self.urlRequest = URLRequest(url: url)
@@ -184,15 +169,13 @@ extension GraphQLRequest {
             self.urlRequest.httpMethod = "POST"
             self.urlRequest.httpBody = try bodyEncoder.encode(
                 operation: query,
-                automaticPersistedOperationPhase: .initialRequestWithHash,
-                minifyDocument: minifyDocument
+                automaticPersistedOperationPhase: .initialRequestWithHash
             )
             self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
         }
         self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
         self.endpoint = endpoint
         self.operation = query
-        self.minifyDocument = minifyDocument
         self.persistedOperationRetry = persistedOperationRetry
     }
 
@@ -201,7 +184,6 @@ extension GraphQLRequest {
         operation: Operation,
         endpoint: URL,
         automaticPersistedOperations: Bool = true,
-        minifyDocument: Bool = true,
         bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
         accept: String = "application/graphql-response+json"
     ) throws where Operation: GraphQLSingleResponseOperation {
@@ -209,14 +191,12 @@ extension GraphQLRequest {
         self.urlRequest.httpMethod = "POST"
         self.urlRequest.httpBody = try bodyEncoder.encode(
             operation: operation,
-            automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil,
-            minifyDocument: minifyDocument
+            automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil
         )
         self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
         self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
         self.endpoint = endpoint
         self.operation = operation
-        self.minifyDocument = minifyDocument
         self.persistedOperationRetry = automaticPersistedOperations ? .POST(bodyEncoder: bodyEncoder) : nil
     }
 
@@ -237,21 +217,17 @@ extension GraphQLRequest {
     ///   - endpoint: The GraphQL server endpoint supporting GraphQL over Server-Sent Events.
     ///   - strategy: The option describing whether the request should be a GET or POST. `GET` by default.
     ///   Automatic persisted operations are unavailable because subscription fallback is not supported.
-    ///   - minifyDocument: Whether the query document text should be minified
-    ///   (unnecessary whitespace removed) when sent. `true` by default.
     init(
         subscription: Operation,
         endpoint: URL,
-        strategy: SubscriptionStrategy = .GET(),
-        minifyDocument: Bool = true
+        strategy: SubscriptionStrategy = .GET()
     ) throws where Operation: GraphQLSubscription {
         switch strategy {
         case .GET(let queryEncoder):
             let url = endpoint.appending(
                 queryItems: try queryEncoder.encode(
                     operation: subscription,
-                    automaticPersistedOperationPhase: nil,
-                    minifyDocument: minifyDocument
+                    automaticPersistedOperationPhase: nil
                 )
             )
             self.urlRequest = URLRequest(url: url)
@@ -261,15 +237,13 @@ extension GraphQLRequest {
             self.urlRequest.httpMethod = "POST"
             self.urlRequest.httpBody = try bodyEncoder.encode(
                 operation: subscription,
-                automaticPersistedOperationPhase: nil,
-                minifyDocument: minifyDocument
+                automaticPersistedOperationPhase: nil
             )
             self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
         }
         self.urlRequest.setValue("text/event-stream", forHTTPHeaderField: "accept")
         self.endpoint = endpoint
         self.operation = subscription
-        self.minifyDocument = minifyDocument
         self.persistedOperationRetry = nil
     }
 }

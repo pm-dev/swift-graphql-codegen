@@ -5,12 +5,6 @@ struct FavoriteEpisodeChangedSubscription: GraphQLSubscription {
     static let operationName: String? = "FavoriteEpisodeChanged"
 
     static let document = #"""
-    subscription FavoriteEpisodeChanged {
-      favoriteEpisodeChanged
-    }
-    """#
-
-    static let minifiedDocument = #"""
     subscription FavoriteEpisodeChanged{favoriteEpisodeChanged}
     """#
 

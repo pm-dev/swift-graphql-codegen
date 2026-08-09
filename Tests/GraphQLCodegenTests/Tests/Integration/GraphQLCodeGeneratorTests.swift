@@ -69,10 +69,12 @@ struct GraphQLCodeGeneratorTests {
         """))
         #expect(
             output.contains(
-                "query Viewer($includeName:Boolean!){viewer{...ViewerFields}}" +
+                "static let document = #\"\"\"\n" +
+                    "    query Viewer($includeName:Boolean!){viewer{...ViewerFields}}" +
                     "fragment ViewerFields on Viewer{name@include(if:$includeName)}"
             )
         )
+        #expect(!output.contains("minifiedDocument"))
     }
 
     @Test

@@ -5,22 +5,6 @@ struct DefaultsQuery {
     static let operationName: String? = "Defaults"
 
     static let document = #"""
-    query Defaults(
-      $input: DefaultsInput! = {}
-      $required: Int! = 1
-      $optional: Int = 2
-      $list: [Int]! = [1]
-    ) {
-      defaults(
-        input: $input
-        required: $required
-        optional: $optional
-        list: $list
-      )
-    }
-    """#
-
-    static let minifiedDocument = #"""
     query Defaults($input:DefaultsInput!={}$required:Int!=1$optional:Int=2$list:[Int]!=[1]){defaults(input:$input required:$required optional:$optional list:$list)}
     """#
 

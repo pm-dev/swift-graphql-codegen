@@ -79,15 +79,6 @@ struct OperationBuilder {
                 isStatic: true,
                 immutable: true,
                 name: "document",
-                value: .assigned(SwiftSource(value: operation.documentText).multilineStringLiteral, type: nil)
-            )
-            operationStruct.addProperty(
-                description: nil,
-                deprecation: nil,
-                isPublic: isPublic,
-                isStatic: true,
-                immutable: true,
-                name: "minifiedDocument",
                 value: .assigned(
                     SwiftSource(
                         value: operation.canonicalText

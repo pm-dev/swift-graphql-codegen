@@ -10,12 +10,10 @@ protocol URLQueryEncoder {
     ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
     ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
     ///   should always be sent.
-    ///   minifyDocument: Pass `true` if the document should remove unnecessary whitespace.
     /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-        minifyDocument: Bool
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) throws -> [URLQueryItem]
 }
 
@@ -32,12 +30,10 @@ protocol HTTPBodyEncoder {
     ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
     ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
     ///   should always be sent.
-    ///   minifyDocument: Pass `true` if the document should remove unnecessary whitespace.
     /// - Returns: The encoded data to be set as the HTTP body of the POST request.
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?,
-        minifyDocument: Bool
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) throws -> Data
 }
 
