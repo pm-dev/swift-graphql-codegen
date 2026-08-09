@@ -205,6 +205,46 @@ struct DeprecationSupportTests {
         #expect(generated.contains("__oldField = try container.decode(String?.self, forKey: .oldField)"))
     }
 
+    @Test
+    func avoidsDeprecatedBackingStorageCollisionsWithResponseKeys() async throws {
+        let fixture = try makeFixture(
+            document: """
+            query Search {
+              foo: oldField
+              __foo: search
+              ...SearchFragment
+            }
+
+            fragment SearchFragment on Query {
+              search
+            }
+            """
+        )
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+
+        try await Codegen(
+            makeConfiguration(
+                schemaSource: .SDLSchemaFile(fixture.schemaURL),
+                deprecationPolicy: .include,
+                fixture: fixture
+            )
+        ).run()
+
+        let generated = try String(
+            contentsOf: fixture.operationsDirectory.appending(
+                path: "Search.graphql.swift",
+                directoryHint: .notDirectory
+            ),
+            encoding: .utf8
+        )
+        #expect(generated.contains("private let ___foo: String?"))
+        #expect(generated.contains("var foo: String? { ___foo }"))
+        #expect(generated.contains("let __foo: String"))
+        #expect(generated.contains("case ___foo = \"foo\""))
+        #expect(generated.contains("case __foo"))
+        #expect(generated.contains("___foo = try container.decode(String?.self, forKey: .foo)"))
+    }
+
     private func diagnostics(
         in fixture: Fixture,
         policy: Configuration.Input.DeprecationPolicy
