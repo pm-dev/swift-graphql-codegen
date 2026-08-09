@@ -29,19 +29,6 @@ struct Document: Sendable {
     }
 
     struct Operation: Sendable {
-        struct SourceLocation: Sendable {
-            let column: Int
-            let line: Int
-            let url: URL
-        }
-
-        struct SourceSegment: Sendable {
-            let expandedLines: Range<Int>
-            let sourceColumn: Int
-            let sourceLine: Int
-            let url: URL
-        }
-
         enum Persistence: Sendable {
             case registered(hash: String)
             case standard
@@ -51,32 +38,18 @@ struct Document: Sendable {
         let canonicalText: String
         let documentText: String
         let persistence: Persistence
-        let sourceSegments: [SourceSegment]
-
-        func sourceLocation(line: Int, column: Int) -> SourceLocation? {
-            guard let segment = sourceSegments.first(where: { $0.expandedLines.contains(line) }) else {
-                return nil
-            }
-            let relativeLine = line - segment.expandedLines.lowerBound
-            return SourceLocation(
-                column: relativeLine == 0 ? segment.sourceColumn + column - 1 : column,
-                line: segment.sourceLine + relativeLine,
-                url: segment.url,
-            )
-        }
     }
 
     struct Fragment {
         let file: URL
         let ast: GraphQLAST.FragmentDefinition
-        let sourceColumn: Int
-        let sourceLine: Int
         let sourceText: Substring
     }
 
     let url: URL
     let definitions: [Definition]
     let relativePath: String
+    let sourceText: String
 
     func outputURL(_ configuration: Configuration) -> URL {
         switch configuration.output.documents.directory {
