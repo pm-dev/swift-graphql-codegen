@@ -78,6 +78,41 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func preservesDocumentFormattingWhenMinificationIsDisabled() async throws {
+        let output = try await runCodegen(
+            document: """
+            query Viewer {
+              viewer {
+                id
+                name
+              }
+            }
+            """,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """,
+            minifyDocument: false
+        )
+
+        #expect(
+            output.contains(
+                ##"""
+                static let document = #"""
+                    query Viewer {
+                      viewer {
+                        id
+                        name
+                      }
+                    }
+                    """#
+                """##
+            )
+        )
+        #expect(!output.contains("query Viewer{viewer{id name}}"))
+    }
+
+    @Test
     func testGeneratesCodeForValidSchemaAndDocument() async throws {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
             path: UUID().uuidString,
@@ -634,6 +669,7 @@ struct GraphQLCodeGeneratorTests {
         document: String,
         schema: String,
         enumCaseConversion: Configuration.Output.Schema.Enums.CaseConversion? = nil,
+        minifyDocument: Bool = true,
         outputRelativePath: String = "Operations/Viewer.graphql.swift",
         responseDataConformances: [String] = ["Decodable", "Sendable", "Hashable"],
         validation: Bool = true
@@ -668,6 +704,7 @@ struct GraphQLCodeGeneratorTests {
                     documents: .documents(
                         directory: .directory(operationsDirectory),
                         operations: .operations(
+                            minifyDocument: minifyDocument,
                             responseData: .responseData(conformances: responseDataConformances)
                         )
                     ),

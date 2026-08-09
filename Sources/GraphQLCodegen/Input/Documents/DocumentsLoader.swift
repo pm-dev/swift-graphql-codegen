@@ -149,6 +149,7 @@ struct DocumentsLoader {
                             Document.Operation(
                                 ast: operationAST,
                                 canonicalText: canonicalText,
+                                documentText: expandedText,
                                 persistence: persistence
                             )
                         )

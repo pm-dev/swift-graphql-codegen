@@ -7,7 +7,8 @@ protocol GraphQLOperation: Sendable {
     /// https://spec.graphql.org/September2025/#sel-FAFTDCFABAADFCBAAD-zM
     static var operationName: String? { get }
 
-    /// A precomputed executable document with descriptions and ignored characters removed.
+    /// The executable string operated on by a GraphQL service, containing
+    /// an operation definition and zero or more fragment definitions.
     /// https://spec.graphql.org/September2025/#sec-Document
     static var document: String { get }
 
