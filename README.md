@@ -45,6 +45,11 @@ an introspection endpoint must expose `__Type.isOneOf`.
 
 ## Output Directory Ownership
 
+When document output is configured as `.directory(URL)`, Codegen assumes exclusive ownership of that directory and may remove all
+of its existing contents before writing the current generated output. Do not store unrelated or independently maintained files in
+that directory. With `.definition` output, Codegen instead removes obsolete files ending in `.graphql.swift` from the configured
+document directories, so do not use that suffix for independently maintained files there.
+
 Codegen assumes exclusive ownership of the configured schema output directories. Each run may remove and recreate the scalar,
 enum, and input-object directories, including files that are not part of the current generated output. Do not store unrelated or
 independently maintained files in these directories.
