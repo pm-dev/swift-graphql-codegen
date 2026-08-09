@@ -1,6 +1,10 @@
 // swift-tools-version: 6.3
 import PackageDescription
 
+let warningsAsErrors: [SwiftSetting] = [
+    .treatAllWarnings(as: .error),
+]
+
 let package = Package(
     name: "StarwarsExample",
     platforms: [
@@ -20,7 +24,8 @@ let package = Package(
                 "Operations/HeroQuery.graphql",
                 "Operations/SetFavoriteEpisodeMutation.graphql",
                 "schema.sdl",
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
     ]
 )
