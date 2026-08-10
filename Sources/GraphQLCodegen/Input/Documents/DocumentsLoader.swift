@@ -40,7 +40,7 @@ struct DocumentsLoader {
         )
         let persistedOperationManifest: PersistedOperationManifestOutput? =
             switch configuration.output.support.HTTPSupport?.persistedOperations {
-            case .registered(let manifestURL):
+            case .registered(let manifestURL, _):
                 PersistedOperationManifestOutput(
                     operations: manifestOperations,
                     url: manifestURL

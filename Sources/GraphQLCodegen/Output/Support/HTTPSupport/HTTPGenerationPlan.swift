@@ -10,13 +10,18 @@ struct HTTPGenerationPlan {
 
     enum Persistence {
         case automatic
-        case registered
+        case registered(allowsUnregisteredOperations: Bool)
         case none
     }
 
     let enablesGETQueries: Bool
     let includesSubscriptions: Bool
     let persistence: Persistence
+
+    var allowsUnregisteredOperations: Bool {
+        guard case .registered(let allowsUnregisteredOperations) = persistence else { return false }
+        return allowsUnregisteredOperations
+    }
 
     var mode: Mode {
         switch (enablesGETQueries, persistence) {
@@ -34,7 +39,8 @@ struct HTTPGenerationPlan {
         let persistence: Persistence
         switch configuration.output.support.HTTPSupport?.persistedOperations {
         case .automatic: persistence = .automatic
-        case .registered: persistence = .registered
+        case .registered(_, let allowUnregisteredOperations):
+            persistence = .registered(allowsUnregisteredOperations: allowUnregisteredOperations)
         case .none: persistence = .none
         }
         self.enablesGETQueries = enablesGETQueries

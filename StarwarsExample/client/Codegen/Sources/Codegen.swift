@@ -38,7 +38,8 @@ enum StarwarsCodegen {
                                 manifestJSONFileOutput: exampleDirectory.appending(
                                     path: "server/src/registered-operations.generated.json",
                                     directoryHint: .notDirectory
-                                )
+                                ),
+                                allowUnregisteredOperations: true
                             ),
                             subscriptionSupport: true
                         )

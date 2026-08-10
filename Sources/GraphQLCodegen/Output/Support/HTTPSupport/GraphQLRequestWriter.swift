@@ -191,19 +191,24 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func registeredOperationInitializer() -> String {
-        """
+        guard plan.allowsUnregisteredOperations else { return operationInitializerWithoutPersistence() }
+        return """
 
 
             /// Initializes a POST request for a registered single-response GraphQL operation.
             \(accessLevel)init(
                 operation: Operation,
                 endpoint: URL,
+                useRegisteredOperation: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
                 accept: String = "application/graphql-response+json"
             ) throws where Operation: GraphQLSingleResponseOperation {
                 self.urlRequest = URLRequest(url: endpoint)
                 self.urlRequest.httpMethod = "POST"
-                self.urlRequest.httpBody = try bodyEncoder.encode(operation: operation)
+                self.urlRequest.httpBody = try bodyEncoder.encode(
+                    operation: operation,
+                    useRegisteredOperation: useRegisteredOperation
+                )
                 self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
                 self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
                 self.endpoint = endpoint
@@ -361,7 +366,8 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func registeredQuerySupport() -> String {
-        """
+        guard plan.allowsUnregisteredOperations else { return querySupportWithoutPersistence() }
+        return """
 
 
             /// Describes how the `GraphQLRequest` should encode a `GraphQLQuery` operation into its `URLRequest`.
@@ -378,6 +384,7 @@ struct GraphQLRequestWriter: SupportOutput {
             /// - Parameters:
             ///   - query: The GraphQLQuery operation the request is for.
             ///   - endpoint: The GraphQL server endpoint.
+            ///   - useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
             ///   - strategy: The option describing whether the request should be a GET or POST. `GET` by default.
             ///   - accept: The value to use in the "accept" header field. By default this is
             ///   "application/graphql-response+json". This field is required by the spec:
@@ -385,18 +392,27 @@ struct GraphQLRequestWriter: SupportOutput {
             \(accessLevel)init(
                 query: Operation,
                 endpoint: URL,
+                useRegisteredOperation: Bool = true,
                 strategy: QueryStrategy = .GET(),
                 accept: String = "application/graphql-response+json"
             ) throws where Operation: GraphQLQuery {
                 switch strategy {
                 case .GET(let queryEncoder):
-                    let url = endpoint.appending(queryItems: try queryEncoder.encode(query: query))
+                    let url = endpoint.appending(
+                        queryItems: try queryEncoder.encode(
+                            query: query,
+                            useRegisteredOperation: useRegisteredOperation
+                        )
+                    )
                     self.urlRequest = URLRequest(url: url)
                     self.urlRequest.httpMethod = "GET"
                 case .POST(let bodyEncoder):
                     self.urlRequest = URLRequest(url: endpoint)
                     self.urlRequest.httpMethod = "POST"
-                    self.urlRequest.httpBody = try bodyEncoder.encode(operation: query)
+                    self.urlRequest.httpBody = try bodyEncoder.encode(
+                        operation: query,
+                        useRegisteredOperation: useRegisteredOperation
+                    )
                     self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
                 }
                 self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
@@ -548,6 +564,9 @@ struct GraphQLRequestWriter: SupportOutput {
 
     private func subscriptionSupportGetWithRegisteredPersistedOperations() -> String {
         guard includeSubscriptionSupport else { return "" }
+        guard plan.allowsUnregisteredOperations else {
+            return subscriptionSupportGetWithNoPersistedOperations()
+        }
         return """
 
 
@@ -557,21 +576,31 @@ struct GraphQLRequestWriter: SupportOutput {
             /// - Parameters:
             ///   - subscription: The GraphQLSubscription operation the request is for.
             ///   - endpoint: The GraphQL server endpoint.
+            ///   - useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
             ///   - strategy: The option describing whether the request should be a GET or POST. `GET` by default.
             \(accessLevel)init(
                 subscription: Operation,
                 endpoint: URL,
+                useRegisteredOperation: Bool = true,
                 strategy: SubscriptionStrategy = .GET()
             ) throws where Operation: GraphQLSubscription {
                 switch strategy {
                 case .GET(let queryEncoder):
-                    let url = endpoint.appending(queryItems: try queryEncoder.encode(subscription: subscription))
+                    let url = endpoint.appending(
+                        queryItems: try queryEncoder.encode(
+                            subscription: subscription,
+                            useRegisteredOperation: useRegisteredOperation
+                        )
+                    )
                     self.urlRequest = URLRequest(url: url)
                     self.urlRequest.httpMethod = "GET"
                 case .POST(let bodyEncoder):
                     self.urlRequest = URLRequest(url: endpoint)
                     self.urlRequest.httpMethod = "POST"
-                    self.urlRequest.httpBody = try bodyEncoder.encode(operation: subscription)
+                    self.urlRequest.httpBody = try bodyEncoder.encode(
+                        operation: subscription,
+                        useRegisteredOperation: useRegisteredOperation
+                    )
                     self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
                 }
                 self.urlRequest.setValue("text/event-stream", forHTTPHeaderField: "accept")
@@ -652,6 +681,9 @@ struct GraphQLRequestWriter: SupportOutput {
 
     private func subscriptionSupportPostWithRegisteredPersistedOperations() -> String {
         guard includeSubscriptionSupport else { return "" }
+        guard plan.allowsUnregisteredOperations else {
+            return subscriptionSupportPostWithNoPersistedOperations()
+        }
         return """
 
 
@@ -659,15 +691,20 @@ struct GraphQLRequestWriter: SupportOutput {
             /// - Parameters:
             ///   - subscription: The GraphQLSubscription operation the request is for.
             ///   - endpoint: The GraphQL server endpoint.
+            ///   - useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
             ///   - bodyEncoder: The encoder used to serialize the operation into HTTP body data.
             \(accessLevel)init(
                 subscription: Operation,
                 endpoint: URL,
+                useRegisteredOperation: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder()
             ) throws where Operation: GraphQLSubscription {
                 self.urlRequest = URLRequest(url: endpoint)
                 self.urlRequest.httpMethod = "POST"
-                self.urlRequest.httpBody = try bodyEncoder.encode(operation: subscription)
+                self.urlRequest.httpBody = try bodyEncoder.encode(
+                    operation: subscription,
+                    useRegisteredOperation: useRegisteredOperation
+                )
                 self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
                 self.urlRequest.setValue("text/event-stream", forHTTPHeaderField: "accept")
                 self.endpoint = endpoint

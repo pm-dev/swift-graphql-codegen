@@ -621,6 +621,10 @@ struct GraphQLCodeGeneratorTests {
             Configuration.Output.Support.HTTPSupport.PersistedOperations.registered(
                 manifestJSONFileOutput: generatedDirectory.appending(path: "manifest.json")
             ),
+            Configuration.Output.Support.HTTPSupport.PersistedOperations.registered(
+                manifestJSONFileOutput: generatedDirectory.appending(path: "manifest.json"),
+                allowUnregisteredOperations: true
+            ),
             nil,
         ] {
             let variantDirectory = generatedDirectory.appending(
@@ -667,7 +671,7 @@ struct GraphQLCodeGeneratorTests {
             )
             #expect(!postRequest[postInitializer.lowerBound...].contains("try self.init("))
 
-            if case .registered(let manifestURL) = persistedOperations {
+            if case .registered(let manifestURL, let allowUnregisteredOperations) = persistedOperations {
                 let generatedOperations = try String(
                     contentsOf: operationsDirectory.appending(path: "Ticks.graphql.swift"),
                     encoding: .utf8
@@ -681,6 +685,12 @@ struct GraphQLCodeGeneratorTests {
                 )
                 #expect(operationProtocols.contains("static var document: String { get }"))
                 #expect(!operationProtocols.contains("static var hash: String { get }"))
+                #expect(
+                    getRequest.contains("useRegisteredOperation: Bool = true") == allowUnregisteredOperations
+                )
+                #expect(
+                    postRequest.contains("useRegisteredOperation: Bool = true") == allowUnregisteredOperations
+                )
 
                 for supportDirectory in [getVariantSupport, postVariantSupport] {
                     let encoders = try String(
@@ -689,7 +699,20 @@ struct GraphQLCodeGeneratorTests {
                     )
                     #expect(encoders.contains("import CryptoKit"))
                     #expect(encoders.contains("persistedOperationHash(Operation.document)"))
+                    #expect(encoders.contains("if useRegisteredOperation") == allowUnregisteredOperations)
+                    #expect(
+                        encoders.contains("self.query = useRegisteredOperation ? nil : Operation.document") ==
+                            allowUnregisteredOperations
+                    )
                     #expect(!encoders.contains("Operation.hash"))
+
+                    let encoderProtocols = try String(
+                        contentsOf: supportDirectory.appending(path: "HTTPSupport/Encoders.swift"),
+                        encoding: .utf8
+                    )
+                    #expect(
+                        encoderProtocols.contains("useRegisteredOperation: Bool") == allowUnregisteredOperations
+                    )
                 }
 
                 let manifest = try JSONDecoder().decode(
