@@ -3,8 +3,9 @@ import Foundation
 
 /// Defaults conform to https://graphql.github.io/graphql-over-http/draft/
 extension URLSession {
-    public struct HTTPError: Error {
-        public let response: HTTPURLResponse
+    public enum HTTPError: Error {
+        case invalidType(URLResponse)
+        case badResponse(HTTPURLResponse, Data?)
     }
 
     /// Executes a single-response GraphQL operation.
@@ -16,12 +17,31 @@ extension URLSession {
         decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
     ) async throws -> GraphQLResponse<Operation.Data>.ExecutionResult {
         let (data, response) = try await data(for: request.urlRequest)
-        if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
-            throw HTTPError(response: httpResponse)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw HTTPError.invalidType(response)
+        }
+        guard
+            (200..<300).contains(httpResponse.statusCode) ||
+            httpResponse.mimeType?.caseInsensitiveCompare(
+                "application/graphql-response+json"
+            ) == .orderedSame
+        else {
+            throw HTTPError.badResponse(httpResponse, data)
         }
         switch try decoder(data) {
         case .executionResult(let executionResult): return executionResult
-        case .requestError(let requestError): throw requestError
+        case .requestError(let requestError):
+            let containsPersistedQueryNotFound = requestError.errors.contains { error in
+                error.message == "PersistedQueryNotFound"
+            }
+            if containsPersistedQueryNotFound,
+               let retry = request.persistedOperationRetry {
+                return try await self.request(
+                    try request.updated(for: retry),
+                    decoder: decoder
+                )
+            }
+            throw requestError
         }
     }
 
@@ -40,6 +60,8 @@ extension URLSession {
     /// Initiates an event stream using a GraphQL subscription.
     /// This implementation assumes your server uses the "GraphQL over Server-Sent Events" spec:
     /// https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverSSE.md#distinct-connections-mode
+    /// - Important: Automatic persisted operations are not supported for subscriptions. Subscription
+    /// requests always include the full operation document.
     ///
     /// Lines, complete event payloads, and decoded results waiting for the consumer are bounded independently.
     /// - Important: This API requires version 26 or newer of macOS, iOS, tvOS, watchOS, or visionOS.
@@ -68,8 +90,11 @@ extension URLSession {
             throw SubscriptionError.invalidMaximumBufferedResultCount(maximumBufferedResultCount)
         }
         let (asyncBytes, response) = try await bytes(for: request.urlRequest)
-        if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
-            throw HTTPError(response: httpResponse)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw HTTPError.invalidType(response)
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            throw HTTPError.badResponse(httpResponse, nil)
         }
         guard response.mimeType?.caseInsensitiveCompare("text/event-stream") == .orderedSame else {
             throw SubscriptionError.invalidContentType(response.mimeType)
@@ -105,7 +130,9 @@ extension URLSession {
                                 case .terminated: return
                                 @unknown default: return
                                 }
-                            case .requestError(let requestError): throw requestError
+                            case .requestError(let requestError):
+                                // TODO: Support automatic persisted operation fallback for subscriptions.
+                                throw requestError
                         }
                         case .complete:
                             continuation.finish()

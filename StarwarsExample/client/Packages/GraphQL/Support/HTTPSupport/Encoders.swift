@@ -1,28 +1,19 @@
 // @generated
 import Foundation
 
-/// A `URLQueryEncoder` converts a GraphQL query operation into `URLQueryItem`s when a GET request.
-/// is being used.
+/// A `URLQueryEncoder` converts a GraphQL operation into `URLQueryItem`s for a GET request.
 public protocol URLQueryEncoder {
 
-    /// Encodes a query operation for a GET request.
+    /// Encodes an operation for a GET request.
     /// - Parameters:
-    ///   query: The query operation to encode.
-    ///   useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
+    ///   operation: The operation to encode.
+    ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
+    ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
+    ///   should always be sent.
     /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
-    func encode<Query: GraphQLQuery>(
-        query: Query,
-        useRegisteredOperation: Bool
-    ) throws -> [URLQueryItem]
-
-    /// Encodes a subscription operation for a GET request.
-    /// - Parameters:
-    ///   subscription: The subscription operation to encode.
-    ///   useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
-    /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
-    func encode<Subscription: GraphQLSubscription>(
-        subscription: Subscription,
-        useRegisteredOperation: Bool
+    func encode<Operation: GraphQLOperation>(
+        operation: Operation,
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) throws -> [URLQueryItem]
 }
 
@@ -36,10 +27,24 @@ public protocol HTTPBodyEncoder {
     /// Encodes an operation into body data for a POST request.
     /// - Parameters:
     ///   operation: The GraphQL operation to encode.
-    ///   useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
+    ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
+    ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
+    ///   should always be sent.
     /// - Returns: The encoded data to be set as the HTTP body of the POST request.
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
-        useRegisteredOperation: Bool
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) throws -> Data
+}
+
+/// Indicates which phase of Automatic Persisted Operations the request is for.
+public enum AutomaticPersistedOperationPhase {
+
+    /// This phase indicates encoders should encode an operation's hash instead of the document
+    /// text.
+    case initialRequestWithHash
+
+    /// This phase indicates encoders should encode an operation's document text as well as its hash, because
+    /// the document's hash was not previously found by the server.
+    case persistRequestWithDocument
 }
