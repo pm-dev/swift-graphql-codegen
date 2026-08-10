@@ -34,6 +34,12 @@ enum StarwarsCodegen {
                         accessLevel: .public,
                         HTTPSupport: .httpSupport(
                             enableGETQueries: true,
+                            persistedOperations: .registered(
+                                manifestJSONFileOutput: exampleDirectory.appending(
+                                    path: "server/src/registered-operations.generated.json",
+                                    directoryHint: .notDirectory
+                                )
+                            ),
                             subscriptionSupport: true
                         )
                     )

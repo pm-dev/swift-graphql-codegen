@@ -13,7 +13,7 @@ struct DefaultEncodersWriter: APIOutput {
         return typeNames
     }
 
-    private var automaticPersistedOperationHashSource: String {
+    private var persistedOperationHashSource: String {
         """
         private func persistedOperationHash(_ document: String) -> String {
             let digits = Array("0123456789abcdef".utf8)
@@ -90,7 +90,8 @@ struct DefaultEncodersWriter: APIOutput {
 
     private func getWithRegisteredPersistedOperations() -> String {
         """
-        \(headerBeforeImports)import Foundation
+        \(headerBeforeImports)import CryptoKit
+        import Foundation
 
         /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
         /// using the spec described at:
@@ -168,7 +169,8 @@ struct DefaultEncodersWriter: APIOutput {
 
     private func postWithRegisteredPersistedOperations() -> String {
         """
-        \(headerBeforeImports)import Foundation
+        \(headerBeforeImports)import CryptoKit
+        import Foundation
 
         \(httpBodyEncoderWithRegisteredPersistedOperations())
         """
@@ -229,7 +231,7 @@ struct DefaultEncodersWriter: APIOutput {
             }
         }
 
-        \(automaticPersistedOperationHashSource)
+        \(persistedOperationHashSource)
         """
     }
 
@@ -255,13 +257,15 @@ struct DefaultEncodersWriter: APIOutput {
                 var extensions = operation.extensions ?? [:]
                 extensions["persistedQuery"] = AnyEncodable([
                     "version": AnyEncodable(1),
-                    "sha256Hash": AnyEncodable(Operation.hash)
+                    "sha256Hash": AnyEncodable(persistedOperationHash(Operation.document))
                 ])
                 self.operationName = Operation.operationName
                 self.variables = operation.requestVariables
                 self.extensions = extensions
             }
         }
+
+        \(persistedOperationHashSource)
         """
     }
 

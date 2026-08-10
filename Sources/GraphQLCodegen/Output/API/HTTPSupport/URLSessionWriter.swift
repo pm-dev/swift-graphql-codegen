@@ -43,7 +43,7 @@ struct URLSessionWriter: APIOutput {
     }
 
     private func requestErrorHandling() -> String {
-        switch configuration.output.documents.operations.persistedOperations {
+        switch configuration.output.api.HTTPSupport?.persistedOperations {
         case .automatic:
             """
             case .requestError(let requestError):
@@ -318,7 +318,7 @@ struct URLSessionWriter: APIOutput {
     }
 
     private func automaticPersistedOperationSubscriptionDocumentation() -> String {
-        guard case .automatic = configuration.output.documents.operations.persistedOperations else { return "" }
+        guard case .automatic = configuration.output.api.HTTPSupport?.persistedOperations else { return "" }
         return """
 
             /// - Important: Automatic persisted operations are not supported for subscriptions. Subscription
@@ -327,7 +327,7 @@ struct URLSessionWriter: APIOutput {
     }
 
     private func subscriptionRequestErrorHandling() -> String {
-        switch configuration.output.documents.operations.persistedOperations {
+        switch configuration.output.api.HTTPSupport?.persistedOperations {
         case .automatic:
             """
             case .requestError(let requestError):

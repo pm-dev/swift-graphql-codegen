@@ -1,6 +1,6 @@
 import Foundation
 
-extension Configuration.Output.Documents.Operations {
+extension Configuration.Output.API.HTTPSupport {
     /// Defines the different types of persisted operations.
     public enum PersistedOperations: Sendable {
         /// When `automatic` persisted operations is enabled, a hash of the GraphQL document

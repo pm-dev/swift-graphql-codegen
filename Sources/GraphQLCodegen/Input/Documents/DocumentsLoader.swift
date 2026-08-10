@@ -39,7 +39,7 @@ struct DocumentsLoader {
             manifestOperations: &manifestOperations
         )
         let persistedOperationManifest: PersistedOperationManifestOutput? =
-            switch configuration.output.documents.operations.persistedOperations {
+            switch configuration.output.api.HTTPSupport?.persistedOperations {
             case .registered(let manifestURL):
                 PersistedOperationManifestOutput(
                     operations: manifestOperations,
@@ -134,29 +134,25 @@ struct DocumentsLoader {
                         operationSourceText: operationSourceText
                     ).expandSourceText { $0.sourceText }
                     let canonicalText = try graphQLJS.canonicalize(expandedText)
-                    let persistence: Document.Operation.Persistence
-                    switch configuration.output.documents.operations.persistedOperations {
-                    case .registered:
-                        let hash = hash(canonicalText)
+                    if case .registered = configuration.output.api.HTTPSupport?.persistedOperations {
+                        let documentText = configuration.output.documents.operations.minifyDocument
+                            ? canonicalText
+                            : expandedText
                         manifestOperations.append(
                             PersistedOperationManifest.Operation(
-                                id: hash,
-                                body: canonicalText,
+                                id: hash(documentText),
+                                body: documentText,
                                 name: operationAST.name?.value,
                                 type: operationAST.operation.rawValue
                             )
                         )
-                        persistence = .registered(hash: hash)
-                    case .automatic, .none:
-                        persistence = .standard
                     }
                     updatedDefinitions.append(
                         .operation(
                             Document.Operation(
                                 ast: operationAST,
                                 canonicalText: canonicalText,
-                                documentText: expandedText,
-                                persistence: persistence
+                                documentText: expandedText
                             )
                         )
                     )

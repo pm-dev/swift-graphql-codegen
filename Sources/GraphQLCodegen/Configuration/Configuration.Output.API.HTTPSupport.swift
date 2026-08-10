@@ -5,7 +5,7 @@ extension Configuration.Output.API {
     /// https://graphql.github.io/graphql-over-http/draft/#sec-GraphQL-over-HTTP
     ///
     /// Codegen will use options from `Configuration` to craft Networking APIs specifically to your
-    /// use case. For example, if `Operations.persistedOperations` is `nil` the generated
+    /// use case. For example, if `persistedOperations` is `nil` the generated
     /// APIs for creating a GraphQL request will not include those options.
     public struct HTTPSupport: Sendable {
         /// Call this function to create a new `HTTPSupport` instance.
@@ -13,6 +13,8 @@ extension Configuration.Output.API {
         /// - Parameters:
         ///   - enableGETQueries: Pass `true` to enable making `query` operation requests using the HTTP GET
         ///   method. Passing `false` will ensure all operation requests are made using the HTTP POST method
+        ///   - persistedOperations: Controls whether generated HTTP requests use automatic or registered persisted
+        ///   operations. Pass `nil` to include the full operation document in every request.
         ///   - subscriptionSupport: Pass `true` to enable support for subscription operations via GraphQL over Server-Sent Events:
         ///   https://github.com/enisdenjo/graphql-sse/blob/master/PROTOCOL.md#distinct-connections-mode. If your
         ///   graphql documents include one or more subscription operations, this will add a `subscribe` function to the generated URLSession
@@ -21,15 +23,18 @@ extension Configuration.Output.API {
         /// - Returns: A new `HTTPSupport` instance to be passed to the `API.api` factory function.
         public static func httpSupport(
             enableGETQueries: Bool = false,
+            persistedOperations: PersistedOperations? = .automatic,
             subscriptionSupport: Bool = false
         ) -> HTTPSupport {
             HTTPSupport(
                 enableGETQueries: enableGETQueries,
+                persistedOperations: persistedOperations,
                 subscriptionSupport: subscriptionSupport
             )
         }
 
         public var enableGETQueries: Bool
+        public var persistedOperations: PersistedOperations?
         public var subscriptionSupport: Bool
     }
 }

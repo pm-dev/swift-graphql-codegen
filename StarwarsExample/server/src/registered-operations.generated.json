@@ -1,0 +1,24 @@
+{
+  "format" : "apollo-persisted-query-manifest",
+  "operations" : [
+    {
+      "body" : "subscription FavoriteEpisodeChanged{favoriteEpisodeChanged}",
+      "id" : "e98d3cfa8b0da80fc9ace0621e3c3cd3dac83f4759f388e4a4de338e86148394",
+      "name" : "FavoriteEpisodeChanged",
+      "type" : "subscription"
+    },
+    {
+      "body" : "query Hero($episode:Episode!){hero(episode:$episode){__typename ...jedi ...droid}}fragment jedi on Jedi{...character lightSaberColor}fragment droid on Droid{...character primaryFunction operator}fragment character on Character{id name}",
+      "id" : "4e3cbd0a2b22a963217d4ed95e43cbc301eb0b46c36bfa1fdfd9cecfbda148b5",
+      "name" : "Hero",
+      "type" : "query"
+    },
+    {
+      "body" : "mutation SetFavoriteEpisode($episode:Episode!){setFavoriteEpisode(episode:$episode)}",
+      "id" : "59bacbd434335dd3208e38939272356daa7a665ec5425fa5bb4b714b3e13e94d",
+      "name" : "SetFavoriteEpisode",
+      "type" : "mutation"
+    }
+  ],
+  "version" : 1
+}

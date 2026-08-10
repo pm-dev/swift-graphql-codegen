@@ -76,12 +76,12 @@ public struct Configuration: Sendable {
             throw Codegen.Error(description: "The indentation space count must not be negative.")
         }
         if output.generatedFilesDirectory != nil,
-           case .registered = output.documents.operations.persistedOperations {
+           case .registered = output.api.HTTPSupport?.persistedOperations {
             throw Codegen.Error(description: """
             Generated-files output cannot create a registered persisted-operation manifest because it only supports its three declared Swift files.
             """)
         }
-        switch output.documents.operations.persistedOperations {
+        switch output.api.HTTPSupport?.persistedOperations {
         case .registered(let manifestJSONFileOutput):
             try verifyLocalURL(
                 manifestJSONFileOutput,

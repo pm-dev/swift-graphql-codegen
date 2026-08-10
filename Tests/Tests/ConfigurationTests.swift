@@ -80,7 +80,7 @@ struct ConfigurationTests {
             ),
             output: .generatedFiles(directory: URL(fileURLWithPath: "/tmp/generated"))
         )
-        configuration.output.documents.operations.persistedOperations = .registered(
+        configuration.output.api.HTTPSupport?.persistedOperations = .registered(
             manifestJSONFileOutput: URL(fileURLWithPath: "/tmp/manifest.json")
         )
 

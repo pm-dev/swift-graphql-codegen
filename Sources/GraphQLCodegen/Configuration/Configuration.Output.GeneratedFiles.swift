@@ -190,7 +190,6 @@ extension Configuration.Output.GeneratedFiles.Documents {
             minifyDocument: Bool = true,
             conformances: [String] = [],
             variables: Variables = .variables(),
-            automaticPersistedOperations: Bool = true,
             responseData: ResponseData = .responseData()
         ) -> Operations {
             Operations(
@@ -199,7 +198,6 @@ extension Configuration.Output.GeneratedFiles.Documents {
                 minifyDocument: minifyDocument,
                 conformances: conformances,
                 variables: variables,
-                automaticPersistedOperations: automaticPersistedOperations,
                 responseData: responseData
             )
         }
@@ -209,7 +207,6 @@ extension Configuration.Output.GeneratedFiles.Documents {
         public var minifyDocument: Bool
         public var conformances: [String]
         public var variables: Variables
-        public var automaticPersistedOperations: Bool
         public var responseData: ResponseData
 
         var output: Configuration.Output.Documents.Operations {
@@ -219,7 +216,6 @@ extension Configuration.Output.GeneratedFiles.Documents {
                 minifyDocument: minifyDocument,
                 conformances: conformances,
                 variables: variables,
-                persistedOperations: automaticPersistedOperations ? .automatic : nil,
                 responseData: responseData
             )
         }

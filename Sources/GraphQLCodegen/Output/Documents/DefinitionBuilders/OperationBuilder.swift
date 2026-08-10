@@ -22,7 +22,6 @@ struct OperationBuilder {
         var operationStruct = makeOperationStruct()
         addOperationNameProperty(to: &operationStruct)
         addDocumentProperty(to: &operationStruct)
-        addHashProperty(to: &operationStruct)
         addVariablesProperty(to: &operationStruct)
         addExtensionsProperty(to: &operationStruct)
         addVariablesStruct(to: &operationStruct)
@@ -69,44 +68,24 @@ struct OperationBuilder {
     }
 
     private func addDocumentProperty(to operationStruct: inout SwiftStructBuilder) {
-        switch configuration.output.documents.operations.persistedOperations {
-        case .registered: break
-        case .automatic, .none:
-            let documentText =
-                if configuration.output.documents.operations.minifyDocument {
-                    operation.canonicalText
-                } else {
-                    operation.documentText
-                }
-            operationStruct.addProperty(
-                description: nil,
-                deprecation: nil,
-                isPublic: isPublic,
-                isStatic: true,
-                immutable: true,
-                name: "document",
-                value: .assigned(
-                    SwiftSource(value: documentText).multilineStringLiteral,
-                    type: nil
-                )
+        let documentText =
+            if configuration.output.documents.operations.minifyDocument {
+                operation.canonicalText
+            } else {
+                operation.documentText
+            }
+        operationStruct.addProperty(
+            description: nil,
+            deprecation: nil,
+            isPublic: isPublic,
+            isStatic: true,
+            immutable: true,
+            name: "document",
+            value: .assigned(
+                SwiftSource(value: documentText).multilineStringLiteral,
+                type: nil
             )
-        }
-    }
-
-    private func addHashProperty(to operationStruct: inout SwiftStructBuilder) {
-        switch operation.persistence {
-        case .registered(let hash):
-            operationStruct.addProperty(
-                description: nil,
-                deprecation: nil,
-                isPublic: isPublic,
-                isStatic: true,
-                immutable: true,
-                name: "hash",
-                value: .assigned("\"\(hash)\"", type: nil)
-            )
-        case .standard: break
-        }
+        )
     }
 
     private func addExtensionsProperty(to operationStruct: inout SwiftStructBuilder) {
