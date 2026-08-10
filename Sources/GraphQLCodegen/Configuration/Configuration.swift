@@ -55,7 +55,7 @@ public struct Configuration: Sendable {
         case .SDLSchemaFile(let url):
             try verifyLocalURL(
                 url,
-                expectedExtension: ["graphqls", "sdl"],
+                expectedExtension: ["graphql", "graphqls", "sdl"],
                 parameter: "SDLSchemaFile",
                 configuration: "schema source"
             )

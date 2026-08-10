@@ -18,9 +18,15 @@ struct DocumentsLoader {
     let graphQLJS: GraphQLJS
 
     func load() throws -> Documents {
-        let documentFiles = try DocumentScanner(
+        var documentFiles = try DocumentScanner(
             directories: configuration.input.documentDirectories
         ).scan()
+        if case .SDLSchemaFile(let schemaFileURL) = configuration.input.schemaSource {
+            let standardizedSchemaFileURL = schemaFileURL.standardizedFileURL
+            documentFiles.removeAll { documentFile in
+                documentFile.url.standardizedFileURL == standardizedSchemaFileURL
+            }
+        }
         var fragmentLookup: [String: Document.Fragment] = [:]
         let parsedDocuments = try parse(
             documentFiles,

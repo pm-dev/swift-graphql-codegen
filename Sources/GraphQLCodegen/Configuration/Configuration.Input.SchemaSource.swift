@@ -21,8 +21,9 @@ extension Configuration.Input {
         /// specification. The selected deprecation policy is applied after loading the complete schema.
         case JSONSchemaFile(URL)
 
-        /// Instructs codegen to load your GraphQL schema from a  .graphqls file on the local filesystem.
-        /// The file should be formatted in valid Server Definition Langauge (SDL)
+        /// Instructs codegen to load your GraphQL schema from a `.graphqls`, `.sdl`, or `.graphql` file on the
+        /// local filesystem. Prefer `.graphqls` to distinguish schemas from executable `.graphql` documents.
+        /// The file should be formatted in valid Schema Definition Language (SDL).
         case SDLSchemaFile(URL)
     }
 }
