@@ -3,8 +3,9 @@ import Foundation
 
 /// Defaults conform to https://graphql.github.io/graphql-over-http/draft/
 extension URLSession {
-    struct HTTPError: Error {
-        let response: HTTPURLResponse
+    enum HTTPError: Error {
+        case invalidType(URLResponse)
+        case badResponse(HTTPURLResponse, Data?)
     }
 
     /// Executes a single-response GraphQL operation.
@@ -16,8 +17,16 @@ extension URLSession {
         decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
     ) async throws -> GraphQLResponse<Operation.Data>.ExecutionResult {
         let (data, response) = try await data(for: request.urlRequest)
-        if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
-            throw HTTPError(response: httpResponse)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw HTTPError.invalidType(response)
+        }
+        guard
+            (200..<300).contains(httpResponse.statusCode) ||
+            httpResponse.mimeType?.caseInsensitiveCompare(
+                "application/graphql-response+json"
+            ) == .orderedSame
+        else {
+            throw HTTPError.badResponse(httpResponse, data)
         }
         switch try decoder(data) {
         case .executionResult(let executionResult): return executionResult
@@ -81,8 +90,11 @@ extension URLSession {
             throw SubscriptionError.invalidMaximumBufferedResultCount(maximumBufferedResultCount)
         }
         let (asyncBytes, response) = try await bytes(for: request.urlRequest)
-        if let httpResponse = response as? HTTPURLResponse, !(200..<300).contains(httpResponse.statusCode) {
-            throw HTTPError(response: httpResponse)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw HTTPError.invalidType(response)
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            throw HTTPError.badResponse(httpResponse, nil)
         }
         guard response.mimeType?.caseInsensitiveCompare("text/event-stream") == .orderedSame else {
             throw SubscriptionError.invalidContentType(response.mimeType)
