@@ -32,7 +32,7 @@ struct HTTPGenerationPlan {
     init(configuration: Configuration, hasSubscription: Bool) {
         let enablesGETQueries = configuration.output.support.HTTPSupport?.enableGETQueries == true
         let persistence: Persistence
-        switch configuration.output.documents.operations.persistedOperations {
+        switch configuration.output.support.HTTPSupport?.persistedOperations {
         case .automatic: persistence = .automatic
         case .registered: persistence = .registered
         case .none: persistence = .none

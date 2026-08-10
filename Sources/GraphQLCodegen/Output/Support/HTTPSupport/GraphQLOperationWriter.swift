@@ -29,7 +29,7 @@ struct GraphQLOperationWriter: SupportOutput {
             /// The optional name of the operation.
             /// https://spec.graphql.org/September2025/#sel-FAFTDCFABAADFCBAAD-zM
             static var operationName: String? { get }
-        \(operationSourceRequirements())
+        \(operationDocumentRequirements())
 
             /// The parameterized variables to execute the operation with.
             /// https://spec.graphql.org/September2025/#sec-Language.Variables
@@ -63,19 +63,6 @@ struct GraphQLOperationWriter: SupportOutput {
 
         \(accessLevel)protocol GraphQLQuery: GraphQLSingleResponseOperation {}\(mutationProtocol())\(subscriptionProtocol())
         """
-    }
-
-    private func operationSourceRequirements() -> String {
-        switch configuration.output.documents.operations.persistedOperations {
-        case .registered:
-            """
-
-                /// The SHA-256 hash of the registered executable operation document.
-                static var hash: String { get }
-            """
-        case .automatic, .none:
-            operationDocumentRequirements()
-        }
     }
 
     private func operationDocumentRequirements() -> String {

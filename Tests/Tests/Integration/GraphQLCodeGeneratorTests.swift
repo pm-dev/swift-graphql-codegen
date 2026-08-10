@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import GraphQLCodegen
 import Testing
@@ -617,7 +618,7 @@ struct GraphQLCodeGeneratorTests {
         #expect(subscriptionRequest.contains("self.persistedOperationRetry = nil"))
 
         for persistedOperations in [
-            Configuration.Output.Documents.Operations.PersistedOperations.registered(
+            Configuration.Output.Support.HTTPSupport.PersistedOperations.registered(
                 manifestJSONFileOutput: generatedDirectory.appending(path: "manifest.json")
             ),
             nil,
@@ -633,7 +634,8 @@ struct GraphQLCodeGeneratorTests {
                 operationsDirectory: operationsDirectory,
                 supportDirectory: getVariantSupport,
                 enableGETQueries: true,
-                persistedOperations: persistedOperations
+                persistedOperations: persistedOperations,
+                minifyDocument: false
             )
             let getRequest = try String(
                 contentsOf: getVariantSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
@@ -653,7 +655,8 @@ struct GraphQLCodeGeneratorTests {
                 operationsDirectory: operationsDirectory,
                 supportDirectory: postVariantSupport,
                 enableGETQueries: false,
-                persistedOperations: persistedOperations
+                persistedOperations: persistedOperations,
+                minifyDocument: false
             )
             let postRequest = try String(
                 contentsOf: postVariantSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
@@ -663,6 +666,49 @@ struct GraphQLCodeGeneratorTests {
                 postRequest.range(of: "/// Initializes a new `GraphQLRequest` with a subscription operation")
             )
             #expect(!postRequest[postInitializer.lowerBound...].contains("try self.init("))
+
+            if case .registered(let manifestURL) = persistedOperations {
+                let generatedOperations = try String(
+                    contentsOf: operationsDirectory.appending(path: "Ticks.graphql.swift"),
+                    encoding: .utf8
+                )
+                #expect(generatedOperations.contains("static let document"))
+                #expect(!generatedOperations.contains("static let hash"))
+
+                let operationProtocols = try String(
+                    contentsOf: getVariantSupport.appending(path: "HTTPSupport/GraphQLOperation.swift"),
+                    encoding: .utf8
+                )
+                #expect(operationProtocols.contains("static var document: String { get }"))
+                #expect(!operationProtocols.contains("static var hash: String { get }"))
+
+                for supportDirectory in [getVariantSupport, postVariantSupport] {
+                    let encoders = try String(
+                        contentsOf: supportDirectory.appending(path: "HTTPSupport/DefaultEncoders.swift"),
+                        encoding: .utf8
+                    )
+                    #expect(encoders.contains("import CryptoKit"))
+                    #expect(encoders.contains("persistedOperationHash(Operation.document)"))
+                    #expect(!encoders.contains("Operation.hash"))
+                }
+
+                let manifest = try JSONDecoder().decode(
+                    PersistedOperationManifest.self,
+                    from: Data(contentsOf: manifestURL)
+                )
+                #expect(manifest.operations.contains {
+                    $0.body == "mutation SetVersion { setVersion(version: \"2\") }"
+                })
+                #expect(manifest.operations.contains {
+                    $0.body == "subscription Ticks { ticks }"
+                })
+                for operation in manifest.operations {
+                    let documentHash = SHA256.hash(data: Data(operation.body.utf8))
+                        .map { String(format: "%02x", $0) }
+                        .joined()
+                    #expect(operation.id == documentHash)
+                }
+            }
         }
     }
 
@@ -749,7 +795,8 @@ struct GraphQLCodeGeneratorTests {
         operationsDirectory: URL,
         supportDirectory: URL,
         enableGETQueries: Bool,
-        persistedOperations: Configuration.Output.Documents.Operations.PersistedOperations? = .automatic
+        persistedOperations: Configuration.Output.Support.HTTPSupport.PersistedOperations? = .automatic,
+        minifyDocument: Bool = true
     ) async throws {
         try await Codegen(
             .configuration(
@@ -764,12 +811,13 @@ struct GraphQLCodeGeneratorTests {
                             .appending(path: "SchemaTypes", directoryHint: .isDirectory)
                     ),
                     documents: .documents(
-                        operations: .operations(persistedOperations: persistedOperations)
+                        operations: .operations(minifyDocument: minifyDocument)
                     ),
                     support: .support(
                         directory: supportDirectory,
                         HTTPSupport: .httpSupport(
                             enableGETQueries: enableGETQueries,
+                            persistedOperations: persistedOperations,
                             subscriptionSupport: true
                         )
                     )

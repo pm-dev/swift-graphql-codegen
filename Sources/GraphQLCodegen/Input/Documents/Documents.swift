@@ -29,15 +29,9 @@ struct Document: Sendable {
     }
 
     struct Operation: Sendable {
-        enum Persistence: Sendable {
-            case registered(hash: String)
-            case standard
-        }
-
         let ast: GraphQLAST.OperationDefinition
         let canonicalText: String
         let documentText: String
-        let persistence: Persistence
     }
 
     struct Fragment {

@@ -14,8 +14,6 @@ extension Configuration.Output.Documents {
         ///   edits change different lines of the document.
         ///   - conformances: A list of protocols each generated operation will conform to.
         ///   - variables: Options controlling generated code for the variables struct.
-        ///   - persistedOperations: Controls whether operations support persisted operations. Pass nil to remove
-        ///   support for persisted operations.
         ///   - responseData: Options controlling generated code for the response "Data" struct.
         /// - Returns: A new `Operations` instance to be passed to the `Documents.documents` factory function.
         public static func operations(
@@ -24,7 +22,6 @@ extension Configuration.Output.Documents {
             minifyDocument: Bool = true,
             conformances: [String] = [],
             variables: Variables = .variables(),
-            persistedOperations: PersistedOperations? = .automatic,
             responseData: ResponseData = .responseData()
         ) -> Operations {
             Operations(
@@ -33,7 +30,6 @@ extension Configuration.Output.Documents {
                 minifyDocument: minifyDocument,
                 conformances: conformances,
                 variables: variables,
-                persistedOperations: persistedOperations,
                 responseData: responseData
             )
         }
@@ -43,7 +39,6 @@ extension Configuration.Output.Documents {
         public var minifyDocument: Bool
         public var conformances: [String]
         public var variables: Variables
-        public var persistedOperations: PersistedOperations?
         public var responseData: ResponseData
     }
 }
