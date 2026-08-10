@@ -21,8 +21,13 @@ extension Configuration.Output.Support.HTTPSupport {
         /// This manifest file should be merged into the mapping of hashes to documents stored on the server.
         /// This adds a layer of security by preventing unknown operations from being executed by the server. It also
         /// can improve performance because servers no longer need to validate operations at request time.
+        /// Set `allowUnregisteredOperations` to `true` to expose a runtime option for sending the full document
+        /// instead of its registered hash, which is useful when developing against an unregistered server.
         /// To learn more about automatic persisted operations:
         /// https://the-guild.dev/graphql/yoga-server/docs/features/persisted-operations
-        case registered(manifestJSONFileOutput: URL)
+        case registered(
+            manifestJSONFileOutput: URL,
+            allowUnregisteredOperations: Bool = false
+        )
     }
 }

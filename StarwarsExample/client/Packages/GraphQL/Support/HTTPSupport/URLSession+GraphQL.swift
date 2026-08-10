@@ -21,18 +21,7 @@ extension URLSession {
         }
         switch try decoder(data) {
         case .executionResult(let executionResult): return executionResult
-        case .requestError(let requestError):
-            let containsPersistedQueryNotFound = requestError.errors.contains { error in
-                error.message == "PersistedQueryNotFound"
-            }
-            if containsPersistedQueryNotFound,
-               let retry = request.persistedOperationRetry {
-                return try await self.request(
-                    try request.updated(for: retry),
-                    decoder: decoder
-                )
-            }
-            throw requestError
+        case .requestError(let requestError): throw requestError
         }
     }
 
@@ -51,8 +40,6 @@ extension URLSession {
     /// Initiates an event stream using a GraphQL subscription.
     /// This implementation assumes your server uses the "GraphQL over Server-Sent Events" spec:
     /// https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverSSE.md#distinct-connections-mode
-    /// - Important: Automatic persisted operations are not supported for subscriptions. Subscription
-    /// requests always include the full operation document.
     ///
     /// Lines, complete event payloads, and decoded results waiting for the consumer are bounded independently.
     /// - Important: This API requires version 26 or newer of macOS, iOS, tvOS, watchOS, or visionOS.
@@ -118,9 +105,7 @@ extension URLSession {
                                 case .terminated: return
                                 @unknown default: return
                                 }
-                            case .requestError(let requestError):
-                                // TODO: Support automatic persisted operation fallback for subscriptions.
-                                throw requestError
+                            case .requestError(let requestError): throw requestError
                         }
                         case .complete:
                             continuation.finish()
