@@ -33,7 +33,7 @@ struct GraphQLOneOfGeneratorTests {
         try await Codegen(
             .configuration(
                 input: .input(
-                    schemaSource: .SDLSchemaFile(schemaURL),
+                    schemaSource: .file(.SDL(schemaURL)),
                     documentDirectories: [operationsDirectory]
                 ),
                 output: .output(

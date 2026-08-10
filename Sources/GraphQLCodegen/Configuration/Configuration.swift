@@ -26,6 +26,47 @@ public struct Configuration: Sendable {
         )
     }
 
+    /// Creates configuration that writes exactly three deterministic Swift source files.
+    ///
+    /// This output mode is suitable for SwiftPM build-tool plugins and is also available to
+    /// code generation invoked directly by an application or executable.
+    public static func configuration(
+        input: Input,
+        validation: Bool = true,
+        output: Output.GeneratedFiles
+    ) -> Configuration {
+        Configuration(
+            input: input,
+            validation: validation,
+            output: output.configurationOutput
+        )
+    }
+
+    /// Creates configuration for code generation invoked by a SwiftPM build-tool plugin.
+    ///
+    /// Build-tool plugins run without network access, so this factory accepts only local schema files.
+    ///
+    /// - Parameters:
+    ///   - input: Local schema and GraphQL document inputs.
+    ///   - validation: Whether to validate GraphQL documents against the schema.
+    ///   - output: Options controlling the three deterministic generated Swift files.
+    /// - Returns: Configuration to pass to `Codegen.init(_:)`.
+    public static func buildPluginConfiguration(
+        input: BuildPluginInput,
+        validation: Bool = true,
+        output: Output.GeneratedFiles
+    ) -> Configuration {
+        .configuration(
+            input: .input(
+                schemaSource: .file(input.schemaFile),
+                documentDirectories: input.documentDirectories,
+                deprecationPolicy: input.deprecationPolicy
+            ),
+            validation: validation,
+            output: output
+        )
+    }
+
     public var input: Input
     public var validation: Bool
     public var output: Output
@@ -33,6 +74,12 @@ public struct Configuration: Sendable {
     func validate() throws {
         if case .spaces(let count) = output.indentation, count < 0 {
             throw Codegen.Error(description: "The indentation space count must not be negative.")
+        }
+        if output.generatedFilesDirectory != nil,
+           case .registered = output.documents.operations.persistedOperations {
+            throw Codegen.Error(description: """
+            Generated-files output cannot create a registered persisted-operation manifest because it only supports its three declared Swift files.
+            """)
         }
         switch output.documents.operations.persistedOperations {
         case .registered(let manifestJSONFileOutput):
@@ -45,18 +92,18 @@ public struct Configuration: Sendable {
         case .automatic, .none: break
         }
         switch input.schemaSource {
-        case .JSONSchemaFile(let url):
+        case .file(.introspectionJSON(let url)):
             try verifyLocalURL(
                 url,
                 expectedExtension: ["json"],
-                parameter: "JSONSchemaFile",
+                parameter: "introspectionJSON",
                 configuration: "schema source"
             )
-        case .SDLSchemaFile(let url):
+        case .file(.SDL(let url)):
             try verifyLocalURL(
                 url,
                 expectedExtension: ["graphql", "graphqls", "sdl"],
-                parameter: "SDLSchemaFile",
+                parameter: "SDL",
                 configuration: "schema source"
             )
         case .introspectionEndpoint: break

@@ -44,9 +44,9 @@ struct GraphQLDefaultValuesGeneratorTests {
         try await Codegen(
             .configuration(
                 input: .input(
-                    schemaSource: .SDLSchemaFile(
+                    schemaSource: .file(.SDL(
                         generatedDirectory.appending(path: "schema.sdl", directoryHint: .notDirectory)
-                    ),
+                    )),
                     documentDirectories: [operationsDirectory]
                 ),
                 output: .output(

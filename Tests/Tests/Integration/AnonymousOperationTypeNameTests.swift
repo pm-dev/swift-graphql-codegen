@@ -71,7 +71,7 @@ struct AnonymousOperationTypeNameTests {
     private func configuration(for fixture: AnonymousOperationFixture) -> Configuration {
         .configuration(
             input: .input(
-                schemaSource: .SDLSchemaFile(fixture.schema),
+                schemaSource: .file(.SDL(fixture.schema)),
                 documentDirectories: [fixture.operations]
             ),
             output: .output(

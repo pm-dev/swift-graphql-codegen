@@ -17,11 +17,17 @@ struct SchemaWriter {
 
     let configuration: Configuration
 
+    let generatedScalarNames: Set<String>
     let indirectOneOfInputObjectFields: [String: Set<String>]
     let typePlans: [TypePlan]
 
     init(configuration: Configuration, schema: Schema, resolvedDocuments: ResolvedDocuments) {
         self.configuration = configuration
+        self.generatedScalarNames = Set(
+            schema.typeCache.scalars.values.lazy
+                .filter(\.ast.requiresGeneratedTypeDefinition)
+                .map(\.ast.name)
+        )
         self.indirectOneOfInputObjectFields = resolvedDocuments.indirectOneOfInputObjectFields
         self.typePlans = resolvedDocuments.usedTypes.sorted().compactMap { name -> TypePlan? in
             if let scalar = schema.typeCache.scalars[name] {
@@ -31,6 +37,17 @@ struct SchemaWriter {
                 return `enum`.ast.isSystemType ? nil : .enum(`enum`)
             }
             return schema.typeCache.inputObjects[name].map(TypePlan.inputObject)
+        }
+    }
+
+    func validate() throws {
+        guard let mappings = configuration.output.schema.scalars.mappings else { return }
+        let invalidScalarNames = Set(mappings.keys).subtracting(generatedScalarNames).sorted()
+        if !invalidScalarNames.isEmpty {
+            throw Codegen.Error(description: """
+            Custom scalar mappings must reference ID or a custom scalar declared by the schema.
+            Invalid scalar mappings: \(invalidScalarNames.joined(separator: ", "))
+            """)
         }
     }
 
@@ -48,14 +65,50 @@ struct SchemaWriter {
     }
 
     func write(using fileOutput: FileOutput) throws {
+        if let destination = configuration.output.url(for: .schema) {
+            try writeGeneratedFile(to: destination, using: fileOutput)
+            return
+        }
         try writeCustomScalars(using: fileOutput)
         try writeEnums(using: fileOutput)
         try writeInputObjects(using: fileOutput)
     }
 
+    private func writeGeneratedFile(to destination: URL, using fileOutput: FileOutput) throws {
+        let scalarConfiguration = configuration.output.schema.scalars
+        var file = SwiftFileWriter()
+        file.setHeader(scalarConfiguration.header)
+        file.setImports(scalarConfiguration.importedModules)
+        for type in typePlans {
+            switch type {
+            case .scalar(let scalar):
+                file.addType(
+                    SchemaScalarBuilder(
+                        scalar: scalar,
+                        swiftType: scalarConfiguration.swiftType(for: scalar.ast.name)
+                    )
+                )
+            case .enum(let `enum`):
+                file.addType(SchemaEnumBuilder(enum: `enum`))
+            case .inputObject(let inputObject):
+                file.addType(
+                    SchemaInputObjectBuilder(
+                        inputObject: inputObject,
+                        indirectInputFields: indirectOneOfInputObjectFields[
+                            inputObject.ast.name,
+                            default: []
+                        ]
+                    )
+                )
+            }
+        }
+        try file.write(to: destination, configuration: configuration, using: fileOutput)
+    }
+
     private func writeCustomScalars(using fileOutput: FileOutput) throws {
+        let scalarConfiguration = configuration.output.schema.scalars
         var scalarsDir = schemaDirectory
-        if let scalarDirectoryName = configuration.output.schema.scalars.directoryName {
+        if let scalarDirectoryName = scalarConfiguration.directoryName {
             scalarsDir.append(path: scalarDirectoryName, directoryHint: .isDirectory)
         }
         fileOutput.remove(at: scalarsDir)
@@ -64,15 +117,21 @@ struct SchemaWriter {
             guard case .scalar(let scalar) = type else { continue }
             let filename = "\(scalar.ast.name).graphqls.swift"
             let url = scalarsDir.appending(path: filename, directoryHint: .notDirectory)
-            guard !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
+            if scalarConfiguration.preservesExistingFiles,
+               FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
                 // Will not overwrite existing scalar file
                 fileOutput.save(at: url)
                 continue
             }
             var file = SwiftFileWriter()
-            file.setHeader(configuration.output.schema.scalars.header)
-            file.setImports(configuration.output.schema.scalars.importedModules)
-            file.addType(SchemaScalarBuilder(scalar: scalar))
+            file.setHeader(scalarConfiguration.header)
+            file.setImports(scalarConfiguration.importedModules)
+            file.addType(
+                SchemaScalarBuilder(
+                    scalar: scalar,
+                    swiftType: scalarConfiguration.swiftType(for: scalar.ast.name)
+                )
+            )
             try file.write(to: url, configuration: configuration, using: fileOutput)
         }
     }

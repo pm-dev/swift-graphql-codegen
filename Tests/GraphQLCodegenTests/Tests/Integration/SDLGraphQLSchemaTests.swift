@@ -24,7 +24,7 @@ struct SDLGraphQLSchemaTests {
         try await Codegen(
             .configuration(
                 input: .input(
-                    schemaSource: .SDLSchemaFile(schema),
+                    schemaSource: .file(.SDL(schema)),
                     documentDirectories: [definitions]
                 ),
                 output: .output(

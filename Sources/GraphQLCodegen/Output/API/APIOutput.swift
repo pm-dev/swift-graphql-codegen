@@ -28,6 +28,16 @@ extension APIOutput {
         configuration.output.api.header.map { "\($0)\n" } ?? ""
     }
 
+    var sourceWithoutHeader: String {
+        for possibleHeader in [header, headerBeforeImports]
+            .filter({ !$0.isEmpty })
+            .sorted(by: { $0.count > $1.count })
+        where source.hasPrefix(possibleHeader) {
+            return String(source.dropFirst(possibleHeader.count))
+        }
+        return source
+    }
+
     func write(using fileOutput: FileOutput) throws {
         try source.write(
             to: configuration.output.api.directory.appending(

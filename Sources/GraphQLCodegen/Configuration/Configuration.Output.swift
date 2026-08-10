@@ -1,6 +1,13 @@
+import Foundation
+
 extension Configuration {
     /// Options controlling the code that is output by this codegen.
     public struct Output: Sendable {
+        enum Layout: Sendable {
+            case generatedFiles(URL)
+            case individualFiles
+        }
+
         /// Call this function to create a new `Output` instance.
         ///
         /// - Parameters:
@@ -22,7 +29,8 @@ extension Configuration {
                 indentation: indentation,
                 schema: schema,
                 documents: documents,
-                api: api
+                api: api,
+                layout: .individualFiles
             )
         }
 
@@ -30,6 +38,27 @@ extension Configuration {
         public var schema: Schema
         public var documents: Documents
         public var api: API
+        var layout: Layout
+    }
+}
+
+extension Configuration.Output {
+    enum GeneratedFile: String, CaseIterable {
+        case api = "GraphQLAPI.generated.swift"
+        case documents = "GraphQLDocuments.generated.swift"
+        case schema = "GraphQLSchema.generated.swift"
+    }
+
+    var generatedFilesDirectory: URL? {
+        guard case .generatedFiles(let directory) = layout else { return nil }
+        return directory
+    }
+
+    func url(for generatedFile: GeneratedFile) -> URL? {
+        generatedFilesDirectory?.appending(
+            path: generatedFile.rawValue,
+            directoryHint: .notDirectory
+        )
     }
 }
 

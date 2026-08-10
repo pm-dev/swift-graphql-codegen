@@ -19,7 +19,7 @@ enum StarwarsCodegen {
         try await Codegen(
             .configuration(
                 input: .input(
-                    schemaSource: .SDLSchemaFile(schemaURL),
+                    schemaSource: .file(.SDL(schemaURL)),
                     documentDirectories: [sourceDirectory.appending(path: "Operations", directoryHint: .isDirectory)]
                 ),
                 output: .output(

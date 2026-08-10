@@ -45,10 +45,15 @@ struct CodegenOutputPlan {
     }
 
     func validate() throws {
+        try schemaWriter.validate()
         try GeneratedTypeNameValidator(outputPlan: self).validate()
     }
 
     func write(using fileOutput: FileOutput) throws {
+        if let directory = configuration.output.generatedFilesDirectory {
+            fileOutput.remove(at: directory)
+            fileOutput.createDirectory(at: directory)
+        }
         try documentsWriter.write(using: fileOutput)
         try schemaWriter.write(using: fileOutput)
         try apiWriter.write(using: fileOutput)

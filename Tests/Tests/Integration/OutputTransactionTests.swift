@@ -70,6 +70,80 @@ struct OutputTransactionTests {
     }
 
     @Test
+    func buildPluginConfigurationRegeneratesScalarSourcesFromMappings() async throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+
+        try FileManager.default.createDirectory(
+            at: fixture.output,
+            withIntermediateDirectories: true
+        )
+        let schemaURL = fixture.output.appending(
+            path: "GraphQLSchema.generated.swift",
+            directoryHint: .notDirectory
+        )
+        try Data("typealias Custom = Existing\n".utf8).write(to: schemaURL)
+
+        try await Codegen(
+            buildPluginConfiguration(
+                for: fixture,
+                scalarMappings: ["Custom": "Foundation.UUID"]
+            )
+        ).run()
+
+        let schemaSource = try String(contentsOf: schemaURL, encoding: .utf8)
+        #expect(schemaSource.contains("typealias Custom = Foundation.UUID"))
+        #expect(schemaSource.contains("typealias ID = String"))
+        #expect(!schemaSource.contains("Existing"))
+        #expect(try generatedFilenames(in: fixture.output) == [
+            "GraphQLAPI.generated.swift",
+            "GraphQLDocuments.generated.swift",
+            "GraphQLSchema.generated.swift",
+        ])
+        try typecheckGeneratedFiles(in: fixture.output)
+    }
+
+    @Test
+    func normalConfigurationSupportsGeneratedFilesOutput() async throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+
+        try await Codegen(
+            .configuration(
+                input: .input(
+                    schemaSource: .file(.SDL(fixture.schema)),
+                    documentDirectories: [fixture.operations]
+                ),
+                output: generatedFilesOutput(for: fixture)
+            )
+        ).run()
+
+        #expect(try generatedFilenames(in: fixture.output) == [
+            "GraphQLAPI.generated.swift",
+            "GraphQLDocuments.generated.swift",
+            "GraphQLSchema.generated.swift",
+        ])
+    }
+
+    @Test
+    func buildPluginConfigurationRejectsUnknownScalarMappings() async throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+
+        do {
+            try await Codegen(
+                buildPluginConfiguration(
+                    for: fixture,
+                    scalarMappings: ["Missing": "Foundation.UUID"]
+                )
+            ).run()
+            Issue.record("Expected codegen to reject the unknown scalar mapping")
+        } catch {
+            #expect(String(describing: error).contains("Invalid scalar mappings: Missing"))
+        }
+    }
+
+    @Test
     func restoresNestedOutputAfterCommitFailure() async throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
@@ -121,7 +195,7 @@ struct OutputTransactionTests {
     ) -> Configuration {
         .configuration(
             input: .input(
-                schemaSource: .SDLSchemaFile(fixture.schema),
+                schemaSource: .file(.SDL(fixture.schema)),
                 documentDirectories: [fixture.operations]
             ),
             output: .output(
@@ -138,6 +212,56 @@ struct OutputTransactionTests {
                 )
             )
         )
+    }
+
+    private func buildPluginConfiguration(
+        for fixture: Fixture,
+        scalarMappings: [String: String]
+    ) -> Configuration {
+        .buildPluginConfiguration(
+            input: .input(
+                schemaFile: .SDL(fixture.schema),
+                documentDirectories: [fixture.operations]
+            ),
+            output: generatedFilesOutput(for: fixture, scalarMappings: scalarMappings)
+        )
+    }
+
+    private func generatedFilesOutput(
+        for fixture: Fixture,
+        scalarMappings: [String: String] = [:]
+    ) -> Configuration.Output.GeneratedFiles {
+        .generatedFiles(
+            directory: fixture.output,
+            schema: .schema(
+                importedModules: scalarMappings.isEmpty ? [] : ["Foundation"],
+                scalarMappings: scalarMappings
+            )
+        )
+    }
+
+    private func generatedFilenames(in directory: URL) throws -> [String] {
+        try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        ).map(\.lastPathComponent).sorted()
+    }
+
+    private func typecheckGeneratedFiles(in directory: URL) throws {
+        let generatedFiles = try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )
+        let standardError = Pipe()
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["swiftc", "-typecheck"] + generatedFiles.map(\.path)
+        process.standardError = standardError
+        try process.run()
+        process.waitUntilExit()
+        let errorData = standardError.fileHandleForReading.readDataToEndOfFile()
+        let error = String(bytes: errorData, encoding: .utf8) ?? "swiftc emitted non-UTF-8 output"
+        #expect(process.terminationStatus == 0, Comment(rawValue: error))
     }
 
     private func makeFixture() throws -> Fixture {

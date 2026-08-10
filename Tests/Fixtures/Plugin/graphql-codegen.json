@@ -1,0 +1,10 @@
+{
+  "schema": {
+    "path": "schema.graphqls",
+    "importedModules": ["Foundation"],
+    "scalarMappings": {
+      "UUID": "Foundation.UUID"
+    }
+  },
+  "documentDirectories": ["."]
+}

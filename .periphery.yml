@@ -4,3 +4,4 @@ report_exclude:
 exclude_targets:
   - "Codegen"
   - "Fixtures"
+  - "graphql_codegen"

@@ -126,7 +126,7 @@ struct DeprecationSupportTests {
         let schemaJSONURL = fixture.directory.appending(path: "schema.json", directoryHint: .notDirectory)
         try introspection.text.write(to: schemaJSONURL, atomically: true, encoding: .utf8)
         let configuration = makeConfiguration(
-            schemaSource: .JSONSchemaFile(schemaJSONURL),
+            schemaSource: .file(.introspectionJSON(schemaJSONURL)),
             deprecationPolicy: .exclude,
             fixture: fixture
         )
@@ -147,7 +147,7 @@ struct DeprecationSupportTests {
         )
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
         let configuration = makeConfiguration(
-            schemaSource: .SDLSchemaFile(fixture.schemaURL),
+            schemaSource: .file(.SDL(fixture.schemaURL)),
             deprecationPolicy: .exclude,
             fixture: fixture
         )
@@ -186,7 +186,7 @@ struct DeprecationSupportTests {
 
         try await Codegen(
             makeConfiguration(
-                schemaSource: .SDLSchemaFile(fixture.schemaURL),
+                schemaSource: .file(.SDL(fixture.schemaURL)),
                 deprecationPolicy: .include,
                 fixture: fixture
             )
@@ -224,7 +224,7 @@ struct DeprecationSupportTests {
 
         try await Codegen(
             makeConfiguration(
-                schemaSource: .SDLSchemaFile(fixture.schemaURL),
+                schemaSource: .file(.SDL(fixture.schemaURL)),
                 deprecationPolicy: .include,
                 fixture: fixture
             )
@@ -250,7 +250,7 @@ struct DeprecationSupportTests {
         policy: Configuration.Input.DeprecationPolicy
     ) async throws -> [DeprecationUsageValidator.Diagnostic] {
         let configuration = makeConfiguration(
-            schemaSource: .SDLSchemaFile(fixture.schemaURL),
+            schemaSource: .file(.SDL(fixture.schemaURL)),
             deprecationPolicy: policy,
             fixture: fixture
         )

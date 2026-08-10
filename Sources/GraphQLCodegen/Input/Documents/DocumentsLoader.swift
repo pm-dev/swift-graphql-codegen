@@ -21,7 +21,7 @@ struct DocumentsLoader {
         var documentFiles = try DocumentScanner(
             directories: configuration.input.documentDirectories
         ).scan()
-        if case .SDLSchemaFile(let schemaFileURL) = configuration.input.schemaSource {
+        if case .file(.SDL(let schemaFileURL)) = configuration.input.schemaSource {
             let standardizedSchemaFileURL = schemaFileURL.standardizedFileURL
             documentFiles.removeAll { documentFile in
                 documentFile.url.standardizedFileURL == standardizedSchemaFileURL

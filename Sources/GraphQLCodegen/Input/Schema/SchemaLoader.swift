@@ -110,9 +110,9 @@ struct SchemaLoader {
                 endpoint: endpoint,
                 headers: headers
             )
-        case .JSONSchemaFile(let schemaFile):
+        case .file(.introspectionJSON(let schemaFile)):
             try loadSchemaFromJSONFile(schemaFile)
-        case .SDLSchemaFile(let schemaFile):
+        case .file(.SDL(let schemaFile)):
             try loadSchemaFromSDLFile(schemaFile)
         }
     }

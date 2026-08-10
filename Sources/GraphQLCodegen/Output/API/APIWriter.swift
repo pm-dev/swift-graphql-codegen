@@ -62,6 +62,12 @@ struct APIWriter {
     }
 
     func write(using fileOutput: FileOutput) throws {
+        if let destination = configuration.output.url(for: .api) {
+            let header = configuration.output.api.header.map { "\($0)\n\n" } ?? ""
+            let source = header + outputs.map(\.sourceWithoutHeader).joined(separator: "\n\n")
+            try source.write(to: destination, using: fileOutput)
+            return
+        }
         let destinationPath = configuration.output.api.directory
         fileOutput.createDirectory(at: destinationPath)
         if configuration.output.api.HTTPSupport != nil {

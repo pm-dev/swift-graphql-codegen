@@ -8,6 +8,11 @@ extension Configuration.Output.Schema {
     /// type (i.e. `Foundation.URL` or `Foundation.UUID`). A customized scalar file is preserved while its scalar
     /// remains part of the generated output; if the scalar is no longer used, its file may be removed on the next run.
     public struct Scalars: Sendable {
+        enum Customization: Sendable {
+            case editableFiles
+            case mappings([String: String])
+        }
+
         /// Call this function to create a new `Scalars` instance.
         ///
         /// - Parameters:
@@ -26,14 +31,36 @@ extension Configuration.Output.Schema {
             importedModules: [String] = []
         ) -> Scalars {
             Scalars(
+                customization: .editableFiles,
                 directoryName: directoryName,
                 header: header,
                 importedModules: importedModules
             )
         }
 
+        var customization: Customization
         public var directoryName: String?
         public var header: String?
         public var importedModules: [String]
+    }
+}
+
+extension Configuration.Output.Schema.Scalars {
+    var mappings: [String: String]? {
+        switch customization {
+        case .editableFiles: nil
+        case .mappings(let mappings): mappings
+        }
+    }
+
+    var preservesExistingFiles: Bool {
+        switch customization {
+        case .editableFiles: true
+        case .mappings: false
+        }
+    }
+
+    func swiftType(for scalar: String) -> String {
+        mappings?[scalar] ?? "String"
     }
 }

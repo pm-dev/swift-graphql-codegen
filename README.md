@@ -117,9 +117,9 @@ struct MyCodegenCLI {
         try await Codegen(
             .configuration(
                 input: .input(
-                    schemaSource: .SDLSchemaFile(
+                    schemaSource: .file(.SDL(
                         sourceDirectory.appending(path: "schema.sdl", directoryHint: .notDirectory)
-                    ),
+                    )),
                     documentDirectories: [
                         sourceDirectory.appending(path: "Operations", directoryHint: .isDirectory),
                     ]
@@ -147,6 +147,70 @@ From the package directory, run:
 ```bash
 swift run my-codegen-cli
 ```
+
+## SwiftPM Build-Tool Plugin
+
+Add `GraphQLCodegenPlugin` to each source target that owns GraphQL operations:
+
+```swift
+.target(
+    name: "MyAPI",
+    plugins: [
+        .plugin(
+            name: "GraphQLCodegenPlugin",
+            package: "swift-graphql-codegen"
+        ),
+    ]
+)
+```
+
+Place `graphql-codegen.json` in that target's directory, such as `Sources/MyAPI/graphql-codegen.json`. All paths are relative to
+the configuration file:
+
+```json
+{
+  "schema": {
+    "path": "schema.graphqls",
+    "importedModules": ["Foundation"],
+    "scalarMappings": {
+      "DateTime": "Foundation.Date"
+    }
+  },
+  "documentDirectories": ["GraphQL"],
+  "deprecationPolicy": "include",
+  "output": {
+    "schema": { "accessLevel": "public" },
+    "documents": { "accessLevel": "public" },
+    "api": {
+      "accessLevel": "public",
+      "subscriptionSupport": true
+    }
+  },
+  "validation": true
+}
+```
+
+Generated schema, document, and API access levels each default to `internal`. Set them to `public` when exposing generated types
+from a package library. Subscription support is disabled by default and can be enabled with `output.api.subscriptionSupport`.
+
+The schema must be a checked-in SDL or introspection JSON file. A remote introspection endpoint is intentionally unsupported because
+SwiftPM build-tool plugins run without network access. The plugin recursively declares every `.graphql` document in the configured
+directories, along with the configuration and schema, as build-command inputs.
+
+Generated sources are written only to SwiftPM's plugin work directory; the plugin never modifies `Sources`. Its build command
+declares exactly these outputs:
+
+- `GraphQLAPI.generated.swift`
+- `GraphQLDocuments.generated.swift`
+- `GraphQLSchema.generated.swift`
+
+Custom scalar mappings are regenerated into `GraphQLSchema.generated.swift`, with unmapped scalars defaulting to `String`.
+Adjacent document output, custom filenames, and registered persisted-operation manifests are unsupported because each would prevent
+the plugin from declaring the fixed output set. SwiftPM can therefore skip the build command when none of its declared inputs have
+changed, instead of unconditionally running code generation as it would for a prebuild command.
+
+The `GraphQLCodegen` library and manual executable workflow remain available. Standalone `Configuration` can opt into the same
+`.generatedFiles` layout or retain flexible output locations, remote introspection, and editable generated scalar files.
 
 ## Generated Output
 

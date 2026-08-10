@@ -152,12 +152,12 @@ struct GraphQLCodeGeneratorTests {
         try await Codegen(
             .configuration(
                 input: .input(
-                    schemaSource: .SDLSchemaFile(
+                    schemaSource: .file(.SDL(
                         definitionsDirectory.appending(
                             path: "schema.sdl",
                             directoryHint: .notDirectory
                         )
-                    ),
+                    )),
                     documentDirectories: [operationsDirectory]
                 ),
                 output: .output(
@@ -694,7 +694,7 @@ struct GraphQLCodeGeneratorTests {
         try await Codegen(
             .configuration(
                 input: .input(
-                    schemaSource: .SDLSchemaFile(schemaURL),
+                    schemaSource: .file(.SDL(schemaURL)),
                     documentDirectories: [operationsDirectory]
                 ),
                 validation: validation,
@@ -754,7 +754,7 @@ struct GraphQLCodeGeneratorTests {
         try await Codegen(
             .configuration(
                 input: .input(
-                    schemaSource: .SDLSchemaFile(schemaURL),
+                    schemaSource: .file(.SDL(schemaURL)),
                     documentDirectories: [operationsDirectory]
                 ),
                 output: .output(

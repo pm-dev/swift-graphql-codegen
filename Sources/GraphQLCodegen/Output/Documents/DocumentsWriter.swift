@@ -76,6 +76,10 @@ struct DocumentsWriter {
     }
 
     func write(using fileOutput: FileOutput) throws {
+        if let destination = configuration.output.url(for: .documents) {
+            try writeGeneratedFile(to: destination, using: fileOutput)
+            return
+        }
         try validateOutputURLs()
         switch configuration.output.documents.directory {
         case .definition: break
@@ -88,38 +92,12 @@ struct DocumentsWriter {
             var file = SwiftFileWriter()
             file.setHeader(configuration.output.documents.header)
             file.setImports(configuration.output.documents.importedModules)
-            var emptyFile = true
-            for definition in plannedDocument.definitions {
-                switch definition {
-                case .operation(let resolvedOperation, let declaration):
-                    let operation = try buildOperation(
-                        resolvedOperation,
-                        typeName: declaration.name,
-                        in: document
-                    )
-                    file.addType(operation)
-                    emptyFile = false
-                case .fragment(
-                    let resolvedFragment,
-                    let includesSelectionSet,
-                    let declaration
-                ):
-                    file.addType(
-                        try buildFragment(
-                            resolvedFragment,
-                            typeName: declaration.name,
-                            includesSelectionSet: includesSelectionSet,
-                            in: document
-                        )
-                    )
-                    emptyFile = false
-                }
-            }
+            let hasDefinitions = try addDefinitions(from: plannedDocument, to: &file)
             let outputURL = document.outputURL(configuration)
-            if emptyFile {
-                fileOutput.remove(at: outputURL)
-            } else {
+            if hasDefinitions {
                 try file.write(to: outputURL, configuration: configuration, using: fileOutput)
+            } else {
+                fileOutput.remove(at: outputURL)
             }
         }
         if case .definition = configuration.output.documents.directory {
@@ -127,6 +105,49 @@ struct DocumentsWriter {
             let removed = try previouslyGeneratedFileURLs().subtracting(generated)
             fileOutput.remove(at: removed)
         }
+    }
+
+    private func writeGeneratedFile(to destination: URL, using fileOutput: FileOutput) throws {
+        var file = SwiftFileWriter()
+        file.setHeader(configuration.output.documents.header)
+        file.setImports(configuration.output.documents.importedModules)
+        for plannedDocument in documentPlans {
+            try addDefinitions(from: plannedDocument, to: &file)
+        }
+        try file.write(to: destination, configuration: configuration, using: fileOutput)
+    }
+
+    @discardableResult
+    private func addDefinitions(
+        from plannedDocument: DocumentPlan,
+        to file: inout SwiftFileWriter
+    ) throws -> Bool {
+        for definition in plannedDocument.definitions {
+            switch definition {
+            case .operation(let resolvedOperation, let declaration):
+                file.addType(
+                    try buildOperation(
+                        resolvedOperation,
+                        typeName: declaration.name,
+                        in: plannedDocument.document
+                    )
+                )
+            case .fragment(
+                let resolvedFragment,
+                let includesSelectionSet,
+                let declaration
+            ):
+                file.addType(
+                    try buildFragment(
+                        resolvedFragment,
+                        typeName: declaration.name,
+                        includesSelectionSet: includesSelectionSet,
+                        in: plannedDocument.document
+                    )
+                )
+            }
+        }
+        return !plannedDocument.definitions.isEmpty
     }
 
     private func previouslyGeneratedFileURLs() throws -> Set<URL> {
