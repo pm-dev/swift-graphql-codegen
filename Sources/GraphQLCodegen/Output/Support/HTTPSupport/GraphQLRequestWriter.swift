@@ -1,6 +1,6 @@
 import Foundation
 
-struct GraphQLRequestWriter: APIOutput {
+struct GraphQLRequestWriter: SupportOutput {
     let plan: HTTPGenerationPlan
     let configuration: Configuration
     let relativePath = "HTTPSupport/GraphQLRequest.swift"

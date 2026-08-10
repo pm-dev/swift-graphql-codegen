@@ -1,6 +1,6 @@
 import Foundation
 
-struct EncodersWriter: APIOutput {
+struct EncodersWriter: SupportOutput {
     let plan: HTTPGenerationPlan
     let configuration: Configuration
     let relativePath = "HTTPSupport/Encoders.swift"

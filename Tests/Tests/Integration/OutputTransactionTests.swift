@@ -93,7 +93,7 @@ struct OutputTransactionTests {
                 enums: .enums(directoryName: "Generated/Enums"),
                 inputObjects: .inputObjects(directoryName: "Generated/InputObjects")
             ),
-            apiDirectory: blockingFile.appending(path: "API", directoryHint: .isDirectory)
+            supportDirectory: blockingFile.appending(path: "Support", directoryHint: .isDirectory)
         )
 
         var failed = false
@@ -117,7 +117,7 @@ struct OutputTransactionTests {
     private func configuration(
         for fixture: Fixture,
         schema: Configuration.Output.Schema? = nil,
-        apiDirectory: URL? = nil
+        supportDirectory: URL? = nil
     ) -> Configuration {
         .configuration(
             input: .input(
@@ -133,8 +133,8 @@ struct OutputTransactionTests {
                         fixture.output.appending(path: "Operations", directoryHint: .isDirectory)
                     )
                 ),
-                api: .api(
-                    directory: apiDirectory ?? fixture.output.appending(path: "API", directoryHint: .isDirectory)
+                support: .support(
+                    directory: supportDirectory ?? fixture.output.appending(path: "Support", directoryHint: .isDirectory)
                 )
             )
         )

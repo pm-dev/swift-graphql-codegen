@@ -13,7 +13,7 @@ struct ConfigurationTests {
             output: .output(
                 indentation: .spaces(4),
                 schema: .schema(directory: URL(fileURLWithPath: "/tmp/schema")),
-                api: .api(directory: URL(fileURLWithPath: "/tmp/api"))
+                support: .support(directory: URL(fileURLWithPath: "/tmp/support"))
             )
         )
         configuration.output.indentation = .spaces(-1)

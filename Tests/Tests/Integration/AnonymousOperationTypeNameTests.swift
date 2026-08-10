@@ -83,8 +83,8 @@ struct AnonymousOperationTypeNameTests {
                         fixture.output.appending(path: "Operations", directoryHint: .isDirectory)
                     )
                 ),
-                api: .api(
-                    directory: fixture.output.appending(path: "API", directoryHint: .isDirectory)
+                support: .support(
+                    directory: fixture.output.appending(path: "Support", directoryHint: .isDirectory)
                 )
             )
         )

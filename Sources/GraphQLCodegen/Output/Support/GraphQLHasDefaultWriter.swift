@@ -1,4 +1,4 @@
-struct GraphQLHasDefaultWriter: APIOutput {
+struct GraphQLHasDefaultWriter: SupportOutput {
     let configuration: Configuration
 
     let relativePath = "GraphQLHasDefault.swift"

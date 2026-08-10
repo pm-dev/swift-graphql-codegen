@@ -1,9 +1,9 @@
 import Foundation
 
-struct APIWriter {
+struct SupportWriter {
     let configuration: Configuration
 
-    private let outputs: [any APIOutput]
+    private let outputs: [any SupportOutput]
 
     init(
         configuration: Configuration,
@@ -11,7 +11,7 @@ struct APIWriter {
         hasSubscription: Bool,
         requiresIndirectNullable: Bool
     ) {
-        var outputs: [any APIOutput] = [
+        var outputs: [any SupportOutput] = [
             AnyEncodableWriter(configuration: configuration),
             GraphQLEnumWriter(configuration: configuration),
             GraphQLErrorWriter(configuration: configuration),
@@ -23,12 +23,12 @@ struct APIWriter {
             GraphQLResponseWriter(configuration: configuration),
             JSONValueWriter(configuration: configuration),
         ]
-        if configuration.output.api.HTTPSupport != nil {
+        if configuration.output.support.HTTPSupport != nil {
             let httpGenerationPlan = HTTPGenerationPlan(
                 configuration: configuration,
                 hasSubscription: hasSubscription
             )
-            let httpOutputs: [any APIOutput] = [
+            let httpOutputs: [any SupportOutput] = [
                 DefaultEncodersWriter(plan: httpGenerationPlan, configuration: configuration),
                 GraphQLOperationWriter(
                     configuration: configuration,
@@ -49,22 +49,22 @@ struct APIWriter {
         outputs.flatMap(\.topLevelTypeNames).map { typeName in
             GeneratedTypeDeclaration(
                 name: typeName,
-                origin: .api(typeName.unescaped)
+                origin: .support(typeName.unescaped)
             )
         }
     }
 
     private var httpSupportDirectory: URL {
-        configuration.output.api.directory.appending(
+        configuration.output.support.directory.appending(
             path: "HTTPSupport",
             directoryHint: .isDirectory
         )
     }
 
     func write(using fileOutput: FileOutput) throws {
-        let destinationPath = configuration.output.api.directory
+        let destinationPath = configuration.output.support.directory
         fileOutput.createDirectory(at: destinationPath)
-        if configuration.output.api.HTTPSupport != nil {
+        if configuration.output.support.HTTPSupport != nil {
             fileOutput.createDirectory(at: httpSupportDirectory)
         } else {
             fileOutput.remove(at: httpSupportDirectory)

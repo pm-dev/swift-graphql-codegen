@@ -1,4 +1,4 @@
-struct AnyEncodableWriter: APIOutput {
+struct AnyEncodableWriter: SupportOutput {
     let configuration: Configuration
 
     let relativePath = "AnyEncodable.swift"

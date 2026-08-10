@@ -1,4 +1,4 @@
-struct GraphQLEnumWriter: APIOutput {
+struct GraphQLEnumWriter: SupportOutput {
     let configuration: Configuration
 
     let relativePath = "GraphQLEnum.swift"

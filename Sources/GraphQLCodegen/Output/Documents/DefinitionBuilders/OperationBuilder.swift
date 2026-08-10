@@ -32,7 +32,7 @@ struct OperationBuilder {
 
     private func makeOperationStruct() -> SwiftStructBuilder {
         var conformances = configuration.output.documents.operations.conformances
-        if configuration.output.api.HTTPSupport != nil {
+        if configuration.output.support.HTTPSupport != nil {
             switch operation.ast.operation {
             case .query: conformances.append("GraphQLQuery")
             case .mutation: conformances.append("GraphQLMutation")

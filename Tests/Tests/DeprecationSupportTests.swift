@@ -294,7 +294,7 @@ struct DeprecationSupportTests {
             output: .output(
                 schema: .schema(directory: fixture.schemaTypesDirectory),
                 documents: .documents(directory: .directory(fixture.operationsDirectory)),
-                api: .api(directory: fixture.directory.appending(path: "API", directoryHint: .isDirectory))
+                support: .support(directory: fixture.directory.appending(path: "Support", directoryHint: .isDirectory))
             )
         )
     }

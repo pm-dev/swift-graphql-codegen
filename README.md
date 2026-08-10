@@ -101,7 +101,7 @@ let package = Package(
 ### 2. Configure Code Generation
 
 The following executable reads `schema.sdl` and GraphQL operations from an `Operations` directory next to the source file, then
-writes generated schema and API files to `Generated`:
+writes generated schema and support files to `Generated`:
 
 ```swift
 import Foundation
@@ -128,8 +128,8 @@ struct MyCodegenCLI {
                     schema: .schema(
                         directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory)
                     ),
-                    api: .api(
-                        directory: generatedDirectory.appending(path: "API", directoryHint: .isDirectory)
+                    support: .support(
+                        directory: generatedDirectory.appending(path: "Support", directoryHint: .isDirectory)
                     )
                 )
             )

@@ -1,6 +1,6 @@
 import Foundation
 
-struct GraphQLOperationWriter: APIOutput {
+struct GraphQLOperationWriter: SupportOutput {
     let configuration: Configuration
     let hasMutation: Bool
     let hasSubscription: Bool

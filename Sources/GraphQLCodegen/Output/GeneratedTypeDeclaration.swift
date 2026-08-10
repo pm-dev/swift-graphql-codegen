@@ -2,15 +2,15 @@ import Foundation
 
 struct GeneratedTypeDeclaration {
     enum Origin: CustomStringConvertible {
-        case api(String)
+        case support(String)
         case fragment(name: String, file: URL)
         case operation(name: String?, file: URL)
         case schema(SchemaCoordinate)
 
         var description: String {
             switch self {
-            case .api(let name):
-                "Generated API type: \(name)"
+            case .support(let name):
+                "Generated support type: \(name)"
             case .fragment(let name, let file):
                 "Fragment: \(name)\nFile: \(file)"
             case .operation(let name, let file):
@@ -22,7 +22,7 @@ struct GeneratedTypeDeclaration {
 
         var resolution: String {
             switch self {
-            case .api:
+            case .support:
                 "Rename the conflicting generated GraphQL definition."
             case .fragment:
                 "Rename the fragment so it produces a distinct Swift type name."
