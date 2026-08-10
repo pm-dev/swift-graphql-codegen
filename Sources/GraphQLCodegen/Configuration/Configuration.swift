@@ -82,7 +82,7 @@ public struct Configuration: Sendable {
             """)
         }
         switch output.api.HTTPSupport?.persistedOperations {
-        case .registered(let manifestJSONFileOutput):
+        case .registered(let manifestJSONFileOutput, _):
             try verifyLocalURL(
                 manifestJSONFileOutput,
                 expectedExtension: ["json"],
