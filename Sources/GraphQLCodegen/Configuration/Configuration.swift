@@ -34,7 +34,7 @@ public struct Configuration: Sendable {
         if case .spaces(let count) = output.indentation, count < 0 {
             throw Codegen.Error(description: "The indentation space count must not be negative.")
         }
-        switch output.documents.operations.persistedOperations {
+        switch output.support.HTTPSupport?.persistedOperations {
         case .registered(let manifestJSONFileOutput):
             try verifyLocalURL(
                 manifestJSONFileOutput,

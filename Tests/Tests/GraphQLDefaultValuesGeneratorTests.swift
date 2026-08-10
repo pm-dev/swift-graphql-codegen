@@ -56,10 +56,7 @@ struct GraphQLDefaultValuesGeneratorTests {
                             directoryHint: .isDirectory
                         )
                     ),
-                    documents: .documents(
-                        directory: .definition,
-                        operations: .operations(persistedOperations: nil)
-                    ),
+                    documents: .documents(directory: .definition),
                     support: .support(
                         directory: generatedDirectory.appending(path: "Support", directoryHint: .isDirectory),
                         HTTPSupport: nil
