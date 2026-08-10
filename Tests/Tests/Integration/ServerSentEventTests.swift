@@ -1,6 +1,6 @@
 import Dispatch
+@testable import Fixtures
 import Foundation
-@testable import StarwarsExample
 import Testing
 
 struct ServerSentEventTests {
@@ -10,12 +10,12 @@ struct ServerSentEventTests {
         defer { session.invalidateAndCancel() }
 
         let stream = try await session.subscribe(try makeRequest(path: "standards"))
-        var values: [GraphQLEnum<Episode>] = []
+        var values: [GraphQLEnum<State>] = []
         for try await response in stream {
-            values.append(try #require(response.data).favoriteEpisodeChanged)
+            values.append(try #require(response.data).stateChanged)
         }
 
-        #expect(values == [.known(.jedi)])
+        #expect(values == [.known(.stopped)])
     }
 
     @Test
@@ -151,7 +151,7 @@ struct ServerSentEventTests {
             request,
             decoder: { data in
                 let text = try #require(String(bytes: data, encoding: .utf8))
-                if text.contains("EMPIRE") {
+                if text.contains("RUNNING") {
                     secondResultDecoded.signal()
                 }
                 return .executionResult(
@@ -179,9 +179,9 @@ struct ServerSentEventTests {
         #expect(rejectedMaximumBufferedResultCount == 1)
     }
 
-    private func makeRequest(path: String) throws -> GraphQLRequest<FavoriteEpisodeChangedSubscription> {
+    private func makeRequest(path: String) throws -> GraphQLRequest<StateChangedSubscription> {
         try GraphQLRequest(
-            subscription: FavoriteEpisodeChangedSubscription(),
+            subscription: StateChangedSubscription(),
             endpoint: URL(string: "https://subscriptions.test/\(path)")!
         )
     }
@@ -226,7 +226,7 @@ private final class SubscriptionURLProtocol: URLProtocol {
                 (
                     "\u{FEFF}event: next\r\n" +
                         "data: {\"data\":\r" +
-                        "data: {\"favoriteEpisodeChanged\":\"JEDI\"}}\n\r\n" +
+                        "data: {\"stateChanged\":\"STOPPED\"}}\n\r\n" +
                         "event: complete\r" +
                         "data:\r\r"
                 ).utf8
@@ -234,9 +234,9 @@ private final class SubscriptionURLProtocol: URLProtocol {
         case "/complete-without-data":
             body = Data("event: complete\n\n".utf8)
         case "/missing-complete":
-            body = Data("event: next\ndata: {\"data\":{\"favoriteEpisodeChanged\":\"JEDI\"}}\n\n".utf8)
+            body = Data("event: next\ndata: {\"data\":{\"stateChanged\":\"STOPPED\"}}\n\n".utf8)
         case "/oversized":
-            body = Data("event: next\ndata: {\"data\":{\"favoriteEpisodeChanged\":\"EMPIRE\"}}\n\n".utf8)
+            body = Data("event: next\ndata: {\"data\":{\"stateChanged\":\"RUNNING\"}}\n\n".utf8)
         case "/oversized-line":
             body = Data(repeating: 0x61, count: 9)
         case "/maximum-line":
@@ -246,8 +246,8 @@ private final class SubscriptionURLProtocol: URLProtocol {
         case "/overflow":
             body = Data(
                 (
-                    "event: next\ndata: {\"data\":{\"favoriteEpisodeChanged\":\"JEDI\"}}\n\n" +
-                        "event: next\ndata: {\"data\":{\"favoriteEpisodeChanged\":\"EMPIRE\"}}\n\n" +
+                    "event: next\ndata: {\"data\":{\"stateChanged\":\"STOPPED\"}}\n\n" +
+                        "event: next\ndata: {\"data\":{\"stateChanged\":\"RUNNING\"}}\n\n" +
                         "event: complete\ndata:\n\n"
                 ).utf8
             )
@@ -274,9 +274,9 @@ private struct OverflowProbeData: Decodable, Sendable {}
 
 private struct OverflowProbeSubscription: GraphQLSubscription {
     static let operationName: String? = "OverflowProbe"
-    static let document = "subscription OverflowProbe { favoriteEpisodeChanged }"
+    static let document = "subscription OverflowProbe { stateChanged }"
     let variables: Never? = nil
-    let extensions: [String: StarwarsExample.AnyEncodable]? = nil
+    let extensions: [String: Fixtures.AnyEncodable]? = nil
 
     typealias Data = OverflowProbeData
     typealias Variables = Never?

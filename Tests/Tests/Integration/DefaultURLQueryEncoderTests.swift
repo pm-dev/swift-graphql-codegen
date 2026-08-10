@@ -1,6 +1,6 @@
 import CryptoKit
+@testable import Fixtures
 import Foundation
-@testable import StarwarsExample
 import Testing
 
 struct DefaultURLQueryEncoderTests {
@@ -79,7 +79,7 @@ struct DefaultURLQueryEncoderTests {
         static let document = "{viewer{id}}"
 
         let variables: Never? = nil
-        let extensions: [String: StarwarsExample.AnyEncodable]? = nil
+        let extensions: [String: Fixtures.AnyEncodable]? = nil
     }
 
     private struct CurrentUserQuery: GraphQLQuery {
@@ -89,7 +89,7 @@ struct DefaultURLQueryEncoderTests {
         static let document = "query CurrentUser{viewer{id}}"
 
         let variables: Never? = nil
-        let extensions: [String: StarwarsExample.AnyEncodable]? = nil
+        let extensions: [String: Fixtures.AnyEncodable]? = nil
     }
 
     private struct DescribedQuery: GraphQLQuery {
@@ -99,7 +99,7 @@ struct DefaultURLQueryEncoderTests {
         static let document = "query Described{viewer{id}}"
 
         let variables: Never? = nil
-        let extensions: [String: StarwarsExample.AnyEncodable]? = nil
+        let extensions: [String: Fixtures.AnyEncodable]? = nil
     }
 
     private struct EncodedExtensions: Decodable {
@@ -117,8 +117,8 @@ struct DefaultURLQueryEncoderTests {
         static let document = "query Parameterized($includeDetails:Boolean!){viewer{id}}"
 
         let variables = Variables(includeDetails: true)
-        let extensions: [String: StarwarsExample.AnyEncodable]? = [
-            "requestID": StarwarsExample.AnyEncodable("request-id")
+        let extensions: [String: Fixtures.AnyEncodable]? = [
+            "requestID": Fixtures.AnyEncodable("request-id")
         ]
 
         struct Variables: Encodable, Sendable {
