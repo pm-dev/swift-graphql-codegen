@@ -7,47 +7,45 @@ import Foundation
 /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
 public struct DefaultURLQueryEncoder: URLQueryEncoder {
     public init() {}
-    public func encode<Query: GraphQLQuery>(
-        query: Query,
-        useRegisteredOperation: Bool
+    public func encode<Operation: GraphQLOperation>(
+        operation: Operation,
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) throws -> [URLQueryItem] {
-        let body = Body(operation: query, useRegisteredOperation: useRegisteredOperation)
-        let encoder = JSONEncoder()
-        return [
-            body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
-            body.query.map { URLQueryItem(name: "query", value: $0) },
-            try URLQueryItem(name: "variables", encoding: body.variables, using: encoder),
-            try URLQueryItem(name: "extensions", encoding: body.extensions, using: encoder)
-        ].compactMap { $0 }
-    }
-
-    public func encode<Subscription: GraphQLSubscription>(
-        subscription: Subscription,
-        useRegisteredOperation: Bool
-    ) throws -> [URLQueryItem] {
-        let body = Body(operation: subscription, useRegisteredOperation: useRegisteredOperation)
-        let encoder = JSONEncoder()
-        return [
-            body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
-            body.query.map { URLQueryItem(name: "query", value: $0) },
-            try URLQueryItem(name: "variables", encoding: body.variables, using: encoder),
-            try URLQueryItem(name: "extensions", encoding: body.extensions, using: encoder)
-        ].compactMap { $0 }
+        try .from(
+            Body(
+                operation: operation,
+                automaticPersistedOperationPhase: automaticPersistedOperationPhase
+            )
+        )
     }
 }
 
-private extension URLQueryItem {
-    init?<Value: Encodable>(
-        name: String,
-        encoding value: Value?,
-        using encoder: JSONEncoder
-    ) throws {
-        guard let value else { return nil }
-
-        self.init(
-            name: name,
-            value: String(decoding: try encoder.encode(value), as: UTF8.self)
-        )
+private extension [URLQueryItem] {
+    static func from(_ body: Body) throws -> Self {
+        var items = [URLQueryItem]()
+        if let operationName = body.operationName {
+            items.append(URLQueryItem(name: "operationName", value: operationName))
+        }
+        if let query = body.query {
+            items.append(URLQueryItem(name: "query", value: query))
+        }
+        if let variables = body.variables {
+            items.append(
+                URLQueryItem(
+                    name: "variables",
+                    value: String(decoding: try JSONEncoder().encode(variables), as: UTF8.self)
+                )
+            )
+        }
+        if let extensions = body.extensions {
+            items.append(
+                URLQueryItem(
+                    name: "extensions",
+                    value: String(decoding: try JSONEncoder().encode(extensions), as: UTF8.self)
+                )
+            )
+        }
+        return items
     }
 }
 
@@ -59,10 +57,13 @@ public struct JSONBodyEncoder: HTTPBodyEncoder {
     public let contentType = "application/json"
     public func encode<Operation: GraphQLOperation>(
         operation: Operation,
-        useRegisteredOperation: Bool
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) throws -> Data {
         try JSONEncoder().encode(
-            Body(operation: operation, useRegisteredOperation: useRegisteredOperation)
+            Body(
+                operation: operation,
+                automaticPersistedOperationPhase: automaticPersistedOperationPhase
+            )
         )
     }
 }
@@ -75,19 +76,19 @@ private struct Body: Encodable {
 
     init<Operation: GraphQLOperation>(
         operation: Operation,
-        useRegisteredOperation: Bool
+        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) {
         var extensions = operation.extensions
-        if useRegisteredOperation {
-            var registeredExtensions = extensions ?? [:]
-            registeredExtensions["persistedQuery"] = AnyEncodable([
+        if automaticPersistedOperationPhase != nil {
+            var persistedExtensions = extensions ?? [:]
+            persistedExtensions["persistedQuery"] = AnyEncodable([
                 "version": AnyEncodable(1),
                 "sha256Hash": AnyEncodable(persistedOperationHash(Operation.document))
             ])
-            extensions = registeredExtensions
+            extensions = persistedExtensions
         }
         self.operationName = Operation.operationName
-        self.query = useRegisteredOperation ? nil : Operation.document
+        self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : Operation.document
         self.variables = operation.requestVariables
         self.extensions = extensions
     }
