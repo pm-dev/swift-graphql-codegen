@@ -2,5 +2,5 @@ retain_public: true
 report_exclude:
   - "Tests/Fixtures/Generated/**"
 exclude_targets:
-  - "StarwarsExample"
+  - "Codegen"
   - "Fixtures"

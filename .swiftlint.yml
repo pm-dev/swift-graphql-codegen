@@ -82,8 +82,8 @@ opt_in_rules:
 
 excluded:
   - .build/
-  - Examples/StarwarsExample/.build/
-  - Examples/StarwarsExample/Sources/StarwarsExample/
+  - StarwarsExample/client/Codegen/.build/
+  - StarwarsExample/client/Packages/GraphQL/
   - Tests/Fixtures/Generated/
 
 trailing_comma:
