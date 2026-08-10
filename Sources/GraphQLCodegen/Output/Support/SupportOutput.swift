@@ -1,8 +1,8 @@
-protocol APIOutput: Sendable {
-    /// Configuration that determines the API output directory.
+protocol SupportOutput: Sendable {
+    /// Configuration that determines the support output directory.
     var configuration: Configuration { get }
 
-    /// Generated file path relative to the API output directory.
+    /// Generated file path relative to the support output directory.
     var relativePath: String { get }
 
     /// Generated Swift source.
@@ -15,22 +15,22 @@ protocol APIOutput: Sendable {
     func write(using fileOutput: FileOutput) throws
 }
 
-extension APIOutput {
+extension SupportOutput {
     var accessLevel: String {
-        configuration.output.api.accessLevel == .public ? "public " : ""
+        configuration.output.support.accessLevel == .public ? "public " : ""
     }
 
     var header: String {
-        configuration.output.api.header.map { "\($0)\n\n" } ?? ""
+        configuration.output.support.header.map { "\($0)\n\n" } ?? ""
     }
 
     var headerBeforeImports: String {
-        configuration.output.api.header.map { "\($0)\n" } ?? ""
+        configuration.output.support.header.map { "\($0)\n" } ?? ""
     }
 
     func write(using fileOutput: FileOutput) throws {
         try source.write(
-            to: configuration.output.api.directory.appending(
+            to: configuration.output.support.directory.appending(
                 path: relativePath,
                 directoryHint: .notDirectory
             ),

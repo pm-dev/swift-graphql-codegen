@@ -60,8 +60,8 @@ struct GraphQLDefaultValuesGeneratorTests {
                         directory: .definition,
                         operations: .operations(persistedOperations: nil)
                     ),
-                    api: .api(
-                        directory: generatedDirectory.appending(path: "API", directoryHint: .isDirectory),
+                    support: .support(
+                        directory: generatedDirectory.appending(path: "Support", directoryHint: .isDirectory),
                         HTTPSupport: nil
                     )
                 )
@@ -71,7 +71,7 @@ struct GraphQLDefaultValuesGeneratorTests {
         #expect(
             !FileManager.default.fileExists(
                 atPath: generatedDirectory.appending(
-                    path: "API/HTTPSupport",
+                    path: "Support/HTTPSupport",
                     directoryHint: .isDirectory
                 ).path(percentEncoded: false)
             )

@@ -1,5 +1,5 @@
 struct CodegenOutputPlan {
-    let apiWriter: APIWriter
+    let supportWriter: SupportWriter
     let documentsWriter: DocumentsWriter
     let manifestWriter: PersistedOperationManifestWriter?
     let schemaWriter: SchemaWriter
@@ -13,7 +13,7 @@ struct CodegenOutputPlan {
         resolvedDocuments: ResolvedDocuments,
         schema: Schema
     ) throws {
-        let apiWriter = APIWriter(
+        let supportWriter = SupportWriter(
             configuration: configuration,
             hasMutation: resolvedDocuments.hasMutation,
             hasSubscription: resolvedDocuments.hasSubscription,
@@ -34,9 +34,9 @@ struct CodegenOutputPlan {
                 operations: output.operations
             )
         }
-        let topLevelDeclarations = apiWriter.topLevelDeclarations +
+        let topLevelDeclarations = supportWriter.topLevelDeclarations +
             documentsWriter.topLevelDeclarations + schemaWriter.topLevelDeclarations
-        self.apiWriter = apiWriter
+        self.supportWriter = supportWriter
         self.configuration = configuration
         self.documentsWriter = documentsWriter
         self.manifestWriter = manifestWriter
@@ -51,7 +51,7 @@ struct CodegenOutputPlan {
     func write(using fileOutput: FileOutput) throws {
         try documentsWriter.write(using: fileOutput)
         try schemaWriter.write(using: fileOutput)
-        try apiWriter.write(using: fileOutput)
+        try supportWriter.write(using: fileOutput)
         try manifestWriter?.write(using: fileOutput)
     }
 }

@@ -42,7 +42,7 @@ struct GraphQLOneOfGeneratorTests {
                         inputObjects: .inputObjects(conformances: ["Codable", "Hashable", "Sendable"])
                     ),
                     documents: .documents(directory: .directory(operationsDirectory)),
-                    api: .api(directory: generatedDirectory.appending(path: "API", directoryHint: .isDirectory))
+                    support: .support(directory: generatedDirectory.appending(path: "Support", directoryHint: .isDirectory))
                 )
             )
         ).run()

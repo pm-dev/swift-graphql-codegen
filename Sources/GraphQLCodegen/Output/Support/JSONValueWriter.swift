@@ -1,4 +1,4 @@
-struct JSONValueWriter: APIOutput {
+struct JSONValueWriter: SupportOutput {
     let configuration: Configuration
 
     let relativePath = "JSONValue.swift"

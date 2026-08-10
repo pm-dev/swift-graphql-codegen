@@ -1,4 +1,4 @@
-struct GraphQLNullableWriter: APIOutput {
+struct GraphQLNullableWriter: SupportOutput {
     let configuration: Configuration
     let requiresIndirectNullable: Bool
 

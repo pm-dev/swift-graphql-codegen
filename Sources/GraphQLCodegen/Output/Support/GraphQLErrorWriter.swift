@@ -1,4 +1,4 @@
-struct GraphQLErrorWriter: APIOutput {
+struct GraphQLErrorWriter: SupportOutput {
     let configuration: Configuration
 
     let relativePath = "GraphQLError.swift"

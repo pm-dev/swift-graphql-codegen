@@ -1,6 +1,6 @@
 import Foundation
 
-struct DefaultEncodersWriter: APIOutput {
+struct DefaultEncodersWriter: SupportOutput {
     let plan: HTTPGenerationPlan
     let configuration: Configuration
     let relativePath = "HTTPSupport/DefaultEncoders.swift"

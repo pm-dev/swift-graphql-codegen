@@ -29,8 +29,8 @@ enum StarwarsCodegen {
                         accessLevel: .public
                     ),
                     documents: .documents(accessLevel: .public),
-                    api: .api(
-                        directory: sourceDirectory.appending(path: "Utility", directoryHint: .isDirectory),
+                    support: .support(
+                        directory: sourceDirectory.appending(path: "Support", directoryHint: .isDirectory),
                         accessLevel: .public,
                         HTTPSupport: .httpSupport(
                             enableGETQueries: true,

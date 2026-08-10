@@ -1,4 +1,4 @@
-struct GraphQLResponseWriter: APIOutput {
+struct GraphQLResponseWriter: SupportOutput {
     let configuration: Configuration
 
     let relativePath = "GraphQLResponse.swift"

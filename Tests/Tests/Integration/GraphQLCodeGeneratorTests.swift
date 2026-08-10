@@ -170,8 +170,8 @@ struct GraphQLCodeGeneratorTests {
                             operationsDirectory
                         )
                     ),
-                    api: .api(
-                        directory: generatedDirectory.appending(path: "API", directoryHint: .isDirectory),
+                    support: .support(
+                        directory: generatedDirectory.appending(path: "Support", directoryHint: .isDirectory),
                         HTTPSupport: .httpSupport(
                             enableGETQueries: true,
                             subscriptionSupport: true
@@ -210,7 +210,7 @@ struct GraphQLCodeGeneratorTests {
             }
             type Query { value(input: RecursiveInput): String! }
             """,
-            outputRelativePath: "API/GraphQLNullable.swift"
+            outputRelativePath: "Support/GraphQLNullable.swift"
         )
 
         #expect(!output.contains("indirect enum GraphQLNullable"))
@@ -482,7 +482,7 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
-    func rejectsSchemaTypeNamedAfterGeneratedAPIType() async {
+    func rejectsSchemaTypeNamedAfterGeneratedSupportType() async {
         for typeName in ["GraphQLSingleResponseOperation", "PersistedOperationRetry"] {
             await expectCodegenError(containing: "conflicting top-level Swift type names") {
                 try await runCodegen(
@@ -554,19 +554,19 @@ struct GraphQLCodeGeneratorTests {
             encoding: .utf8
         )
 
-        let getAPI = generatedDirectory.appending(path: "GET/API", directoryHint: .isDirectory)
-        try await generateSubscriptionAPI(
+        let getSupport = generatedDirectory.appending(path: "GET/Support", directoryHint: .isDirectory)
+        try await generateSubscriptionSupport(
             schemaURL: schemaURL,
             operationsDirectory: operationsDirectory,
-            apiDirectory: getAPI,
+            supportDirectory: getSupport,
             enableGETQueries: true
         )
         let getRequest = try String(
-            contentsOf: getAPI.appending(path: "HTTPSupport/GraphQLRequest.swift"),
+            contentsOf: getSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
             encoding: .utf8
         )
         let operationProtocols = try String(
-            contentsOf: getAPI.appending(path: "HTTPSupport/GraphQLOperation.swift"),
+            contentsOf: getSupport.appending(path: "HTTPSupport/GraphQLOperation.swift"),
             encoding: .utf8
         )
         #expect(operationProtocols.contains("protocol GraphQLSingleResponseOperation: GraphQLOperation"))
@@ -575,7 +575,7 @@ struct GraphQLCodeGeneratorTests {
         #expect(operationProtocols.contains("protocol GraphQLSubscription: GraphQLOperation"))
 
         let urlSession = try String(
-            contentsOf: getAPI.appending(path: "HTTPSupport/URLSession+GraphQL.swift"),
+            contentsOf: getSupport.appending(path: "HTTPSupport/URLSession+GraphQL.swift"),
             encoding: .utf8
         )
         #expect(urlSession.contains("func request<Operation: GraphQLSingleResponseOperation>"))
@@ -597,15 +597,15 @@ struct GraphQLCodeGeneratorTests {
         ]
         #expect(!subscriptionStrategy.contains("AutomaticPersistedOperation"))
 
-        let postAPI = generatedDirectory.appending(path: "POST/API", directoryHint: .isDirectory)
-        try await generateSubscriptionAPI(
+        let postSupport = generatedDirectory.appending(path: "POST/Support", directoryHint: .isDirectory)
+        try await generateSubscriptionSupport(
             schemaURL: schemaURL,
             operationsDirectory: operationsDirectory,
-            apiDirectory: postAPI,
+            supportDirectory: postSupport,
             enableGETQueries: false
         )
         let postRequest = try String(
-            contentsOf: postAPI.appending(path: "HTTPSupport/GraphQLRequest.swift"),
+            contentsOf: postSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
             encoding: .utf8
         )
         let subscriptionInitializer = try #require(
@@ -627,16 +627,16 @@ struct GraphQLCodeGeneratorTests {
                 directoryHint: .isDirectory
             )
 
-            let getVariantAPI = variantDirectory.appending(path: "GET/API", directoryHint: .isDirectory)
-            try await generateSubscriptionAPI(
+            let getVariantSupport = variantDirectory.appending(path: "GET/Support", directoryHint: .isDirectory)
+            try await generateSubscriptionSupport(
                 schemaURL: schemaURL,
                 operationsDirectory: operationsDirectory,
-                apiDirectory: getVariantAPI,
+                supportDirectory: getVariantSupport,
                 enableGETQueries: true,
                 persistedOperations: persistedOperations
             )
             let getRequest = try String(
-                contentsOf: getVariantAPI.appending(path: "HTTPSupport/GraphQLRequest.swift"),
+                contentsOf: getVariantSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
                 encoding: .utf8
             )
             let getInitializer = try #require(
@@ -647,16 +647,16 @@ struct GraphQLCodeGeneratorTests {
             #expect(getSubscriptionRequest.contains("strategy: SubscriptionStrategy = .GET()"))
             #expect(!getSubscriptionRequest.contains("strategy: QueryStrategy"))
 
-            let postVariantAPI = variantDirectory.appending(path: "POST/API", directoryHint: .isDirectory)
-            try await generateSubscriptionAPI(
+            let postVariantSupport = variantDirectory.appending(path: "POST/Support", directoryHint: .isDirectory)
+            try await generateSubscriptionSupport(
                 schemaURL: schemaURL,
                 operationsDirectory: operationsDirectory,
-                apiDirectory: postVariantAPI,
+                supportDirectory: postVariantSupport,
                 enableGETQueries: false,
                 persistedOperations: persistedOperations
             )
             let postRequest = try String(
-                contentsOf: postVariantAPI.appending(path: "HTTPSupport/GraphQLRequest.swift"),
+                contentsOf: postVariantSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
                 encoding: .utf8
             )
             let postInitializer = try #require(
@@ -710,8 +710,8 @@ struct GraphQLCodeGeneratorTests {
                             responseData: .responseData(conformances: responseDataConformances)
                         )
                     ),
-                    api: .api(
-                        directory: generatedDirectory.appending(path: "API", directoryHint: .isDirectory),
+                    support: .support(
+                        directory: generatedDirectory.appending(path: "Support", directoryHint: .isDirectory),
                         HTTPSupport: .httpSupport()
                     )
                 )
@@ -744,10 +744,10 @@ struct GraphQLCodeGeneratorTests {
         }
     }
 
-    private func generateSubscriptionAPI(
+    private func generateSubscriptionSupport(
         schemaURL: URL,
         operationsDirectory: URL,
-        apiDirectory: URL,
+        supportDirectory: URL,
         enableGETQueries: Bool,
         persistedOperations: Configuration.Output.Documents.Operations.PersistedOperations? = .automatic
     ) async throws {
@@ -759,15 +759,15 @@ struct GraphQLCodeGeneratorTests {
                 ),
                 output: .output(
                     schema: .schema(
-                        directory: apiDirectory
+                        directory: supportDirectory
                             .deletingLastPathComponent()
                             .appending(path: "SchemaTypes", directoryHint: .isDirectory)
                     ),
                     documents: .documents(
                         operations: .operations(persistedOperations: persistedOperations)
                     ),
-                    api: .api(
-                        directory: apiDirectory,
+                    support: .support(
+                        directory: supportDirectory,
                         HTTPSupport: .httpSupport(
                             enableGETQueries: enableGETQueries,
                             subscriptionSupport: true
@@ -816,20 +816,20 @@ enum OutputFile: String, CaseIterable {
 
     var relativePath: String {
         switch self {
-        case .DefaultEncoders: "API/HTTPSupport/DefaultEncoders.swift"
-        case .Encoders: "API/HTTPSupport/Encoders.swift"
+        case .DefaultEncoders: "Support/HTTPSupport/DefaultEncoders.swift"
+        case .Encoders: "Support/HTTPSupport/Encoders.swift"
         case .StateChangedSubscription:
             "Operations/StateChangedSubscription.graphql.swift"
-        case .GraphQLOperation: "API/HTTPSupport/GraphQLOperation.swift"
-        case .GraphQLRequest: "API/HTTPSupport/GraphQLRequest.swift"
-        case .URLSessionGraphQL: "API/HTTPSupport/URLSession+GraphQL.swift"
-        case .AnyEncodable: "API/AnyEncodable.swift"
-        case .GraphQLEnum: "API/GraphQLEnum.swift"
-        case .GraphQLError: "API/GraphQLError.swift"
-        case .GraphQLHasDefault: "API/GraphQLHasDefault.swift"
-        case .GraphQLNullable: "API/GraphQLNullable.swift"
-        case .GraphQLResponse: "API/GraphQLResponse.swift"
-        case .JSONValue: "API/JSONValue.swift"
+        case .GraphQLOperation: "Support/HTTPSupport/GraphQLOperation.swift"
+        case .GraphQLRequest: "Support/HTTPSupport/GraphQLRequest.swift"
+        case .URLSessionGraphQL: "Support/HTTPSupport/URLSession+GraphQL.swift"
+        case .AnyEncodable: "Support/AnyEncodable.swift"
+        case .GraphQLEnum: "Support/GraphQLEnum.swift"
+        case .GraphQLError: "Support/GraphQLError.swift"
+        case .GraphQLHasDefault: "Support/GraphQLHasDefault.swift"
+        case .GraphQLNullable: "Support/GraphQLNullable.swift"
+        case .GraphQLResponse: "Support/GraphQLResponse.swift"
+        case .JSONValue: "Support/JSONValue.swift"
         case .NodeQuery: "Operations/NodeQuery.graphql.swift"
         case .SetStateMutation: "Operations/SetStateMutation.graphql.swift"
         case .State: "SchemaTypes/Enums/State.graphqls.swift"

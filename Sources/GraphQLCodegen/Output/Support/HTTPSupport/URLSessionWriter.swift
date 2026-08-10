@@ -1,6 +1,6 @@
 import Foundation
 
-struct URLSessionWriter: APIOutput {
+struct URLSessionWriter: SupportOutput {
     let hasSubscription: Bool
     let configuration: Configuration
     let relativePath = "HTTPSupport/URLSession+GraphQL.swift"
@@ -8,7 +8,7 @@ struct URLSessionWriter: APIOutput {
     let topLevelTypeNames: [SwiftTypeIdentifier] = []
 
     private var includeSubscriptionSupport: Bool {
-        hasSubscription && configuration.output.api.HTTPSupport?.subscriptionSupport == true
+        hasSubscription && configuration.output.support.HTTPSupport?.subscriptionSupport == true
     }
 
     var source: String {

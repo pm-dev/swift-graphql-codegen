@@ -25,7 +25,7 @@ let package = Package(
             sources: [
                 "Operations",
                 "Schema",
-                "Utility",
+                "Support",
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error),

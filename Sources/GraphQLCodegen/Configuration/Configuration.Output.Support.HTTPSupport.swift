@@ -1,5 +1,5 @@
-extension Configuration.Output.API {
-    /// Options controlling API files that generated to support HTTP requests to GraphQL servers.
+extension Configuration.Output.Support {
+    /// Options controlling generated files for HTTP requests to GraphQL servers.
     ///
     /// These files ensure requests conform to the GraphQL over HTTP spec:
     /// https://graphql.github.io/graphql-over-http/draft/#sec-GraphQL-over-HTTP
@@ -18,7 +18,7 @@ extension Configuration.Output.API {
         ///   graphql documents include one or more subscription operations, this will add a `subscribe` function to the generated URLSession
         ///   extension. The generated function bounds SSE lines, complete event payloads, and decoded results waiting for the consumer.
         ///   Subscription support requires version 26 or newer of macOS, iOS, tvOS, watchOS, or visionOS.
-        /// - Returns: A new `HTTPSupport` instance to be passed to the `API.api` factory function.
+        /// - Returns: A new `HTTPSupport` instance to be passed to the `Support.support` factory function.
         public static func httpSupport(
             enableGETQueries: Bool = false,
             subscriptionSupport: Bool = false

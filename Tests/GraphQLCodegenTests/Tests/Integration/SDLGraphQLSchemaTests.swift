@@ -36,8 +36,8 @@ struct SDLGraphQLSchemaTests {
                             output.appending(path: "Operations", directoryHint: .isDirectory)
                         )
                     ),
-                    api: .api(
-                        directory: output.appending(path: "API", directoryHint: .isDirectory)
+                    support: .support(
+                        directory: output.appending(path: "Support", directoryHint: .isDirectory)
                     )
                 )
             )
