@@ -31,20 +31,47 @@ struct DefaultEncodersWriter: APIOutput {
         """
     }
 
-    private var urlQueryItemExtensionSource: String {
-        """
-        private extension URLQueryItem {
-            init?<Value: Encodable>(
-                name: String,
-                encoding value: Value?,
-                using encoder: JSONEncoder
-            ) throws {
-                guard let value else { return nil }
+    private var urlQueryItemsExtensionSource: String {
+        let optionalQueryItem = """
 
-                self.init(
-                    name: name,
-                    value: String(decoding: try encoder.encode(value), as: UTF8.self)
-                )
+                if let query = body.query {
+                    items.append(URLQueryItem(name: "query", value: query))
+                }
+        """
+        let queryItem: String
+        switch plan.persistence {
+        case .automatic:
+            queryItem = optionalQueryItem
+        case .registered(let allowsUnregisteredOperations):
+            queryItem = allowsUnregisteredOperations ? optionalQueryItem : ""
+        case .none:
+            queryItem = "\n        items.append(URLQueryItem(name: \"query\", value: body.query))"
+        }
+
+        return """
+        private extension [URLQueryItem] {
+            static func from(_ body: Body) throws -> Self {
+                var items = [URLQueryItem]()
+                if let operationName = body.operationName {
+                    items.append(URLQueryItem(name: "operationName", value: operationName))
+                }\(queryItem)
+                if let variables = body.variables {
+                    items.append(
+                        URLQueryItem(
+                            name: "variables",
+                            value: String(decoding: try JSONEncoder().encode(variables), as: UTF8.self)
+                        )
+                    )
+                }
+                if let extensions = body.extensions {
+                    items.append(
+                        URLQueryItem(
+                            name: "extensions",
+                            value: String(decoding: try JSONEncoder().encode(extensions), as: UTF8.self)
+                        )
+                    )
+                }
+                return items
             }
         }
         """
@@ -62,11 +89,6 @@ struct DefaultEncodersWriter: APIOutput {
     private var registeredOperationArgument: String {
         guard plan.allowsUnregisteredOperations else { return "" }
         return ", useRegisteredOperation: useRegisteredOperation"
-    }
-
-    private var registeredOperationQueryItem: String {
-        guard plan.allowsUnregisteredOperations else { return "" }
-        return "\n            body.query.map { URLQueryItem(name: \"query\", value: $0) },"
     }
 
     var source: String {
@@ -94,21 +116,16 @@ struct DefaultEncodersWriter: APIOutput {
                 operation: Operation,
                 automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
             ) throws -> [URLQueryItem] {
-                let body = Body(
-                    operation: operation,
-                    automaticPersistedOperationPhase: automaticPersistedOperationPhase
+                try .from(
+                    Body(
+                        operation: operation,
+                        automaticPersistedOperationPhase: automaticPersistedOperationPhase
+                    )
                 )
-                let encoder = JSONEncoder()
-                return [
-                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
-                    body.query.map { URLQueryItem(name: "query", value: $0) },
-                    try URLQueryItem(name: "variables", encoding: body.variables, using: encoder),
-                    try URLQueryItem(name: "extensions", encoding: body.extensions, using: encoder)
-                ].compactMap { $0 }
             }
         }
 
-        \(urlQueryItemExtensionSource)
+        \(urlQueryItemsExtensionSource)
 
         \(httpBodyEncoderWithAutomaticPersistedOperations())
         """
@@ -127,17 +144,11 @@ struct DefaultEncodersWriter: APIOutput {
             \(accessLevel)func encode<Query: GraphQLQuery>(
                 query: Query\(registeredOperationParameter)
             ) throws -> [URLQueryItem] {
-                let body = Body(operation: query\(registeredOperationArgument))
-                let encoder = JSONEncoder()
-                return [
-                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },\(registeredOperationQueryItem)
-                    try URLQueryItem(name: "variables", encoding: body.variables, using: encoder),
-                    try URLQueryItem(name: "extensions", encoding: body.extensions, using: encoder)
-                ].compactMap { $0 }
+                try .from(Body(operation: query\(registeredOperationArgument)))
             }\(subscriptionSupportWithRegisteredPersistedOperations())
         }
 
-        \(urlQueryItemExtensionSource)
+        \(urlQueryItemsExtensionSource)
 
         \(httpBodyEncoderWithRegisteredPersistedOperations())
         """
@@ -153,18 +164,11 @@ struct DefaultEncodersWriter: APIOutput {
         \(accessLevel)struct DefaultURLQueryEncoder: URLQueryEncoder {
             \(accessLevel)init() {}
             \(accessLevel)func encode<Query: GraphQLQuery>(query: Query) throws -> [URLQueryItem] {
-                let body = Body(operation: query)
-                let encoder = JSONEncoder()
-                return [
-                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
-                    body.query.map { URLQueryItem(name: "query", value: $0) },
-                    try URLQueryItem(name: "variables", encoding: body.variables, using: encoder),
-                    try URLQueryItem(name: "extensions", encoding: body.extensions, using: encoder)
-                ].compactMap { $0 }
+                try .from(Body(operation: query))
             }\(subscriptionSupportWithNoPersistedOperations())
         }
 
-        \(urlQueryItemExtensionSource)
+        \(urlQueryItemsExtensionSource)
 
         \(httpBodyEncoderWithNoPersistedOperations())
         """
@@ -358,13 +362,7 @@ struct DefaultEncodersWriter: APIOutput {
             \(accessLevel)func encode<Subscription: GraphQLSubscription>(
                 subscription: Subscription\(registeredOperationParameter)
             ) throws -> [URLQueryItem] {
-                let body = Body(operation: subscription\(registeredOperationArgument))
-                let encoder = JSONEncoder()
-                return [
-                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },\(registeredOperationQueryItem)
-                    try URLQueryItem(name: "variables", encoding: body.variables, using: encoder),
-                    try URLQueryItem(name: "extensions", encoding: body.extensions, using: encoder)
-                ].compactMap { $0 }
+                try .from(Body(operation: subscription\(registeredOperationArgument)))
             }
         """
     }
@@ -375,14 +373,7 @@ struct DefaultEncodersWriter: APIOutput {
 
 
             \(accessLevel)func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLQueryItem] {
-                let body = Body(operation: subscription)
-                let encoder = JSONEncoder()
-                return [
-                    body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
-                    body.query.map { URLQueryItem(name: "query", value: $0) },
-                    try URLQueryItem(name: "variables", encoding: body.variables, using: encoder),
-                    try URLQueryItem(name: "extensions", encoding: body.extensions, using: encoder)
-                ].compactMap { $0 }
+                try .from(Body(operation: subscription))
             }
         """
     }
