@@ -19,19 +19,24 @@ struct DefaultURLQueryEncoder: URLQueryEncoder {
         return [
             body.operationName.map { URLQueryItem(name: "operationName", value: $0) },
             body.query.map { URLQueryItem(name: "query", value: $0) },
-            try body.variables.map { variables in
-                URLQueryItem(
-                    name: "variables",
-                    value: String(decoding: try encoder.encode(variables), as: UTF8.self)
-                )
-            },
-            try body.extensions.map { extensions in
-                URLQueryItem(
-                    name: "extensions",
-                    value: String(decoding: try encoder.encode(extensions), as: UTF8.self)
-                )
-            }
+            try URLQueryItem(name: "variables", encoding: body.variables, using: encoder),
+            try URLQueryItem(name: "extensions", encoding: body.extensions, using: encoder)
         ].compactMap { $0 }
+    }
+}
+
+private extension URLQueryItem {
+    init?<Value: Encodable>(
+        name: String,
+        encoding value: Value?,
+        using encoder: JSONEncoder
+    ) throws {
+        guard let value else { return nil }
+
+        self.init(
+            name: name,
+            value: String(decoding: try encoder.encode(value), as: UTF8.self)
+        )
     }
 }
 
