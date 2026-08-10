@@ -1,0 +1,35 @@
+type Query {
+  hero(episode: Episode): Character!
+}
+
+type Mutation {
+  setFavoriteEpisode(episode: Episode!): Episode!
+}
+
+type Subscription {
+  favoriteEpisodeChanged: Episode!
+}
+
+interface Character {
+  id: ID!
+  name: String!
+}
+
+type Jedi implements Character {
+  id: ID!
+  name: String!
+  lightSaberColor: String!
+}
+
+type Droid implements Character {
+  id: ID!
+  name: String!
+  primaryFunction: String
+  operator: String
+}
+
+enum Episode {
+  NEW_HOPE
+  EMPIRE
+  JEDI
+}
