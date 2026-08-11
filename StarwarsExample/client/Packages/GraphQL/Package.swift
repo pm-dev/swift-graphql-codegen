@@ -16,16 +16,11 @@ let package = Package(
     targets: [
         .target(
             name: "GraphQL",
-            path: ".",
+            path: "Source",
             exclude: [
                 "Operations/FavoriteEpisodeChangedSubscription.graphql",
                 "Operations/HeroQuery.graphql",
                 "Operations/SetFavoriteEpisodeMutation.graphql",
-            ],
-            sources: [
-                "Operations",
-                "Schema",
-                "Support",
             ],
             swiftSettings: [
                 .treatAllWarnings(as: .error),

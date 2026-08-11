@@ -73,13 +73,15 @@ struct GraphQLDefaultValuesGeneratorTests {
                 ).path(percentEncoded: false)
             )
         )
-        try verifyFiles(
-            expected: files(in: expectedDirectory, withSuffix: ".graphqls.swift"),
-            generated: files(
-                in: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory),
-                withSuffix: ".graphqls.swift"
-            )
+        let expectedSchema = try String(
+            contentsOf: expectedDirectory.appending(path: "DefaultsSchema.swift", directoryHint: .notDirectory),
+            encoding: .utf8
         )
+        let generatedSchema = try String(
+            contentsOf: generatedDirectory.appending(path: "SchemaTypes/Schema.swift", directoryHint: .notDirectory),
+            encoding: .utf8
+        )
+        #expect(generatedSchema == expectedSchema)
         try verifyFiles(
             expected: files(
                 in: expectedDirectory.appending(path: "Operations", directoryHint: .isDirectory),

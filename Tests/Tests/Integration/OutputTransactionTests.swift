@@ -38,35 +38,36 @@ struct OutputTransactionTests {
     }
 
     @Test
-    func regeneratesScalarSourcesUsingConfiguredMappings() async throws {
+    func regeneratesSchemaUsingConfiguredScalarMappings() async throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
 
-        let scalarsDirectory = fixture.output.appending(
-            path: "Schema/Scalars",
+        let schemaDirectory = fixture.output.appending(
+            path: "Schema",
             directoryHint: .isDirectory
         )
         try FileManager.default.createDirectory(
-            at: scalarsDirectory,
+            at: schemaDirectory,
             withIntermediateDirectories: true
         )
-        let customScalarURL = scalarsDirectory.appending(
-            path: "Custom.graphqls.swift",
+        let schemaURL = schemaDirectory.appending(
+            path: "Schema.swift",
             directoryHint: .notDirectory
         )
-        let customSource = "typealias Custom = UUID\n"
-        try Data(customSource.utf8).write(to: customScalarURL)
-        let idScalarURL = scalarsDirectory.appending(
-            path: "ID.graphqls.swift",
+        try Data("typealias Custom = UUID\n".utf8).write(to: schemaURL)
+        let unrelatedURL = schemaDirectory.appending(
+            path: "README.md",
             directoryHint: .notDirectory
         )
-        let idSource = "struct ID: Codable, Sendable { let rawValue: String }\n"
-        try Data(idSource.utf8).write(to: idScalarURL)
+        let unrelatedContents = "Keep this file.\n"
+        try Data(unrelatedContents.utf8).write(to: unrelatedURL)
 
         var configuration = configuration(
             for: fixture,
             schema: .schema(
-                directory: fixture.output.appending(path: "Schema", directoryHint: .isDirectory),
+                directory: schemaDirectory,
+                header: "// generated schema",
+                importedModules: ["Swift"],
                 scalars: .scalars(
                     scalarMapping: ["Custom": .scalar(typeName: "UUID", module: .module(name: "Foundation"))]
                 )
@@ -74,12 +75,19 @@ struct OutputTransactionTests {
         )
         try await Codegen(configuration).run()
 
-        let generatedCustomSource = try String(contentsOf: customScalarURL, encoding: .utf8)
-        let generatedIDSource = try String(contentsOf: idScalarURL, encoding: .utf8)
-        #expect(generatedCustomSource.contains("import Foundation\n"))
-        #expect(generatedCustomSource.contains("typealias Custom = UUID"))
-        #expect(generatedIDSource.contains("typealias ID = String"))
-        #expect(!generatedIDSource.contains("import Foundation\n"))
+        let generatedSource = try String(contentsOf: schemaURL, encoding: .utf8)
+        #expect(generatedSource.hasPrefix("// generated schema\n"))
+        #expect(generatedSource.contains("import Foundation\n"))
+        #expect(generatedSource.contains("import Swift\n"))
+        #expect(generatedSource.contains("typealias Custom = UUID"))
+        #expect(generatedSource.contains("typealias ID = String"))
+        #expect(generatedSource.contains("enum Choice"))
+        #expect(generatedSource.contains("struct Filter"))
+        #expect(try String(contentsOf: unrelatedURL, encoding: .utf8) == unrelatedContents)
+        let generatedFiles = try FileManager.default.contentsOfDirectory(
+            atPath: schemaDirectory.path(percentEncoded: false)
+        )
+        #expect(generatedFiles.sorted() == ["README.md", "Schema.swift"])
 
         configuration.output.schema.scalars.scalarMapping = [
             "Custom": .scalar(typeName: "URL", module: .module(name: "Foundation", prefix: true)),
@@ -87,16 +95,16 @@ struct OutputTransactionTests {
         ]
         try await Codegen(configuration).run()
 
-        let updatedCustomSource = try String(contentsOf: customScalarURL, encoding: .utf8)
-        let updatedIDSource = try String(contentsOf: idScalarURL, encoding: .utf8)
-        #expect(updatedCustomSource.contains("import Foundation\n"))
-        #expect(updatedCustomSource.contains("typealias Custom = Foundation.URL"))
-        #expect(updatedIDSource.contains("typealias ID = Int"))
-        #expect(!updatedIDSource.contains("import Foundation\n"))
+        let updatedSource = try String(contentsOf: schemaURL, encoding: .utf8)
+        #expect(updatedSource.contains("import Foundation\n"))
+        #expect(updatedSource.contains("import Swift\n"))
+        #expect(updatedSource.contains("typealias Custom = Foundation.URL"))
+        #expect(updatedSource.contains("typealias ID = Int"))
+        #expect(try String(contentsOf: unrelatedURL, encoding: .utf8) == unrelatedContents)
     }
 
     @Test
-    func restoresNestedOutputAfterCommitFailure() async throws {
+    func restoresSchemaAfterCommitFailure() async throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
 
@@ -108,17 +116,15 @@ struct OutputTransactionTests {
         let sentinelURL = generatedSchemaDirectory.appending(path: "sentinel.txt", directoryHint: .notDirectory)
         let sentinel = "existing output\n"
         try Data(sentinel.utf8).write(to: sentinelURL)
+        let schemaURL = generatedSchemaDirectory.appending(path: "Schema.swift", directoryHint: .notDirectory)
+        let existingSchema = "typealias Custom = UUID\n"
+        try Data(existingSchema.utf8).write(to: schemaURL)
 
         let blockingFile = fixture.root.appending(path: "0-blocker", directoryHint: .notDirectory)
         try Data().write(to: blockingFile)
         let configuration = configuration(
             for: fixture,
-            schema: .schema(
-                directory: fixture.output.appending(path: "Schema", directoryHint: .isDirectory),
-                scalars: .scalars(directoryName: "Generated"),
-                enums: .enums(directoryName: "Generated/Enums"),
-                inputObjects: .inputObjects(directoryName: "Generated/InputObjects")
-            ),
+            schema: .schema(directory: generatedSchemaDirectory),
             supportDirectory: blockingFile.appending(path: "Support", directoryHint: .isDirectory)
         )
 
@@ -131,13 +137,7 @@ struct OutputTransactionTests {
 
         #expect(failed)
         #expect(try String(contentsOf: sentinelURL, encoding: .utf8) == sentinel)
-        #expect(
-            !FileManager.default.fileExists(
-                atPath: generatedSchemaDirectory
-                    .appending(path: "Custom.graphqls.swift", directoryHint: .notDirectory)
-                    .path(percentEncoded: false)
-            )
-        )
+        #expect(try String(contentsOf: schemaURL, encoding: .utf8) == existingSchema)
     }
 
     private func configuration(

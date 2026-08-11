@@ -48,24 +48,14 @@ struct GraphQLOneOfGeneratorTests {
         ).run()
 
         let generated = try String(
-            contentsOf: schemaTypesDirectory.appending(path: "InputObjects/SearchInput.graphqls.swift"),
+            contentsOf: schemaTypesDirectory.appending(path: "Schema.swift"),
             encoding: .utf8
         ).trimmingCharacters(in: .newlines)
         let expected = try String(
-            contentsOf: expectedDirectory.appending(path: "SearchInput.graphqls.swift"),
+            contentsOf: expectedDirectory.appending(path: "OneOfSchema.swift"),
             encoding: .utf8
         ).trimmingCharacters(in: .newlines)
         #expect(generated == expected)
-
-        let generatedFilter = try String(
-            contentsOf: schemaTypesDirectory.appending(path: "InputObjects/SearchFilterInput.graphqls.swift"),
-            encoding: .utf8
-        ).trimmingCharacters(in: .newlines)
-        let expectedFilter = try String(
-            contentsOf: expectedDirectory.appending(path: "SearchFilterInput.graphqls.swift"),
-            encoding: .utf8
-        ).trimmingCharacters(in: .newlines)
-        #expect(generatedFilter == expectedFilter)
     }
 
     @Test
