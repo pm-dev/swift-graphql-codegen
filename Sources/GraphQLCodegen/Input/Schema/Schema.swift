@@ -51,11 +51,7 @@ struct Schema {
 
         func field(_ field: GraphQLAST.Field) throws -> __Schema.__Field {
             func error() -> Codegen.Error {
-                Codegen.Error(description: """
-                Selected field '\(field.name.value)' that doesn't exist on \(name).
-
-                Note: Turn on validation for more debuggable error descriptions and to find other similar errors
-                """)
+                Codegen.Error(description: "Selected field '\(field.name.value)' that doesn't exist on \(name).")
             }
             switch self {
             case .OBJECT(let object):
@@ -69,8 +65,6 @@ struct Schema {
                 Unexpectedly querying a field \(field.responseKey) directly from a union type \(union.ast.name).
                 Fields may not be queried directly from union types.
                 https://spec.graphql.org/September2025/#sel-EAHdJCApHCCiDzyP
-
-                Turn on type validation to catch errors like this.
                 """)
             }
         }
@@ -155,8 +149,6 @@ struct Schema {
             Selected a field \(typeRef) whose type is an input object.
             Input objects are not supported as field types
             https://spec.graphql.org/September2025/#sec-Input-Objects.Result-Coercion
-
-            Note: Turning on validation can help find other similar errors
             """)
         }
     }
@@ -220,8 +212,6 @@ struct Schema {
             Fragment was specified on type `\(name)`.
             Fragments must be specified on a valid object, interface or union type.
             https://spec.graphql.org/September2025/#sel-GAFddJABeBiC2vU
-
-            Note: Turning on validation can help find other similar errors
             """)
         }
     }
@@ -334,8 +324,6 @@ struct Schema {
         Codegen.Error(description: """
         Invalid Operation \(operation.ast.name?.value ?? "")
         The GraphQL schema does not support \(operation.ast.operation) operations
-
-        Note: Turning on validation can help find other similar errors
         """)
     }
 }

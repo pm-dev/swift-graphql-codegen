@@ -115,7 +115,7 @@ struct DeprecationSupportTests {
     }
 
     @Test
-    func rejectsDeprecatedUsageFromJSONSchemaWhenValidationIsDisabled() async throws {
+    func rejectsDeprecatedUsageFromJSONSchema() async throws {
         let fixture = try makeFixture(document: #"query Search { search(old: "value") }"#)
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
         let graphQLJS = try GraphQLJS()
@@ -290,7 +290,6 @@ struct DeprecationSupportTests {
                 documentDirectories: [fixture.operationsDirectory],
                 deprecationPolicy: deprecationPolicy
             ),
-            validation: false,
             output: .output(
                 schema: .schema(directory: fixture.schemaTypesDirectory),
                 documents: .documents(directory: .directory(fixture.operationsDirectory)),

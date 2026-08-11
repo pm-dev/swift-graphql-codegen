@@ -9,25 +9,19 @@ public struct Configuration: Sendable {
     ///
     /// - Parameters:
     ///   - input: Options controlling how to ingest the GraphQL schema and GraphQL operations.
-    ///   - validation: Pass `true` (recommended) if you'd like to validate your GraphQL operations against your GraphQL schema.
-    ///   Invalid operations are likely to cause errors during codegen, however if you're already sure all operations are valid,
-    ///   you can skip this step by passing `false`.
     ///   - output: Options controlling the code that is output by this codegen.
     /// - Returns: A `Configuration` to be passed to `Codegen.run`
     public static func configuration(
         input: Input,
-        validation: Bool = true,
         output: Output
     ) -> Configuration {
         Configuration(
             input: input,
-            validation: validation,
             output: output
         )
     }
 
     public var input: Input
-    public var validation: Bool
     public var output: Output
 
     func validate() throws {

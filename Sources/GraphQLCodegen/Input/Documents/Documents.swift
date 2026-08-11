@@ -7,11 +7,7 @@ struct Documents {
 
     func fragment(_ name: String) throws -> Document.Fragment {
         guard let fragment = fragmentLookup[name] else {
-            throw Codegen.Error(description: """
-            Unable to find fragment definition for \(name)
-
-            Note: Turning on validation can help find other similar errors
-            """)
+            throw Codegen.Error(description: "Unable to find fragment definition for \(name)")
         }
         return fragment
     }

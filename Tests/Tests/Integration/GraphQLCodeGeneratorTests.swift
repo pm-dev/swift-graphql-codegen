@@ -469,20 +469,6 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
-    func reportsSchemaCoordinatesInsteadOfFieldAliases() async {
-        await expectCodegenError(containing: "Selected field Query.search, which requires a selection set") {
-            try await runCodegen(
-                document: "query Viewer { result: search }",
-                schema: """
-                type Query { search: SearchResult! }
-                type SearchResult { value: String! }
-                """,
-                validation: false
-            )
-        }
-    }
-
-    @Test
     func rejectsSchemaTypeNamedAfterGeneratedSupportType() async {
         for typeName in ["GraphQLSingleResponseOperation", "PersistedOperationRetry"] {
             await expectCodegenError(containing: "conflicting top-level Swift type names") {
@@ -742,8 +728,7 @@ struct GraphQLCodeGeneratorTests {
         enumCaseConversion: Configuration.Output.Schema.Enums.CaseConversion? = nil,
         minifyDocument: Bool = true,
         outputRelativePath: String = "Operations/Viewer.graphql.swift",
-        responseDataConformances: [String] = ["Decodable", "Sendable", "Hashable"],
-        validation: Bool = true
+        responseDataConformances: [String] = ["Decodable", "Sendable", "Hashable"]
     ) async throws -> String {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
             path: UUID().uuidString,
@@ -766,7 +751,6 @@ struct GraphQLCodeGeneratorTests {
                     schemaSource: .SDLSchemaFile(schemaURL),
                     documentDirectories: [operationsDirectory]
                 ),
-                validation: validation,
                 output: .output(
                     schema: .schema(
                         directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory),
