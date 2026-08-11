@@ -1,12 +1,11 @@
 struct AnyEncodableWriter: SupportOutput {
     let configuration: Configuration
 
-    let relativePath = "AnyEncodable.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "AnyEncodable")]
 
     var source: String {
         """
-        \(header)\(accessLevel)struct AnyEncodable: Encodable, Sendable {
+        \(accessLevel)struct AnyEncodable: Encodable, Sendable {
             private let encoder: @Sendable (Encoder) throws -> Void
             \(accessLevel)init<T: Encodable & Sendable>(_ value: T) {
                 self.encoder = { encoder in try value.encode(to: encoder) }

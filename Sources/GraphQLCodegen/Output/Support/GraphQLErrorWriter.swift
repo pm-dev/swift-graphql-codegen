@@ -1,12 +1,11 @@
 struct GraphQLErrorWriter: SupportOutput {
     let configuration: Configuration
 
-    let relativePath = "GraphQLError.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLError")]
 
     var source: String {
         """
-        \(header)/// https://spec.graphql.org/September2025/#sec-Errors
+        /// https://spec.graphql.org/September2025/#sec-Errors
         \(accessLevel)struct GraphQLError: Decodable, Sendable {
             \(accessLevel)struct Location: Decodable, Sendable {
                 \(accessLevel)let line: Int

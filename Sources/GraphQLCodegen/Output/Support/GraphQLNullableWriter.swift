@@ -2,13 +2,12 @@ struct GraphQLNullableWriter: SupportOutput {
     let configuration: Configuration
     let requiresIndirectNullable: Bool
 
-    let relativePath = "GraphQLNullable.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLNullable")]
 
     var source: String {
         let indirectCase = requiresIndirectNullable ? "indirect " : ""
         return """
-        \(header)\(accessLevel)enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
+        \(accessLevel)enum GraphQLNullable<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
             case null
             \(indirectCase)case value(T)
 

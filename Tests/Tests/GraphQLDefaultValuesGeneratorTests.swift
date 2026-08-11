@@ -65,13 +65,17 @@ struct GraphQLDefaultValuesGeneratorTests {
             )
         ).run()
 
+        let supportDirectory = generatedDirectory.appending(path: "Support", directoryHint: .isDirectory)
+        let supportSource = try String(
+            contentsOf: supportDirectory.appending(path: "Support.swift", directoryHint: .notDirectory),
+            encoding: .utf8
+        )
+        #expect(supportSource.contains("enum GraphQLNullable"))
+        #expect(!supportSource.contains("import Foundation"))
+        #expect(!supportSource.contains("protocol GraphQLOperation"))
         #expect(
-            !FileManager.default.fileExists(
-                atPath: generatedDirectory.appending(
-                    path: "Support/HTTPSupport",
-                    directoryHint: .isDirectory
-                ).path(percentEncoded: false)
-            )
+            try FileManager.default.contentsOfDirectory(atPath: supportDirectory.path(percentEncoded: false)) ==
+                ["Support.swift"]
         )
         let expectedSchema = try String(
             contentsOf: expectedDirectory.appending(path: "DefaultsSchema.swift", directoryHint: .notDirectory),

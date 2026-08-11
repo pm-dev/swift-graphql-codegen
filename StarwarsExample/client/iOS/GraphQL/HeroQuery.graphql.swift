@@ -1,18 +1,19 @@
 // @generated
+import GraphQL
 
-public struct HeroQuery: GraphQLQuery {
+struct HeroQuery: GraphQLQuery {
 
-    public static let operationName: String? = "Hero"
+    static let operationName: String? = "Hero"
 
-    public static let document = #"""
+    static let document = #"""
     query Hero($episode:Episode!){hero(episode:$episode){__typename ...jedi ...droid}}fragment jedi on Jedi{...character lightSaberColor}fragment droid on Droid{...character primaryFunction operator}fragment character on Character{id name}
     """#
 
-    public let variables: Variables
+    let variables: Variables
 
-    public let extensions: [String: AnyEncodable]?
+    let extensions: [String: AnyEncodable]?
 
-    public init(
+    init(
         episode: Episode,
         extensions: [String: AnyEncodable]? = nil
     ) {
@@ -22,24 +23,24 @@ public struct HeroQuery: GraphQLQuery {
         self.extensions = extensions
     }
 
-    public struct Variables: Encodable, Sendable {
+    struct Variables: Encodable, Sendable {
 
-        public let episode: Episode
+        let episode: Episode
     }
 
-    public struct Data: Decodable, Sendable, Hashable {
+    struct Data: Decodable, Sendable, Hashable {
 
-        public let hero: Hero
+        let hero: Hero
 
-        public struct Hero: Decodable, Sendable, Hashable {
+        struct Hero: Decodable, Sendable, Hashable {
 
-            public let __typename: String
+            let __typename: String
 
-            public let __jedi: Jedi?
+            let __jedi: Jedi?
 
-            public let __droid: Droid?
+            let __droid: Droid?
 
-            public init(from decoder: Decoder) throws {
+            init(from decoder: Decoder) throws {
                 enum CodingKeys: CodingKey {
                     case __typename
                 }
@@ -52,13 +53,13 @@ public struct HeroQuery: GraphQLQuery {
     }
 }
 
-public struct Jedi: Decodable, Sendable, Hashable {
+struct Jedi: Decodable, Sendable, Hashable {
 
-    public var __character: Character
+    var __character: Character
 
-    public var lightSaberColor: String
+    var lightSaberColor: String
 
-    public init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         enum CodingKeys: CodingKey {
             case lightSaberColor
         }
@@ -68,15 +69,15 @@ public struct Jedi: Decodable, Sendable, Hashable {
     }
 }
 
-public struct Droid: Decodable, Sendable, Hashable {
+struct Droid: Decodable, Sendable, Hashable {
 
-    public var __character: Character
+    var __character: Character
 
-    public var primaryFunction: String?
+    var primaryFunction: String?
 
-    public var `operator`: String?
+    var `operator`: String?
 
-    public init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         enum CodingKeys: CodingKey {
             case primaryFunction
             case `operator`
@@ -88,9 +89,9 @@ public struct Droid: Decodable, Sendable, Hashable {
     }
 }
 
-public struct Character: Decodable, Sendable, Hashable {
+struct Character: Decodable, Sendable, Hashable {
 
-    public var id: ID
+    var id: ID
 
-    public var name: String
+    var name: String
 }

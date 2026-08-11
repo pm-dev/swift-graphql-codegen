@@ -9,8 +9,8 @@ enum StarwarsCodegen {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
-    private static let sourceDirectory = exampleDirectory
-        .appending(path: "client/Packages/GraphQL/Source", directoryHint: .isDirectory)
+    private static let generatedDirectory = exampleDirectory
+        .appending(path: "client/Packages/GraphQL/Source/Generated", directoryHint: .isDirectory)
 
     private static let schemaURL = exampleDirectory
         .appending(path: "server/src/schema.graphql", directoryHint: .notDirectory)
@@ -20,22 +20,24 @@ enum StarwarsCodegen {
             .configuration(
                 input: .input(
                     schemaSource: .SDLSchemaFile(schemaURL),
-                    documentDirectories: [sourceDirectory.appending(path: "Operations", directoryHint: .isDirectory)]
+                    documentDirectories: [exampleDirectory.appending(path: "client/iOS/GraphQL", directoryHint: .isDirectory)]
                 ),
                 output: .output(
                     schema: .schema(
-                        directory: sourceDirectory,
+                        directory: generatedDirectory,
                         scalars: .scalars(
                             scalarMapping: [
-                                "ID": .scalar(typeName: "String", module: .module(name: "Swift", prefix: true)),
+                                "ID": .scalar(typeName: "GraphQLID"),
                             ]
                         ),
                         enums: .enums(caseConversion: .conversion(from: .macro, to: .lowerCamel)),
                         accessLevel: .public
                     ),
-                    documents: .documents(accessLevel: .public),
+                    documents: .documents(
+                        importedModules: ["GraphQL"]
+                    ),
                     support: .support(
-                        directory: sourceDirectory.appending(path: "Support", directoryHint: .isDirectory),
+                        directory: generatedDirectory,
                         accessLevel: .public,
                         HTTPSupport: .httpSupport(
                             enableGETQueries: true,

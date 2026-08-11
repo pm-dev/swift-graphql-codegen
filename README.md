@@ -54,6 +54,10 @@ Codegen writes all referenced scalar, enum, and input-object declarations to `Sc
 replaces that file while preserving other files in the same directory. Configure the generated file's header and imports through
 `Schema.header` and `Schema.importedModules`.
 
+Codegen writes shared GraphQL infrastructure and optional HTTP networking support to `Support.swift` inside `Support.directory`.
+Each run replaces that file while preserving other files in the same directory. `Schema.directory` and `Support.directory` may
+refer to the same location.
+
 Configure custom Swift scalar types with `Scalars.scalarMapping`; scalars without a mapping default to `String`. Each mapping can
 specify a module imported by `Schema.swift` and can optionally prefix the mapped type with the module name.
 
@@ -124,12 +128,8 @@ struct MyCodegenCLI {
                     ]
                 ),
                 output: .output(
-                    schema: .schema(
-                        directory: generatedDirectory.appending(path: "SchemaTypes", directoryHint: .isDirectory)
-                    ),
-                    support: .support(
-                        directory: generatedDirectory.appending(path: "Support", directoryHint: .isDirectory)
-                    )
+                    schema: .schema(directory: generatedDirectory),
+                    support: .support(directory: generatedDirectory)
                 )
             )
         ).run()

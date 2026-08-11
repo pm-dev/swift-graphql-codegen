@@ -1,12 +1,11 @@
 struct GraphQLResponseWriter: SupportOutput {
     let configuration: Configuration
 
-    let relativePath = "GraphQLResponse.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLResponse")]
 
     var source: String {
         """
-        \(header)\(accessLevel)enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {
+        \(accessLevel)enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {
             \(accessLevel)struct ExecutionResult: Sendable {
                 \(accessLevel)let data: Data?
                 \(accessLevel)let errors: [GraphQLError]?

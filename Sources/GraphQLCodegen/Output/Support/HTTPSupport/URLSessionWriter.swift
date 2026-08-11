@@ -3,8 +3,6 @@ import Foundation
 struct URLSessionWriter: SupportOutput {
     let hasSubscription: Bool
     let configuration: Configuration
-    let relativePath = "HTTPSupport/URLSession+GraphQL.swift"
-
     let topLevelTypeNames: [SwiftTypeIdentifier] = []
 
     private var includeSubscriptionSupport: Bool {
@@ -13,8 +11,6 @@ struct URLSessionWriter: SupportOutput {
 
     var source: String {
         """
-        \(headerBeforeImports)import Foundation
-
         /// Defaults conform to https://graphql.github.io/graphql-over-http/draft/
         extension URLSession {
             \(accessLevel)enum HTTPError: Error {

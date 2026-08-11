@@ -1,12 +1,11 @@
 struct JSONValueWriter: SupportOutput {
     let configuration: Configuration
 
-    let relativePath = "JSONValue.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "JSONValue")]
 
     var source: String {
         """
-        \(header)\(accessLevel)enum JSONValue: Decodable, Sendable {
+        \(accessLevel)enum JSONValue: Decodable, Sendable {
             case map([String: JSONValue])
             case list([JSONValue])
             case null

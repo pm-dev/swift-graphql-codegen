@@ -3,7 +3,6 @@ import Foundation
 struct EncodersWriter: SupportOutput {
     let plan: HTTPGenerationPlan
     let configuration: Configuration
-    let relativePath = "HTTPSupport/Encoders.swift"
 
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [SwiftTypeIdentifier(swiftName: "HTTPBodyEncoder")]
@@ -33,8 +32,6 @@ struct EncodersWriter: SupportOutput {
 
     private func getWithAutomaticPersistedOperations() -> String {
         """
-        \(headerBeforeImports)import Foundation
-
         /// A `URLQueryEncoder` converts a GraphQL operation into `URLQueryItem`s for a GET request.
         \(accessLevel)protocol URLQueryEncoder {
 
@@ -58,8 +55,6 @@ struct EncodersWriter: SupportOutput {
     private func getWithRegisteredPersistedOperations() -> String {
         guard plan.allowsUnregisteredOperations else { return getWithNoPersistedOperations() }
         return """
-        \(headerBeforeImports)import Foundation
-
         /// A `URLQueryEncoder` converts a GraphQL query operation into `URLQueryItem`s when a GET request.
         /// is being used.
         \(accessLevel)protocol URLQueryEncoder {
@@ -81,8 +76,6 @@ struct EncodersWriter: SupportOutput {
 
     private func getWithNoPersistedOperations() -> String {
         """
-        \(headerBeforeImports)import Foundation
-
         /// A `URLQueryEncoder` converts a GraphQL query operation into `URLQueryItem`s when a GET request.
         /// is being used.
         \(accessLevel)protocol URLQueryEncoder {
@@ -100,8 +93,6 @@ struct EncodersWriter: SupportOutput {
 
     private func postWithAutomaticPersistedOperations() -> String {
         """
-        \(headerBeforeImports)import Foundation
-
         \(httpBodyEncoderWithAutomaticPersistedOperations())
         """
     }
@@ -109,16 +100,12 @@ struct EncodersWriter: SupportOutput {
     private func postWithRegisteredPersistedOperations() -> String {
         guard plan.allowsUnregisteredOperations else { return postWithNoPersistedOperations() }
         return """
-        \(headerBeforeImports)import Foundation
-
         \(httpBodyEncoderWithRegisteredPersistedOperations())
         """
     }
 
     private func postWithNoPersistedOperations() -> String {
         """
-        \(headerBeforeImports)import Foundation
-
         \(httpBodyEncoderWithNoPersistedOperations())
         """
     }
