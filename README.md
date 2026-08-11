@@ -189,7 +189,7 @@ struct HeroQuery: GraphQLQuery {
 ```
 
 The [Star Wars example](StarwarsExample) contains a runnable generator and its checked-in output, including the complete
-[generated Hero query](StarwarsExample/client/Packages/GraphQL/Source/Operations/HeroQuery.graphql.swift).
+[generated Hero query](StarwarsExample/client/iOS/GraphQL/HeroQuery.graphql.swift).
 
 ## Design
 
