@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "npm run generate && wrangler types src/worker-configuration.d.ts --check && tsc --noEmit && wrangler deploy --dry-run --outdir .wrangler/dry-run",
+    "check": "npm run generate && tsc --noEmit && wrangler deploy --dry-run --outdir .wrangler/dry-run",
     "deploy": "npm run generate && wrangler deploy",
     "dev": "npm run generate && wrangler dev",
-    "generate": "node scripts/generate-registered-operations.mjs"
+    "generate": "node scripts/generate-registered-operations.mjs && wrangler types src/worker-configuration.d.ts"
   },
   "dependencies": {
     "@graphql-yoga/plugin-apq": "^3.21.2",
