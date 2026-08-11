@@ -58,10 +58,6 @@ struct FieldResolver {
     }
 
     private func missingSelectionSetError() -> Codegen.Error {
-        Codegen.Error(description: """
-        Selected field \(schemaCoordinate), which requires a selection set.
-
-        Note: Turning on validation can help find other similar errors
-        """)
+        Codegen.Error(description: "Selected field \(schemaCoordinate), which requires a selection set.")
     }
 }

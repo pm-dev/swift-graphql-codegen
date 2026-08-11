@@ -37,13 +37,11 @@ public struct Codegen: Sendable {
         ).validate()
 
         // Validation
-        if configuration.validation {
-            try DocumentsValidator(
-                schemaJSON: loadedSchema.schemaJSON,
-                documents: documents,
-                graphQLJS: graphQLJS
-            ).validate()
-        }
+        try DocumentsValidator(
+            schemaJSON: loadedSchema.schemaJSON,
+            documents: documents,
+            graphQLJS: graphQLJS
+        ).validate()
 
         // Resolution
         let resolvedDocuments = try DocumentsResolver(
