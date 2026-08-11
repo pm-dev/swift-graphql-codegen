@@ -21,4 +21,3 @@ public struct FavoriteEpisodeChangedSubscription: GraphQLSubscription {
         public let favoriteEpisodeChanged: GraphQLEnum<Episode>
     }
 }
-

@@ -5,4 +5,3 @@ enum State: String, Encodable, Sendable {
     case running = "RUNNING"
     case stopped = "STOPPED"
 }
-

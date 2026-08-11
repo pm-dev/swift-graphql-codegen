@@ -55,8 +55,9 @@ enum, and input-object directories, including files that are not part of the cur
 independently maintained files in these directories.
 
 When a schema category's `directoryName` is `nil`, that category writes directly into `Schema.directory`, and Codegen treats the
-schema root itself as an owned output directory. Customized scalar files are preserved while their scalar remains part of the
-generated output; if the scalar is no longer used by an operation, its file may be removed on the next run.
+schema root itself as an owned output directory. Scalar files are regenerated on every run. Configure custom Swift types with
+`Scalars.scalarMapping`; scalars without a mapping default to `String`. Each mapping can specify a module imported only by its
+generated scalar file and can optionally prefix the mapped type with the module name.
 
 ## Subscription Limits
 

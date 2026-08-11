@@ -13,7 +13,12 @@ struct SchemaScalarBuilder: SwiftTypeBuildable {
         }
         let isPublic = configuration.output.schema.accessLevel == .public
         let typeName = SwiftTypeIdentifier(swiftName: scalar.ast.name).source
-        lines.append("\(isPublic ? "public " : "")typealias \(typeName) = String")
+        let scalarMapping = configuration.output.schema.scalars.scalarMapping[scalar.ast.name]
+        var mappedType = scalarMapping?.typeName ?? "String"
+        if let module = scalarMapping?.module, module.prefix {
+            mappedType = "\(module.name).\(mappedType)"
+        }
+        lines.append("\(isPublic ? "public " : "")typealias \(typeName) = \(mappedType)")
         return lines
     }
 }

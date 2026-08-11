@@ -38,7 +38,7 @@ struct OutputTransactionTests {
     }
 
     @Test
-    func preservesCustomScalarSourcesIncludingBuiltInID() async throws {
+    func regeneratesScalarSourcesUsingConfiguredMappings() async throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
 
@@ -63,10 +63,36 @@ struct OutputTransactionTests {
         let idSource = "struct ID: Codable, Sendable { let rawValue: String }\n"
         try Data(idSource.utf8).write(to: idScalarURL)
 
-        try await Codegen(configuration(for: fixture)).run()
+        var configuration = configuration(
+            for: fixture,
+            schema: .schema(
+                directory: fixture.output.appending(path: "Schema", directoryHint: .isDirectory),
+                scalars: .scalars(
+                    scalarMapping: ["Custom": .scalar(typeName: "UUID", module: .module(name: "Foundation"))]
+                )
+            )
+        )
+        try await Codegen(configuration).run()
 
-        #expect(try String(contentsOf: customScalarURL, encoding: .utf8) == customSource)
-        #expect(try String(contentsOf: idScalarURL, encoding: .utf8) == idSource)
+        let generatedCustomSource = try String(contentsOf: customScalarURL, encoding: .utf8)
+        let generatedIDSource = try String(contentsOf: idScalarURL, encoding: .utf8)
+        #expect(generatedCustomSource.contains("import Foundation\n"))
+        #expect(generatedCustomSource.contains("typealias Custom = UUID"))
+        #expect(generatedIDSource.contains("typealias ID = String"))
+        #expect(!generatedIDSource.contains("import Foundation\n"))
+
+        configuration.output.schema.scalars.scalarMapping = [
+            "Custom": .scalar(typeName: "URL", module: .module(name: "Foundation", prefix: true)),
+            "ID": .scalar(typeName: "Int"),
+        ]
+        try await Codegen(configuration).run()
+
+        let updatedCustomSource = try String(contentsOf: customScalarURL, encoding: .utf8)
+        let updatedIDSource = try String(contentsOf: idScalarURL, encoding: .utf8)
+        #expect(updatedCustomSource.contains("import Foundation\n"))
+        #expect(updatedCustomSource.contains("typealias Custom = Foundation.URL"))
+        #expect(updatedIDSource.contains("typealias ID = Int"))
+        #expect(!updatedIDSource.contains("import Foundation\n"))
     }
 
     @Test

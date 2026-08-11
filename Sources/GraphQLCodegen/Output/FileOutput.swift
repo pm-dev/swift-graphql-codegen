@@ -5,15 +5,9 @@ final class FileOutput {
         let description: String
     }
 
-    private enum StagedFileKind {
-        case generated
-        case preserved
-    }
-
     private struct StagedFile {
         let temporaryURL: URL
         let finalURL: URL
-        let kind: StagedFileKind
     }
 
     private struct Backup {
@@ -30,7 +24,6 @@ final class FileOutput {
     private let temporaryDirectory = FileManager.default.temporaryDirectory
     private var directoriesToCreate: Set<URL> = []
     private var urlsToRemove: Set<URL> = []
-    private var urlsToSave: Set<URL> = []
     private var stagedFiles: [StagedFile] = []
 
     func createDirectory(at destination: URL) {
@@ -45,10 +38,6 @@ final class FileOutput {
         urlsToRemove.formUnion(urls)
     }
 
-    func save(at url: URL) {
-        urlsToSave.insert(url)
-    }
-
     func write(_ lines: [String], to url: URL) throws {
         let contents = lines.joined(separator: "\n") + "\n"
         try write(Data(contents.utf8), to: url)
@@ -57,19 +46,12 @@ final class FileOutput {
     func write(_ data: Data, to url: URL) throws {
         let tempURL = temporaryURL()
         try data.write(to: tempURL)
-        stagedFiles.append(StagedFile(temporaryURL: tempURL, finalURL: url, kind: .generated))
+        stagedFiles.append(StagedFile(temporaryURL: tempURL, finalURL: url))
     }
 
     func execute() throws {
         var commitState = CommitState()
         do {
-            try urlsToSave.sorted(by: pathOrder).forEach { url in
-                let tempURL = temporaryURL()
-                try FileManager.default.moveItem(at: url, to: tempURL)
-                stagedFiles.append(StagedFile(temporaryURL: tempURL, finalURL: url, kind: .preserved))
-            }
-            urlsToSave.removeAll()
-
             let removalRoots = minimalRemovalRoots()
             for url in removalRoots where fileExists(at: url) {
                 let backup = Backup(temporaryURL: temporaryURL(), originalURL: url)
@@ -137,25 +119,10 @@ final class FileOutput {
     private func rollback(_ commitState: CommitState) -> [String] {
         var failures: [String] = []
         for stagedFile in commitState.published.reversed() where fileExists(at: stagedFile.finalURL) {
-            let failure = switch stagedFile.kind {
-            case .generated:
-                recoveryFailure(
-                    "Failed to remove published file \(stagedFile.finalURL.path)",
-                    operation: { try FileManager.default.removeItem(at: stagedFile.finalURL) }
-                )
-            case .preserved:
-                recoveryFailure(
-                    "Failed to stage preserved file \(stagedFile.finalURL.path) for restoration at " +
-                        stagedFile.temporaryURL.path,
-                    operation: {
-                        try FileManager.default.moveItem(
-                            at: stagedFile.finalURL,
-                            to: stagedFile.temporaryURL
-                        )
-                    }
-                )
-            }
-            if let failure {
+            if let failure = recoveryFailure(
+                "Failed to remove published file \(stagedFile.finalURL.path)",
+                operation: { try FileManager.default.removeItem(at: stagedFile.finalURL) }
+            ) {
                 failures.append(failure)
             }
         }
@@ -205,29 +172,10 @@ final class FileOutput {
         }
 
         for stagedFile in stagedFiles where fileExists(at: stagedFile.temporaryURL) {
-            let failure = switch stagedFile.kind {
-            case .generated:
-                recoveryFailure(
-                    "Failed to remove staged file \(stagedFile.temporaryURL.path)",
-                    operation: { try FileManager.default.removeItem(at: stagedFile.temporaryURL) }
-                )
-            case .preserved:
-                recoveryFailure(
-                    "Failed to restore preserved file \(stagedFile.finalURL.path) from " +
-                        stagedFile.temporaryURL.path,
-                    operation: {
-                        try FileManager.default.createDirectory(
-                            at: stagedFile.finalURL.deletingLastPathComponent(),
-                            withIntermediateDirectories: true
-                        )
-                        try FileManager.default.moveItem(
-                            at: stagedFile.temporaryURL,
-                            to: stagedFile.finalURL
-                        )
-                    }
-                )
-            }
-            if let failure {
+            if let failure = recoveryFailure(
+                "Failed to remove staged file \(stagedFile.temporaryURL.path)",
+                operation: { try FileManager.default.removeItem(at: stagedFile.temporaryURL) }
+            ) {
                 failures.append(failure)
             }
         }

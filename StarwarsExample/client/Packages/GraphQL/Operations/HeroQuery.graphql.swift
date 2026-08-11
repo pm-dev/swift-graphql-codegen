@@ -94,4 +94,3 @@ public struct Character: Decodable, Sendable, Hashable {
 
     public var name: String
 }
-

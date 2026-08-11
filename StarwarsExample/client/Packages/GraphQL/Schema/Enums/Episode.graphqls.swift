@@ -5,4 +5,3 @@ public enum Episode: String, Encodable, Sendable {
     case empire = "EMPIRE"
     case jedi = "JEDI"
 }
-
