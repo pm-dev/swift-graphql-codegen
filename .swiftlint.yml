@@ -83,6 +83,7 @@ opt_in_rules:
 excluded:
   - .build/
   - StarwarsExample/client/Codegen/.build/
+  - StarwarsExample/client/iOS/GraphQL/
   - StarwarsExample/client/Packages/GraphQL/
   - Tests/Fixtures/Generated/
 

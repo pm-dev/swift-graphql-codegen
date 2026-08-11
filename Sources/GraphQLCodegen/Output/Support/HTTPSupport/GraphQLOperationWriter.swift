@@ -4,8 +4,6 @@ struct GraphQLOperationWriter: SupportOutput {
     let configuration: Configuration
     let hasMutation: Bool
     let hasSubscription: Bool
-    let relativePath = "HTTPSupport/GraphQLOperation.swift"
-
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [
             SwiftTypeIdentifier(swiftName: "GraphQLOperation"),
@@ -23,7 +21,7 @@ struct GraphQLOperationWriter: SupportOutput {
 
     var source: String {
         """
-        \(header)/// A `GraphQLOperation` represents a GraphQL document containing a single operation.
+        /// A `GraphQLOperation` represents a GraphQL document containing a single operation.
         \(accessLevel)protocol GraphQLOperation: Sendable {
 
             /// The optional name of the operation.

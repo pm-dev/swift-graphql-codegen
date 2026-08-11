@@ -172,17 +172,17 @@ struct GraphQLCodeGeneratorTests {
         try OutputFile.allCases.forEach { outputFile in
             try verifyOutputFile(outputFile, generatedDirectory: generatedDirectory)
         }
-        let urlSessionSource = try String(
+        let supportSource = try String(
             contentsOf: generatedDirectory.appending(
-                path: OutputFile.URLSessionGraphQL.relativePath,
+                path: OutputFile.Support.relativePath,
                 directoryHint: .notDirectory
             ),
             encoding: .utf8
         )
-        #expect(urlSessionSource.contains("maximumLineByteCount"))
-        #expect(urlSessionSource.contains("requires version 26 or newer"))
-        #expect(urlSessionSource.contains("UTF8Span(validating: buffer.span)"))
-        #expect(!urlSessionSource.contains("String(bytes: buffer, encoding: .utf8)"))
+        #expect(supportSource.contains("maximumLineByteCount"))
+        #expect(supportSource.contains("requires version 26 or newer"))
+        #expect(supportSource.contains("UTF8Span(validating: buffer.span)"))
+        #expect(!supportSource.contains("String(bytes: buffer, encoding: .utf8)"))
     }
 
     @Test
@@ -199,7 +199,7 @@ struct GraphQLCodeGeneratorTests {
             }
             type Query { value(input: RecursiveInput): String! }
             """,
-            outputRelativePath: "Support/GraphQLNullable.swift"
+            outputRelativePath: "Support/Support.swift"
         )
 
         #expect(!output.contains("indirect enum GraphQLNullable"))
@@ -537,24 +537,15 @@ struct GraphQLCodeGeneratorTests {
             enableGETQueries: true
         )
         let getRequest = try String(
-            contentsOf: getSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
+            contentsOf: getSupport.appending(path: "Support.swift"),
             encoding: .utf8
         )
-        let operationProtocols = try String(
-            contentsOf: getSupport.appending(path: "HTTPSupport/GraphQLOperation.swift"),
-            encoding: .utf8
-        )
-        #expect(operationProtocols.contains("protocol GraphQLSingleResponseOperation: GraphQLOperation"))
-        #expect(operationProtocols.contains("protocol GraphQLQuery: GraphQLSingleResponseOperation"))
-        #expect(operationProtocols.contains("protocol GraphQLMutation: GraphQLSingleResponseOperation"))
-        #expect(operationProtocols.contains("protocol GraphQLSubscription: GraphQLOperation"))
-
-        let urlSession = try String(
-            contentsOf: getSupport.appending(path: "HTTPSupport/URLSession+GraphQL.swift"),
-            encoding: .utf8
-        )
-        #expect(urlSession.contains("func request<Operation: GraphQLSingleResponseOperation>"))
-        #expect(urlSession.contains("func subscribe<Subscription: GraphQLSubscription>"))
+        #expect(getRequest.contains("protocol GraphQLSingleResponseOperation: GraphQLOperation"))
+        #expect(getRequest.contains("protocol GraphQLQuery: GraphQLSingleResponseOperation"))
+        #expect(getRequest.contains("protocol GraphQLMutation: GraphQLSingleResponseOperation"))
+        #expect(getRequest.contains("protocol GraphQLSubscription: GraphQLOperation"))
+        #expect(getRequest.contains("func request<Operation: GraphQLSingleResponseOperation>"))
+        #expect(getRequest.contains("func subscribe<Subscription: GraphQLSubscription>"))
 
         #expect(getRequest.contains("enum SubscriptionStrategy"))
         #expect(getRequest.contains("strategy: SubscriptionStrategy = .GET()"))
@@ -580,7 +571,7 @@ struct GraphQLCodeGeneratorTests {
             enableGETQueries: false
         )
         let postRequest = try String(
-            contentsOf: postSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
+            contentsOf: postSupport.appending(path: "Support.swift"),
             encoding: .utf8
         )
         let subscriptionInitializer = try #require(
@@ -616,7 +607,7 @@ struct GraphQLCodeGeneratorTests {
                 minifyDocument: false
             )
             let getRequest = try String(
-                contentsOf: getVariantSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
+                contentsOf: getVariantSupport.appending(path: "Support.swift"),
                 encoding: .utf8
             )
             let getInitializer = try #require(
@@ -637,7 +628,7 @@ struct GraphQLCodeGeneratorTests {
                 minifyDocument: false
             )
             let postRequest = try String(
-                contentsOf: postVariantSupport.appending(path: "HTTPSupport/GraphQLRequest.swift"),
+                contentsOf: postVariantSupport.appending(path: "Support.swift"),
                 encoding: .utf8
             )
             let postInitializer = try #require(
@@ -653,12 +644,8 @@ struct GraphQLCodeGeneratorTests {
                 #expect(generatedOperations.contains("static let document"))
                 #expect(!generatedOperations.contains("static let hash"))
 
-                let operationProtocols = try String(
-                    contentsOf: getVariantSupport.appending(path: "HTTPSupport/GraphQLOperation.swift"),
-                    encoding: .utf8
-                )
-                #expect(operationProtocols.contains("static var document: String { get }"))
-                #expect(!operationProtocols.contains("static var hash: String { get }"))
+                #expect(getRequest.contains("static var document: String { get }"))
+                #expect(!getRequest.contains("static var hash: String { get }"))
                 #expect(
                     getRequest.contains("useRegisteredOperation: Bool = true") == allowUnregisteredOperations
                 )
@@ -667,25 +654,20 @@ struct GraphQLCodeGeneratorTests {
                 )
 
                 for supportDirectory in [getVariantSupport, postVariantSupport] {
-                    let encoders = try String(
-                        contentsOf: supportDirectory.appending(path: "HTTPSupport/DefaultEncoders.swift"),
+                    let supportSource = try String(
+                        contentsOf: supportDirectory.appending(path: "Support.swift"),
                         encoding: .utf8
                     )
-                    #expect(encoders.contains("import CryptoKit"))
-                    #expect(encoders.contains("persistedOperationHash(Operation.document)"))
-                    #expect(encoders.contains("if useRegisteredOperation") == allowUnregisteredOperations)
+                    #expect(supportSource.contains("import CryptoKit"))
+                    #expect(supportSource.contains("persistedOperationHash(Operation.document)"))
+                    #expect(supportSource.contains("if useRegisteredOperation") == allowUnregisteredOperations)
                     #expect(
-                        encoders.contains("self.query = useRegisteredOperation ? nil : Operation.document") ==
+                        supportSource.contains("self.query = useRegisteredOperation ? nil : Operation.document") ==
                             allowUnregisteredOperations
                     )
-                    #expect(!encoders.contains("Operation.hash"))
-
-                    let encoderProtocols = try String(
-                        contentsOf: supportDirectory.appending(path: "HTTPSupport/Encoders.swift"),
-                        encoding: .utf8
-                    )
+                    #expect(!supportSource.contains("Operation.hash"))
                     #expect(
-                        encoderProtocols.contains("useRegisteredOperation: Bool") == allowUnregisteredOperations
+                        supportSource.contains("useRegisteredOperation: Bool") == allowUnregisteredOperations
                     )
                 }
 
@@ -839,42 +821,20 @@ struct GraphQLCodeGeneratorTests {
 }
 
 enum OutputFile: String, CaseIterable {
-    case DefaultEncoders
-    case Encoders
     case StateChangedSubscription
-    case GraphQLOperation
-    case GraphQLRequest
-    case URLSessionGraphQL
-    case AnyEncodable
-    case GraphQLEnum
-    case GraphQLError
-    case GraphQLHasDefault
-    case GraphQLNullable
-    case GraphQLResponse
-    case JSONValue
     case NodeQuery
     case SetStateMutation
     case Schema
+    case Support
 
     var relativePath: String {
         switch self {
-        case .DefaultEncoders: "Support/HTTPSupport/DefaultEncoders.swift"
-        case .Encoders: "Support/HTTPSupport/Encoders.swift"
         case .StateChangedSubscription:
             "Operations/StateChangedSubscription.graphql.swift"
-        case .GraphQLOperation: "Support/HTTPSupport/GraphQLOperation.swift"
-        case .GraphQLRequest: "Support/HTTPSupport/GraphQLRequest.swift"
-        case .URLSessionGraphQL: "Support/HTTPSupport/URLSession+GraphQL.swift"
-        case .AnyEncodable: "Support/AnyEncodable.swift"
-        case .GraphQLEnum: "Support/GraphQLEnum.swift"
-        case .GraphQLError: "Support/GraphQLError.swift"
-        case .GraphQLHasDefault: "Support/GraphQLHasDefault.swift"
-        case .GraphQLNullable: "Support/GraphQLNullable.swift"
-        case .GraphQLResponse: "Support/GraphQLResponse.swift"
-        case .JSONValue: "Support/JSONValue.swift"
         case .NodeQuery: "Operations/NodeQuery.graphql.swift"
         case .SetStateMutation: "Operations/SetStateMutation.graphql.swift"
         case .Schema: "SchemaTypes/Schema.swift"
+        case .Support: "Support/Support.swift"
         }
     }
 }

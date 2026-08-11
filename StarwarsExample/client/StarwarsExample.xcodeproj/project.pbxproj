@@ -100,11 +100,11 @@
 			);
 			mainGroup = D0DB7A2F30294DAF0053A3D0;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
-			productRefGroup = D0DB7A3930294DB00053A3D0 /* Products */;
 			packageReferences = (
 				D0DB7A4730294DB20053A3D0 /* XCLocalSwiftPackageReference "Packages/GraphQL" */,
 			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D0DB7A3930294DB00053A3D0 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (

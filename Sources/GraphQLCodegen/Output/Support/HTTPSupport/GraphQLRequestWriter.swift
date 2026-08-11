@@ -3,8 +3,6 @@ import Foundation
 struct GraphQLRequestWriter: SupportOutput {
     let plan: HTTPGenerationPlan
     let configuration: Configuration
-    let relativePath = "HTTPSupport/GraphQLRequest.swift"
-
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [SwiftTypeIdentifier(swiftName: "GraphQLRequest")]
         if case .automatic = plan.persistence {
@@ -492,8 +490,6 @@ struct GraphQLRequestWriter: SupportOutput {
         subscriptionSupport: String
     ) -> String {
         """
-        \(headerBeforeImports)import Foundation
-
         \(persistedOperationRetryDeclaration())
         \(requestDeclaration())
 

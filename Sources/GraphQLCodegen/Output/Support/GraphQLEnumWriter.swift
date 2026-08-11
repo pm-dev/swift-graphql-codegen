@@ -1,12 +1,11 @@
 struct GraphQLEnumWriter: SupportOutput {
     let configuration: Configuration
 
-    let relativePath = "GraphQLEnum.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLEnum")]
 
     var source: String {
         """
-        \(header)\(accessLevel)enum GraphQLEnum<T>: Decodable, Hashable, Sendable where T: Hashable & RawRepresentable & Sendable, T.RawValue == String {
+        \(accessLevel)enum GraphQLEnum<T>: Decodable, Hashable, Sendable where T: Hashable & RawRepresentable & Sendable, T.RawValue == String {
             case known(T)
             case unknown(String)
 

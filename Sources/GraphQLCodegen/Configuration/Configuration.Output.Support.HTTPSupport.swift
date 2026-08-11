@@ -1,7 +1,7 @@
 extension Configuration.Output.Support {
-    /// Options controlling generated files for HTTP requests to GraphQL servers.
+    /// Options controlling generated support for HTTP requests to GraphQL servers.
     ///
-    /// These files ensure requests conform to the GraphQL over HTTP spec:
+    /// This support ensures requests conform to the GraphQL over HTTP spec:
     /// https://graphql.github.io/graphql-over-http/draft/#sec-GraphQL-over-HTTP
     ///
     /// Codegen will use options from `Configuration` to craft Networking APIs specifically to your

@@ -1,12 +1,11 @@
 struct GraphQLHasDefaultWriter: SupportOutput {
     let configuration: Configuration
 
-    let relativePath = "GraphQLHasDefault.swift"
     let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLHasDefault")]
 
     var source: String {
         """
-        \(header)\(accessLevel)enum GraphQLHasDefault<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
+        \(accessLevel)enum GraphQLHasDefault<T>: Encodable, Hashable, Sendable where T: Encodable & Hashable & Sendable {
             case useDefault
             case value(T)
 

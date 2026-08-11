@@ -71,7 +71,8 @@ struct OutputTransactionTests {
                 scalars: .scalars(
                     scalarMapping: ["Custom": .scalar(typeName: "UUID", module: .module(name: "Foundation"))]
                 )
-            )
+            ),
+            supportDirectory: schemaDirectory
         )
         try await Codegen(configuration).run()
 
@@ -84,10 +85,18 @@ struct OutputTransactionTests {
         #expect(generatedSource.contains("enum Choice"))
         #expect(generatedSource.contains("struct Filter"))
         #expect(try String(contentsOf: unrelatedURL, encoding: .utf8) == unrelatedContents)
+        let supportSource = try String(
+            contentsOf: schemaDirectory.appending(path: "Support.swift", directoryHint: .notDirectory),
+            encoding: .utf8
+        )
+        #expect(supportSource.hasPrefix("// @generated\nimport CryptoKit\nimport Foundation\n\n"))
+        #expect(supportSource.contains("struct AnyEncodable"))
+        #expect(supportSource.contains("protocol GraphQLOperation"))
+        #expect(supportSource.contains("extension URLSession"))
         let generatedFiles = try FileManager.default.contentsOfDirectory(
             atPath: schemaDirectory.path(percentEncoded: false)
         )
-        #expect(generatedFiles.sorted() == ["README.md", "Schema.swift"])
+        #expect(generatedFiles.sorted() == ["README.md", "Schema.swift", "Support.swift"])
 
         configuration.output.schema.scalars.scalarMapping = [
             "Custom": .scalar(typeName: "URL", module: .module(name: "Foundation", prefix: true)),
