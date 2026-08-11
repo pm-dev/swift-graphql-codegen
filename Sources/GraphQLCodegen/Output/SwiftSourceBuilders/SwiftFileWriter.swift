@@ -16,6 +16,9 @@ struct SwiftFileWriter {
             lines.append(contentsOf: type.build(configuration: configuration))
             lines.append("")
         }
+        if let lastLine = lines.last, lastLine.isEmpty {
+            lines.removeLast()
+        }
         try fileOutput.write(lines, to: file)
     }
 

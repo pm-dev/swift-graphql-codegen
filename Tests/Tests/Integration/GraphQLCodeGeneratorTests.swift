@@ -138,18 +138,6 @@ struct GraphQLCodeGeneratorTests {
                 to: operationsDirectory.appending(path: operationFile, directoryHint: .notDirectory)
             )
         }
-        let scalarsDirectory = generatedDirectory.appending(
-            path: "SchemaTypes/Scalars",
-            directoryHint: .isDirectory
-        )
-        try FileManager.default.createDirectory(at: scalarsDirectory, withIntermediateDirectories: true)
-        try FileManager.default.copyItem(
-            at: expectedDirectory.appending(
-                path: "SchemaTypes/Scalars/ID.graphqls.swift",
-                directoryHint: .notDirectory
-            ),
-            to: scalarsDirectory.appending(path: "ID.graphqls.swift", directoryHint: .notDirectory)
-        )
         try await Codegen(
             .configuration(
                 input: .input(

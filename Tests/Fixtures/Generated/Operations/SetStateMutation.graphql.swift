@@ -32,4 +32,3 @@ struct SetStateMutation: GraphQLMutation {
         let setState: GraphQLEnum<State>
     }
 }
-

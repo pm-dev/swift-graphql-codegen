@@ -94,4 +94,3 @@ struct EntityFields: Decodable, Sendable, Hashable {
 
     var name: String
 }
-

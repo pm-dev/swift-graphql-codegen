@@ -32,4 +32,3 @@ public struct SetFavoriteEpisodeMutation: GraphQLMutation {
         public let setFavoriteEpisode: GraphQLEnum<Episode>
     }
 }
-

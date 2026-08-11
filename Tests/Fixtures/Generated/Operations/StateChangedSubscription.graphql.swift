@@ -21,4 +21,3 @@ struct StateChangedSubscription: GraphQLSubscription {
         let stateChanged: GraphQLEnum<State>
     }
 }
-

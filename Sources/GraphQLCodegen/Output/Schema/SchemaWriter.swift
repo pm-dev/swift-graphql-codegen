@@ -64,14 +64,13 @@ struct SchemaWriter {
             guard case .scalar(let scalar) = type else { continue }
             let filename = "\(scalar.ast.name).graphqls.swift"
             let url = scalarsDir.appending(path: filename, directoryHint: .notDirectory)
-            guard !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
-                // Will not overwrite existing scalar file
-                fileOutput.save(at: url)
-                continue
-            }
             var file = SwiftFileWriter()
             file.setHeader(configuration.output.schema.scalars.header)
-            file.setImports(configuration.output.schema.scalars.importedModules)
+            var importedModules = configuration.output.schema.scalars.importedModules
+            if let module = configuration.output.schema.scalars.scalarMapping[scalar.ast.name]?.module {
+                importedModules.append(module.name)
+            }
+            file.setImports(importedModules)
             file.addType(SchemaScalarBuilder(scalar: scalar))
             try file.write(to: url, configuration: configuration, using: fileOutput)
         }

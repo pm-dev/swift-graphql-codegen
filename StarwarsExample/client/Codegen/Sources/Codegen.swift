@@ -25,6 +25,11 @@ enum StarwarsCodegen {
                 output: .output(
                     schema: .schema(
                         directory: sourceDirectory.appending(path: "Schema", directoryHint: .isDirectory),
+                        scalars: .scalars(
+                            scalarMapping: [
+                                "ID": .scalar(typeName: "String", module: .module(name: "Swift", prefix: true)),
+                            ]
+                        ),
                         enums: .enums(caseConversion: .conversion(from: .macro, to: .lowerCamel)),
                         accessLevel: .public
                     ),
