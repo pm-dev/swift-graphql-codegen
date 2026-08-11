@@ -10,7 +10,7 @@ enum StarwarsCodegen {
         .deletingLastPathComponent()
 
     private static let sourceDirectory = exampleDirectory
-        .appending(path: "client/Packages/GraphQL", directoryHint: .isDirectory)
+        .appending(path: "client/Packages/GraphQL/Source", directoryHint: .isDirectory)
 
     private static let schemaURL = exampleDirectory
         .appending(path: "server/src/schema.graphql", directoryHint: .notDirectory)
@@ -24,7 +24,7 @@ enum StarwarsCodegen {
                 ),
                 output: .output(
                     schema: .schema(
-                        directory: sourceDirectory.appending(path: "Schema", directoryHint: .isDirectory),
+                        directory: sourceDirectory,
                         scalars: .scalars(
                             scalarMapping: [
                                 "ID": .scalar(typeName: "String", module: .module(name: "Swift", prefix: true)),

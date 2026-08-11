@@ -854,8 +854,7 @@ enum OutputFile: String, CaseIterable {
     case JSONValue
     case NodeQuery
     case SetStateMutation
-    case State
-    case ID
+    case Schema
 
     var relativePath: String {
         switch self {
@@ -875,8 +874,7 @@ enum OutputFile: String, CaseIterable {
         case .JSONValue: "Support/JSONValue.swift"
         case .NodeQuery: "Operations/NodeQuery.graphql.swift"
         case .SetStateMutation: "Operations/SetStateMutation.graphql.swift"
-        case .State: "SchemaTypes/Enums/State.graphqls.swift"
-        case .ID: "SchemaTypes/Scalars/ID.graphqls.swift"
+        case .Schema: "SchemaTypes/Schema.swift"
         }
     }
 }

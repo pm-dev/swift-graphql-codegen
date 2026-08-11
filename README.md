@@ -50,14 +50,12 @@ of its existing contents before writing the current generated output. Do not sto
 that directory. With `.definition` output, Codegen instead removes obsolete files ending in `.graphql.swift` from the configured
 document directories, so do not use that suffix for independently maintained files there.
 
-Codegen assumes exclusive ownership of the configured schema output directories. Each run may remove and recreate the scalar,
-enum, and input-object directories, including files that are not part of the current generated output. Do not store unrelated or
-independently maintained files in these directories.
+Codegen writes all referenced scalar, enum, and input-object declarations to `Schema.swift` inside `Schema.directory`. Each run
+replaces that file while preserving other files in the same directory. Configure the generated file's header and imports through
+`Schema.header` and `Schema.importedModules`.
 
-When a schema category's `directoryName` is `nil`, that category writes directly into `Schema.directory`, and Codegen treats the
-schema root itself as an owned output directory. Scalar files are regenerated on every run. Configure custom Swift types with
-`Scalars.scalarMapping`; scalars without a mapping default to `String`. Each mapping can specify a module imported only by its
-generated scalar file and can optionally prefix the mapped type with the module name.
+Configure custom Swift scalar types with `Scalars.scalarMapping`; scalars without a mapping default to `String`. Each mapping can
+specify a module imported by `Schema.swift` and can optionally prefix the mapped type with the module name.
 
 ## Subscription Limits
 
@@ -191,7 +189,7 @@ struct HeroQuery: GraphQLQuery {
 ```
 
 The [Star Wars example](StarwarsExample) contains a runnable generator and its checked-in output, including the complete
-[generated Hero query](StarwarsExample/client/Packages/GraphQL/Operations/HeroQuery.graphql.swift).
+[generated Hero query](StarwarsExample/client/Packages/GraphQL/Source/Operations/HeroQuery.graphql.swift).
 
 ## Design
 

@@ -154,18 +154,14 @@ struct DeprecationSupportTests {
 
         try await Codegen(configuration).run()
 
-        let inputObject = try generatedSchemaType(
-            "InputObjects/SearchInput.graphqls.swift",
-            in: fixture
+        let generatedSchema = try String(
+            contentsOf: fixture.schemaTypesDirectory.appending(path: "Schema.swift", directoryHint: .notDirectory),
+            encoding: .utf8
         )
-        let `enum` = try generatedSchemaType(
-            "Enums/SearchOrder.graphqls.swift",
-            in: fixture
-        )
-        #expect(!inputObject.contains("old"))
-        #expect(inputObject.contains("newValue"))
-        #expect(!`enum`.contains("OLD"))
-        #expect(`enum`.contains("NEW"))
+        #expect(!generatedSchema.contains("old"))
+        #expect(generatedSchema.contains("newValue"))
+        #expect(!generatedSchema.contains("OLD"))
+        #expect(generatedSchema.contains("NEW"))
     }
 
     @Test
@@ -270,13 +266,6 @@ struct DeprecationSupportTests {
             policy: policy,
             schemaJSON: loadedSchema.schemaJSON
         ).validate()
-    }
-
-    private func generatedSchemaType(_ path: String, in fixture: Fixture) throws -> String {
-        try String(
-            contentsOf: fixture.schemaTypesDirectory.appending(path: path, directoryHint: .notDirectory),
-            encoding: .utf8
-        )
     }
 
     private func makeConfiguration(
