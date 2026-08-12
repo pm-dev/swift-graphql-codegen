@@ -39,7 +39,7 @@ struct HTTPGenerationPlan {
         let persistence: Persistence
         switch configuration.output.support.HTTPSupport?.persistedOperations {
         case .automatic: persistence = .automatic
-        case .registered(_, let allowUnregisteredOperations):
+        case .registered(let allowUnregisteredOperations):
             persistence = .registered(allowsUnregisteredOperations: allowUnregisteredOperations)
         case .none: persistence = .none
         }
