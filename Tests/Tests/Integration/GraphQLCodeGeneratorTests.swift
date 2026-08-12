@@ -1,4 +1,3 @@
-import CryptoKit
 import Foundation
 import GraphQLCodegen
 import Testing
@@ -583,11 +582,8 @@ struct GraphQLCodeGeneratorTests {
         #expect(subscriptionRequest.contains("self.persistedOperationRetry = nil"))
 
         for persistedOperations in [
+            Configuration.Output.Support.HTTPSupport.PersistedOperations.registered(),
             Configuration.Output.Support.HTTPSupport.PersistedOperations.registered(
-                manifestJSONFileOutput: generatedDirectory.appending(path: "manifest.json")
-            ),
-            Configuration.Output.Support.HTTPSupport.PersistedOperations.registered(
-                manifestJSONFileOutput: generatedDirectory.appending(path: "manifest.json"),
                 allowUnregisteredOperations: true
             ),
             nil,
@@ -636,7 +632,7 @@ struct GraphQLCodeGeneratorTests {
             )
             #expect(!postRequest[postInitializer.lowerBound...].contains("try self.init("))
 
-            if case .registered(let manifestURL, let allowUnregisteredOperations) = persistedOperations {
+            if case .registered(let allowUnregisteredOperations) = persistedOperations {
                 let generatedOperations = try String(
                     contentsOf: operationsDirectory.appending(path: "Ticks.graphql.swift"),
                     encoding: .utf8
@@ -669,23 +665,6 @@ struct GraphQLCodeGeneratorTests {
                     #expect(
                         supportSource.contains("useRegisteredOperation: Bool") == allowUnregisteredOperations
                     )
-                }
-
-                let manifest = try JSONDecoder().decode(
-                    PersistedOperationManifest.self,
-                    from: Data(contentsOf: manifestURL)
-                )
-                #expect(manifest.operations.contains {
-                    $0.body == "mutation SetVersion { setVersion(version: \"2\") }"
-                })
-                #expect(manifest.operations.contains {
-                    $0.body == "subscription Ticks { ticks }"
-                })
-                for operation in manifest.operations {
-                    let documentHash = SHA256.hash(data: Data(operation.body.utf8))
-                        .map { String(format: "%02x", $0) }
-                        .joined()
-                    #expect(operation.id == documentHash)
                 }
             }
         }

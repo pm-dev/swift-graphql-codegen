@@ -1,5 +1,3 @@
-import Foundation
-
 extension Configuration.Output.Support.HTTPSupport {
     /// Defines the different types of persisted operations.
     public enum PersistedOperations: Sendable {
@@ -16,9 +14,8 @@ extension Configuration.Output.Support.HTTPSupport {
 
         /// When `registered` persisted operations is enabled, a hash of the GraphQL document
         /// is sent to the server instead of the full document, which the server is always expected to already have stored.
-        /// In order to store hashes with their corresponding document, codegen will write a
-        /// "Persisted Operations Manifest" file to the url location given by `manifestJSONFileOutput`
-        /// This manifest file should be merged into the mapping of hashes to documents stored on the server.
+        /// Generate and publish a persisted-operation manifest separately with
+        /// `Codegen.generatePersistedOperationManifestFile(at:)`.
         /// This adds a layer of security by preventing unknown operations from being executed by the server. It also
         /// can improve performance because servers no longer need to validate operations at request time.
         /// Set `allowUnregisteredOperations` to `true` to expose a runtime option for sending the full document
@@ -26,7 +23,6 @@ extension Configuration.Output.Support.HTTPSupport {
         /// To learn more about automatic persisted operations:
         /// https://the-guild.dev/graphql/yoga-server/docs/features/persisted-operations
         case registered(
-            manifestJSONFileOutput: URL,
             allowUnregisteredOperations: Bool = false
         )
     }

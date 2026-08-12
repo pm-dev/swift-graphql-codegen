@@ -3,7 +3,6 @@ import Foundation
 struct Documents {
     let documents: [Document]
     let fragmentLookup: [String: Document.Fragment]
-    let persistedOperationManifest: PersistedOperationManifestOutput?
 
     func fragment(_ name: String) throws -> Document.Fragment {
         guard let fragment = fragmentLookup[name] else {
@@ -11,11 +10,6 @@ struct Documents {
         }
         return fragment
     }
-}
-
-struct PersistedOperationManifestOutput {
-    let operations: [PersistedOperationManifest.Operation]
-    let url: URL
 }
 
 struct Document: Sendable {
