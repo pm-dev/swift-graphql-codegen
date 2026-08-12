@@ -74,8 +74,8 @@ try await codegen.run()
 try await codegen.generatePersistedOperationManifestFile(at: manifestURL)
 ```
 
-Use `Codegen.persistedOperationManifest()` to retrieve the manifest without writing a file. Both manifest APIs work regardless of
-the configured HTTP persistence strategy and preserve the document minification setting. `Codegen.run()` never writes a manifest.
+The manifest API works regardless of the configured HTTP persistence strategy and preserves the document minification setting.
+`Codegen.run()` never writes a manifest.
 
 ## Subscription Limits
 

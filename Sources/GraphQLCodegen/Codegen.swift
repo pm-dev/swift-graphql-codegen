@@ -19,19 +19,14 @@ public struct Codegen: Sendable {
         self.urlSession = urlSession
     }
 
-    /// Creates a persisted-operation manifest without generating or modifying Swift output files.
+    /// Writes a persisted-operation manifest without generating or modifying Swift output files.
     ///
     /// Operation bodies use the document formatting configured for generated operations.
-    public func persistedOperationManifest() async throws -> PersistedOperationManifest {
-        PersistedOperationManifest(
+    public func generatePersistedOperationManifestFile(at manifestURL: URL) async throws {
+        let manifest = PersistedOperationManifest(
             documents: try await prepareInput().documents,
             minifyDocument: configuration.output.documents.operations.minifyDocument
         )
-    }
-
-    /// Writes a persisted-operation manifest without generating or modifying Swift output files.
-    public func generatePersistedOperationManifestFile(at manifestURL: URL) async throws {
-        let manifest = try await persistedOperationManifest()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(manifest)
