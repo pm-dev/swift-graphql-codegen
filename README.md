@@ -163,6 +163,29 @@ From the package directory, run:
 swift run my-codegen-cli
 ```
 
+### Running the Executable Directly
+
+The standalone executable reads its options from a JSON configuration file:
+
+```bash
+swift run graphql-codegen --file-configuration /path/to/graphql-codegen.json
+```
+
+Standalone configurations must provide `output.schema.directory` and `output.support.directory`. Set
+`output.documents.directory` to place generated documents in one output directory, or omit it to generate documents beside their
+GraphQL definitions. All file and directory URLs in the JSON must be relative to the directory containing `graphql-codegen.json`.
+Remote introspection endpoints are not filesystem URLs and may use absolute HTTP or HTTPS URLs; set `input.schemaSource` to the
+endpoint and optionally supply `input.schemaHeaders`.
+
+Use `--output-directory` to place schema, support, and document files in one directory instead of using the output directories
+from the JSON configuration:
+
+```bash
+swift run graphql-codegen --file-configuration /path/to/graphql-codegen.json --output-directory /path/to/generated
+```
+
+When `--output-directory` is supplied, `output.schema.directory` and `output.support.directory` may be omitted.
+
 ## Generated Output
 
 Given a GraphQL operation such as:
