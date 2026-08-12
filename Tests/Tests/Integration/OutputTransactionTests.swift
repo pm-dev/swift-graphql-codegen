@@ -4,7 +4,7 @@ import Testing
 
 struct OutputTransactionTests {
     @Test
-    func replacesSeparateDocumentOutputDirectory() async throws {
+    func removesObsoleteGeneratedDocumentsAndPreservesOtherFiles() async throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
 
@@ -34,7 +34,7 @@ struct OutputTransactionTests {
         try await Codegen(configuration).run()
 
         #expect(!FileManager.default.fileExists(atPath: generatedDocument.path(percentEncoded: false)))
-        #expect(!FileManager.default.fileExists(atPath: unrelatedFile.path(percentEncoded: false)))
+        #expect(try String(contentsOf: unrelatedFile, encoding: .utf8) == unrelatedContents)
     }
 
     @Test
@@ -72,6 +72,7 @@ struct OutputTransactionTests {
                     scalarMapping: ["Custom": .scalar(typeName: "UUID", module: .module(name: "Foundation"))]
                 )
             ),
+            documentsDirectory: schemaDirectory,
             supportDirectory: schemaDirectory
         )
         try await Codegen(configuration).run()
@@ -96,7 +97,7 @@ struct OutputTransactionTests {
         let generatedFiles = try FileManager.default.contentsOfDirectory(
             atPath: schemaDirectory.path(percentEncoded: false)
         )
-        #expect(generatedFiles.sorted() == ["README.md", "Schema.swift", "Support.swift"])
+        #expect(generatedFiles.sorted() == ["README.md", "Schema.swift", "Support.swift", "Value.graphql.swift"])
 
         configuration.output.schema.scalars.scalarMapping = [
             "Custom": .scalar(typeName: "URL", module: .module(name: "Foundation", prefix: true)),
@@ -152,6 +153,7 @@ struct OutputTransactionTests {
     private func configuration(
         for fixture: Fixture,
         schema: Configuration.Output.Schema? = nil,
+        documentsDirectory: URL? = nil,
         supportDirectory: URL? = nil
     ) -> Configuration {
         .configuration(
@@ -165,7 +167,7 @@ struct OutputTransactionTests {
                 ),
                 documents: .documents(
                     directory: .directory(
-                        fixture.output.appending(path: "Operations", directoryHint: .isDirectory)
+                        documentsDirectory ?? fixture.output.appending(path: "Operations", directoryHint: .isDirectory)
                     )
                 ),
                 support: .support(

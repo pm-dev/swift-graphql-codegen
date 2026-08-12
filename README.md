@@ -45,18 +45,17 @@ an introspection endpoint must expose `__Type.isOneOf`.
 
 ## Output Directory Ownership
 
-When document output is configured as `.directory(URL)`, Codegen assumes exclusive ownership of that directory and may remove all
-of its existing contents before writing the current generated output. Do not store unrelated or independently maintained files in
-that directory. With `.definition` output, Codegen instead removes obsolete files ending in `.graphql.swift` from the configured
-document directories, so do not use that suffix for independently maintained files there.
+For both `.definition` and `.directory(URL)` document output, Codegen removes obsolete files ending in `.graphql.swift` from the
+corresponding document directories while preserving other files. Do not use that suffix for independently maintained files in
+those directories.
 
 Codegen writes all referenced scalar, enum, and input-object declarations to `Schema.swift` inside `Schema.directory`. Each run
 replaces that file while preserving other files in the same directory. Configure the generated file's header and imports through
 `Schema.header` and `Schema.importedModules`.
 
 Codegen writes shared GraphQL infrastructure and optional HTTP networking support to `Support.swift` inside `Support.directory`.
-Each run replaces that file while preserving other files in the same directory. `Schema.directory` and `Support.directory` may
-refer to the same location.
+Each run replaces that file while preserving other files in the same directory. Schema, support, and document output may share
+the same directory.
 
 Configure custom Swift scalar types with `Scalars.scalarMapping`; scalars without a mapping default to `String`. Each mapping can
 specify a module imported by `Schema.swift` and can optionally prefix the mapped type with the module name.
