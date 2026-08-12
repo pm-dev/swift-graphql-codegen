@@ -6,18 +6,41 @@ struct DocumentScanner {
         let url: URL
     }
 
-    enum DocumentFileFinderError: Error {
+    enum DocumentFileFinderError: Error, CustomStringConvertible {
+        case duplicateFilename(String, URL, URL)
         case failedToEnumerateDirectory(URL)
+
+        var description: String {
+            switch self {
+            case .duplicateFilename(let filename, let first, let second):
+                """
+                GraphQL document filenames must be unique when using a shared output directory:
+                Filename: \(filename)
+                Sources:
+                \(first.path)
+                \(second.path)
+                """
+            case .failedToEnumerateDirectory(let directory):
+                "Failed to enumerate GraphQL document directory: \(directory.path)"
+            }
+        }
     }
 
     let directories: [URL]
 
-    func scan() throws -> [DocumentFile] {
+    func scan(
+        excluding excludedURL: URL?,
+        requiringUniqueFilenames: Bool
+    ) throws -> [DocumentFile] {
+        let excludedURL = excludedURL?.standardizedFileURL
         var documentByURL: [URL: (document: DocumentFile, sourceRootDepth: Int)] = [:]
         for directory in directories.sorted(by: { $0.path < $1.path }) {
             let sourceRoot = directory.standardizedFileURL.pathComponents
             for url in try scanDirectory(directory) {
                 let standardizedURL = url.standardizedFileURL
+                if let excludedURL, standardizedURL == excludedURL {
+                    continue
+                }
                 let document = DocumentFile(
                     relativePath: standardizedURL.pathComponents
                         .dropFirst(sourceRoot.count)
@@ -29,9 +52,21 @@ struct DocumentScanner {
                 }
             }
         }
-        return documentByURL
+        let documents = documentByURL
             .sorted { $0.key.path < $1.key.path }
             .map(\.value.document)
+        guard requiringUniqueFilenames else {
+            return documents
+        }
+        var documentByFilename: [String: URL] = [:]
+        for document in documents {
+            let filename = document.url.lastPathComponent
+            if let existingDocument = documentByFilename[filename] {
+                throw DocumentFileFinderError.duplicateFilename(filename, existingDocument, document.url)
+            }
+            documentByFilename[filename] = document.url
+        }
+        return documents
     }
 
     private func scanDirectory(_ directory: URL) throws -> [URL] {

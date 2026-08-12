@@ -68,6 +68,43 @@ struct AnonymousOperationTypeNameTests {
         )
     }
 
+    @Test(arguments: [false, true])
+    func validatesDuplicateDocumentFilenamesOnlyForSharedOutputDirectories(
+        generateBesideDefinitions: Bool
+    ) async throws {
+        let filename = "Value.graphql"
+        let fixture = try makeFixture(documentFileName: filename)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+
+        let firstDocument = fixture.operations.appending(path: filename, directoryHint: .notDirectory)
+        try Data("query FirstValue { currentUser }".utf8).write(to: firstDocument)
+        let otherOperations = fixture.root.appending(path: "OtherOperations", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: otherOperations, withIntermediateDirectories: true)
+        let secondDocument = otherOperations.appending(path: filename, directoryHint: .notDirectory)
+        try Data("query SecondValue { currentUser }".utf8).write(to: secondDocument)
+
+        var configuration = configuration(for: fixture)
+        configuration.input.documentDirectories = [fixture.operations, otherOperations]
+        if generateBesideDefinitions {
+            configuration.output.documents.directory = .definition
+            try await Codegen(configuration).run()
+
+            #expect(FileManager.default.fileExists(atPath: firstDocument.appendingPathExtension("swift").path))
+            #expect(FileManager.default.fileExists(atPath: secondDocument.appendingPathExtension("swift").path))
+        } else {
+            do {
+                try await Codegen(configuration).run()
+                Issue.record("Expected duplicate GraphQL document filenames to be rejected")
+            } catch {
+                let description = String(describing: error)
+                #expect(description.contains("GraphQL document filenames must be unique"))
+                #expect(description.contains(filename))
+                #expect(description.contains(firstDocument.path))
+                #expect(description.contains(secondDocument.path))
+            }
+        }
+    }
+
     private func configuration(for fixture: AnonymousOperationFixture) -> Configuration {
         .configuration(
             input: .input(

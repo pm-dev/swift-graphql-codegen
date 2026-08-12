@@ -17,15 +17,19 @@ struct DocumentsLoader {
     let graphQLJS: GraphQLJS
 
     func load() throws -> Documents {
-        var documentFiles = try DocumentScanner(
-            directories: configuration.input.documentDirectories
-        ).scan()
+        let excludedSchemaURL: URL?
         if case .SDLSchemaFile(let schemaFileURL) = configuration.input.schemaSource {
-            let standardizedSchemaFileURL = schemaFileURL.standardizedFileURL
-            documentFiles.removeAll { documentFile in
-                documentFile.url.standardizedFileURL == standardizedSchemaFileURL
-            }
+            excludedSchemaURL = schemaFileURL
+        } else {
+            excludedSchemaURL = nil
         }
+        let requiringUniqueFilenames = switch configuration.output.documents.directory {
+        case .definition: false
+        case .directory: true
+        }
+        let documentFiles = try DocumentScanner(
+            directories: configuration.input.documentDirectories
+        ).scan(excluding: excludedSchemaURL, requiringUniqueFilenames: requiringUniqueFilenames)
         var fragmentLookup: [String: Document.Fragment] = [:]
         let parsedDocuments = try parse(
             documentFiles,
