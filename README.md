@@ -60,6 +60,23 @@ the same directory.
 Configure custom Swift scalar types with `Scalars.scalarMapping`; scalars without a mapping default to `String`. Each mapping can
 specify a module imported by `Schema.swift` and can optionally prefix the mapped type with the module name.
 
+## Persisted Operations
+
+Configure registered persisted operations with `.httpSupport(persistedOperations: .registered())`. Registered HTTP requests send
+the SHA-256 hash of each operation's generated document. Set `.registered(allowUnregisteredOperations: true)` to allow sending
+the full document instead during development.
+
+Generate the registered-operation manifest separately from Swift output:
+
+```swift
+let codegen = Codegen(configuration)
+try await codegen.run()
+try await codegen.generatePersistedOperationManifestFile(at: manifestURL)
+```
+
+Use `Codegen.persistedOperationManifest()` to retrieve the manifest without writing a file. Both manifest APIs work regardless of
+the configured HTTP persistence strategy and preserve the document minification setting. `Codegen.run()` never writes a manifest.
+
 ## Subscription Limits
 
 The generated GraphQL subscription API accepts LF, CRLF, and CR line endings and independently bounds SSE lines, complete event

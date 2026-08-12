@@ -5,6 +5,12 @@ public struct Codegen: Sendable {
         let description: String
     }
 
+    private struct PreparedInput {
+        let documents: Documents
+        let schema: Schema
+        let deprecationDiagnostics: [DeprecationUsageValidator.Diagnostic]
+    }
+
     private let configuration: Configuration
     private let urlSession: URLSession
 
@@ -13,11 +19,68 @@ public struct Codegen: Sendable {
         self.urlSession = urlSession
     }
 
+    /// Creates a persisted-operation manifest without generating or modifying Swift output files.
+    ///
+    /// Operation bodies use the document formatting configured for generated operations.
+    public func persistedOperationManifest() async throws -> PersistedOperationManifest {
+        PersistedOperationManifest(
+            documents: try await prepareInput().documents,
+            minifyDocument: configuration.output.documents.operations.minifyDocument
+        )
+    }
+
+    /// Writes a persisted-operation manifest without generating or modifying Swift output files.
+    public func generatePersistedOperationManifestFile(at manifestURL: URL) async throws {
+        let manifest = try await persistedOperationManifest()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(manifest)
+        try FileManager.default.createDirectory(
+            at: manifestURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try data.write(to: manifestURL, options: .atomic)
+    }
+
     public func run() async throws {
+        let start = Date()
+        let preparedInput = try await prepareInput()
+        let resolvedDocuments = try DocumentsResolver(
+            schema: preparedInput.schema,
+            documents: preparedInput.documents
+        ).resolve()
+        let outputPlan = try CodegenOutputPlan(
+            configuration: configuration,
+            resolvedDocuments: resolvedDocuments,
+            schema: preparedInput.schema
+        )
+        try outputPlan.validate()
+        for diagnostic in preparedInput.deprecationDiagnostics {
+            print("Warning: \(diagnostic)")
+        }
+
+        let fileOutput = FileOutput()
+        do {
+            try outputPlan.write(using: fileOutput)
+        } catch {
+            let generationError = error
+            do {
+                try fileOutput.discard()
+            } catch {
+                throw Codegen.Error(description: """
+                Failed to generate output: \(generationError)
+                Failed to discard staged output: \(error)
+                """)
+            }
+            throw generationError
+        }
+        try fileOutput.execute()
+        print("Codegen completed in \((Date().timeIntervalSince(start) * 1000).rounded() / 1000) seconds")
+    }
+
+    private func prepareInput() async throws -> PreparedInput {
         try configuration.validate()
 
-        // Input
-        let start = Date()
         let graphQLJS = try GraphQLJS()
         let loadedSchema = try await SchemaLoader(
             configuration: configuration,
@@ -36,46 +99,16 @@ public struct Codegen: Sendable {
             schemaJSON: loadedSchema.schemaJSON
         ).validate()
 
-        // Validation
         try DocumentsValidator(
             schemaJSON: loadedSchema.schemaJSON,
             documents: documents,
             graphQLJS: graphQLJS
         ).validate()
 
-        // Resolution
-        let resolvedDocuments = try DocumentsResolver(
-            schema: loadedSchema.schema,
-            documents: documents
-        ).resolve()
-        let outputPlan = try CodegenOutputPlan(
-            configuration: configuration,
+        return PreparedInput(
             documents: documents,
-            resolvedDocuments: resolvedDocuments,
-            schema: loadedSchema.schema
+            schema: loadedSchema.schema,
+            deprecationDiagnostics: deprecationDiagnostics
         )
-        try outputPlan.validate()
-        for diagnostic in deprecationDiagnostics {
-            print("Warning: \(diagnostic)")
-        }
-
-        // Output
-        let fileOutput = FileOutput()
-        do {
-            try outputPlan.write(using: fileOutput)
-        } catch {
-            let generationError = error
-            do {
-                try fileOutput.discard()
-            } catch {
-                throw Codegen.Error(description: """
-                Failed to generate output: \(generationError)
-                Failed to discard staged output: \(error)
-                """)
-            }
-            throw generationError
-        }
-        try fileOutput.execute()
-        print("Codegen completed in \((Date().timeIntervalSince(start) * 1000).rounded() / 1000) seconds")
     }
 }
