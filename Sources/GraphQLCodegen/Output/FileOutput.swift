@@ -30,10 +30,6 @@ final class FileOutput {
         directoriesToCreate.insert(destination)
     }
 
-    func remove(at url: URL) {
-        urlsToRemove.insert(url)
-    }
-
     func remove(at urls: any Sequence<URL>) {
         urlsToRemove.formUnion(urls)
     }

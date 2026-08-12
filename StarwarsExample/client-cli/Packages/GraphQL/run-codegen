@@ -1,8 +1,4 @@
 #!/bin/sh
-
-# Demonstrates running the standalone graphql-codegen executable with a JSON configuration file.
-# Uses the config graphql-codegen.json in the same directory as this script.
-
 set -eu
 
 script_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)

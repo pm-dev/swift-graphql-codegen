@@ -7,8 +7,8 @@ struct GraphQLCodegenPlugin: BuildToolPlugin {
         context: PluginContext,
         target: any Target
     ) async throws -> [Command] {
-        let inputConfigurationURL = try target.inputConfigurationURL()
-        let configuration = try ExecutableConfigurationFile.at(inputConfigurationURL)
+        let configurationURL = try target.configurationURL()
+        let configuration = try ExecutableConfigurationFile.at(configurationURL)
         try configuration.validateForBuildPlugin()
         let schemaURL = try configuration.resolveSchemaURL(relativeTo: target.directoryURL)
         let documentDirectories = try configuration.resolveDocumentDirectories(relativeTo: target.directoryURL)
@@ -22,11 +22,11 @@ struct GraphQLCodegenPlugin: BuildToolPlugin {
                 executable: try context.tool(named: "graphql-codegen").url,
                 arguments: [
                     "--file-configuration",
-                    inputConfigurationURL.path,
+                    configurationURL.path,
                     "--output-directory",
                     context.pluginWorkDirectoryURL.path,
                 ],
-                inputFiles: [inputConfigurationURL, schemaURL] + documents.map(\.url),
+                inputFiles: [configurationURL, schemaURL] + documents.map(\.url),
                 outputFiles: [
                     context.outputSchemaURL,
                     context.outputSupportURL,
@@ -38,7 +38,7 @@ struct GraphQLCodegenPlugin: BuildToolPlugin {
 }
 
 extension Target {
-    fileprivate func inputConfigurationURL() throws -> URL {
+    fileprivate func configurationURL() throws -> URL {
         let configurationURL = directoryURL.appending(
             path: "graphql-codegen.json",
             directoryHint: .notDirectory
@@ -52,7 +52,7 @@ extension Target {
 
 extension ExecutableConfigurationFile {
     fileprivate func validateForBuildPlugin() throws {
-        guard input.schemaSource.scheme == nil || input.schemaSource.isFileURL else {
+        guard input.schemaSource.scheme == nil else {
             throw GraphQLCodegenPluginError.unsupportedSchemaSource(input.schemaSource)
         }
         if output.schema.directory != nil {
@@ -96,7 +96,7 @@ private enum GraphQLCodegenPluginError: Error, CustomStringConvertible {
         case .unsupportedOutputDirectory(let category):
             "Build plugins choose generated output directories; remove output.\(category).directory."
         case .unsupportedSchemaSource(let source):
-            "Build plugins require a local schema file: \(source)"
+            "Build plugins require a relative local schema file: \(source)"
         }
     }
 }

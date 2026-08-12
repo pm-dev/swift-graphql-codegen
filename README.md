@@ -88,12 +88,11 @@ payloads, and decoded results waiting for the consumer. Configure these limits w
 Swift GraphQL Codegen supports three integration options:
 
 1. **Swift API:** Import `GraphQLCodegen`, create a `Configuration` in Swift, and run `Codegen` directly.
+   [Swift API client example](StarwarsExample/README.md#swift-api-client).
 2. **SwiftPM build-tool plugin and JSON configuration:** Attach `GraphQLCodegenPlugin` to a Swift package target and configure it
-   with `graphql-codegen.json`.
+   with `graphql-codegen.json`. [Build-tool plugin client example](StarwarsExample/README.md#build-tool-plugin-client).
 3. **Standalone CLI and JSON configuration:** Run the `graphql-codegen` executable with `--file-configuration` and a JSON file.
-
-The Star Wars example demonstrates all three options, with the build-tool plugin currently wired up to generate its application
-code.
+   [Standalone CLI client example](StarwarsExample/README.md#standalone-cli-client).
 
 ### 1. Swift API
 
@@ -349,8 +348,8 @@ struct HeroQuery: GraphQLQuery {
 }
 ```
 
-The [Star Wars example](StarwarsExample) contains a runnable generator and its checked-in output, including the complete
-[generated Hero query](StarwarsExample/client/iOS/GraphQL/HeroQuery.graphql.swift).
+The [Star Wars example](StarwarsExample) demonstrates the generator. The
+[generated Node query](Tests/Fixtures/Generated/Operations/NodeQuery.graphql.swift) shows a complete generated operation.
 
 ## Design
 
