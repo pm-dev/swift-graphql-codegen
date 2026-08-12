@@ -1,0 +1,29 @@
+{
+  "input": {
+    "schemaSource": "schema.graphqls",
+    "documentDirectories": ["."]
+  },
+  "output": {
+    "schema": {
+      "scalars": {
+        "scalarMapping": {
+          "UUID": {
+            "typeName": "UUID",
+            "module": {
+              "name": "Foundation",
+              "prefix": true
+            }
+          }
+        }
+      }
+    },
+    "support": {
+      "httpSupport": {
+        "persistedOperations": {
+          "strategy": "registered",
+          "allowUnregisteredOperations": true
+        }
+      }
+    }
+  }
+}

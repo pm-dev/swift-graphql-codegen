@@ -1,0 +1,1 @@
+../../Sources/GraphQLCodegen/Input/Documents/Scan/DocumentScanner.swift

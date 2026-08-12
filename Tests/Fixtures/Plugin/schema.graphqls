@@ -1,0 +1,5 @@
+scalar UUID
+
+type Query {
+  value: UUID!
+}
