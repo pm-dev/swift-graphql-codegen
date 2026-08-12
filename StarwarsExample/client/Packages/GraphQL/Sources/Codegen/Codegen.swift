@@ -4,13 +4,15 @@ import GraphQLCodegen
 @main
 enum StarwarsCodegen {
     private static let exampleDirectory = URL(fileURLWithPath: #filePath)
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
+        .deletingLastPathComponent() // In Codegen
+        .deletingLastPathComponent() // In Sources
+        .deletingLastPathComponent() // In GraphQL
+        .deletingLastPathComponent() // In Packages
+        .deletingLastPathComponent() // In client
+        .deletingLastPathComponent() // In StarwarsExample
 
     private static let generatedDirectory = exampleDirectory
-        .appending(path: "client/Packages/GraphQL/Source/Generated", directoryHint: .isDirectory)
+        .appending(path: "client/Packages/GraphQL/Sources/GraphQL/Generated", directoryHint: .isDirectory)
 
     private static let schemaURL = exampleDirectory
         .appending(path: "server/src/schema.graphql", directoryHint: .notDirectory)

@@ -8,15 +8,19 @@ let package = Package(
         .macOS(.v26),
     ],
     products: [
-        .library(
-            name: "GraphQL",
-            targets: ["GraphQL"]
-        ),
+        .library(name: "GraphQL", targets: ["GraphQL"]),
+        .executable(name: "Codegen", targets: ["Codegen"])
+    ],
+    dependencies: [
+        .package(name: "swift-graphql-codegen", path: "../../../.."),
     ],
     targets: [
-        .target(
-            name: "GraphQL",
-            path: "Source"
+        .executableTarget(
+            name: "Codegen",
+            dependencies: [
+                .product(name: "GraphQLCodegen", package: "swift-graphql-codegen"),
+            ],
         ),
+        .target(name: "GraphQL"),
     ]
 )

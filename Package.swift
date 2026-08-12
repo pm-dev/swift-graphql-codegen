@@ -7,7 +7,8 @@ let package = Package(
         .macOS(.v26),
     ],
     products: [
-        .library(name: "GraphQLCodegen", targets: ["GraphQLCodegen"])
+        .library(name: "GraphQLCodegen", targets: ["GraphQLCodegen"]),
+        .executable(name: "graphql-codegen", targets: ["graphql-codegen"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-collections", from: "1.6.0"),
@@ -22,6 +23,12 @@ let package = Package(
                 .copy("Resources/graphql.bundle.js"),
             ],
         ),
+        .executableTarget(
+            name: "graphql-codegen",
+            dependencies: [
+                .target(name: "GraphQLCodegen"),
+            ]
+        ),
         .target(
             name: "Fixtures",
             path: "Tests/Fixtures/Generated",
@@ -33,6 +40,7 @@ let package = Package(
             name: "GraphQLCodegenTests",
             dependencies: [
                 .target(name: "GraphQLCodegen"),
+                .target(name: "graphql-codegen"),
                 .target(name: "Fixtures"),
             ],
             path: "Tests/Tests",

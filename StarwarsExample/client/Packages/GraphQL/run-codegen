@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -eu
+
+script_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repository_directory=$(CDPATH= cd -- "$script_directory/../../../.." && pwd)
+
+exec swift run --package-path "$repository_directory" graphql-codegen \
+    --file-configuration "$script_directory/graphql-codegen.json"

@@ -1,0 +1,39 @@
+{
+  "input": {
+    "schemaSource": "../../../server/src/schema.graphql",
+    "documentDirectories": ["../../iOS/GraphQL"]
+  },
+  "output": {
+    "schema": {
+      "directory": "Sources/GraphQL/Generated",
+      "scalars": {
+        "scalarMapping": {
+          "ID": {
+            "typeName": "GraphQLID"
+          }
+        }
+      },
+      "enums": {
+        "caseConversion": {
+          "from": "macro",
+          "to": "lowerCamel"
+        }
+      },
+      "accessLevel": "public"
+    },
+    "documents": {
+      "importedModules": ["GraphQL"]
+    },
+    "support": {
+      "directory": "Sources/GraphQL/Generated",
+      "accessLevel": "public",
+      "httpSupport": {
+        "enableGETQueries": true,
+        "persistedOperations": {
+          "strategy": "automatic"
+        },
+        "subscriptionSupport": true
+      }
+    }
+  }
+}
