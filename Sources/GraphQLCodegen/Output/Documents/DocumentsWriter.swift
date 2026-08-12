@@ -77,10 +77,7 @@ struct DocumentsWriter {
 
     func write(using fileOutput: FileOutput) throws {
         try validateOutputURLs()
-        switch configuration.output.documents.directory {
-        case .definition: break
-        case .directory(let url):
-            fileOutput.remove(at: url)
+        if case .directory(let url) = configuration.output.documents.directory {
             fileOutput.createDirectory(at: url)
         }
         for plannedDocument in documentPlans {
@@ -122,15 +119,20 @@ struct DocumentsWriter {
                 try file.write(to: outputURL, configuration: configuration, using: fileOutput)
             }
         }
-        if case .definition = configuration.output.documents.directory {
-            let generated = documentPlans.map { $0.document.outputURL(configuration) }
-            let removed = try previouslyGeneratedFileURLs().subtracting(generated)
-            fileOutput.remove(at: removed)
-        }
+        let generated = documentPlans.map { $0.document.outputURL(configuration) }
+        let removed = try previouslyGeneratedFileURLs().subtracting(generated)
+        fileOutput.remove(at: removed)
     }
 
     private func previouslyGeneratedFileURLs() throws -> Set<URL> {
-        let generatedFileURLs = try configuration.input.documentDirectories
+        let directories: [URL]
+        switch configuration.output.documents.directory {
+        case .definition:
+            directories = configuration.input.documentDirectories
+        case .directory(let directory):
+            directories = [directory]
+        }
+        let generatedFileURLs = try directories
             .sorted { $0.path < $1.path }
             .map(generatedFileURLs(in:))
             .flatMap { $0 }

@@ -10,8 +10,8 @@ extension Configuration.Output {
 
         /// Places generated Swift documents in a separate directory.
         ///
-        /// Codegen assumes exclusive ownership of this directory and may remove all of its existing contents
-        /// before writing the current generated output. Do not store unrelated or independently maintained files here.
+        /// On each run, Codegen removes obsolete files ending in `.graphql.swift` while preserving other files.
+        /// Do not use that suffix for independently maintained files in this directory.
         case directory(URL)
     }
 
@@ -22,9 +22,8 @@ extension Configuration.Output {
         /// Call this function to create a new `Documents` instance.
         ///
         /// - Parameters:
-        ///   - directory: Where generated document files will be located. A separately configured directory is
-        ///   exclusively owned by Codegen and may have all of its existing contents removed on each run. When files
-        ///   are placed beside their definitions, obsolete files ending in `.graphql.swift` may be removed instead.
+        ///   - directory: Where generated document files will be located. Obsolete files ending in `.graphql.swift`
+        ///   are removed from document output directories while other files are preserved.
         ///   - header: An optional string to include at the top of generated document files.
         ///   - importedModules: A list of modules to import into generated document files.
         ///   Just include the module name, the "import" keyword will be added automatically.
