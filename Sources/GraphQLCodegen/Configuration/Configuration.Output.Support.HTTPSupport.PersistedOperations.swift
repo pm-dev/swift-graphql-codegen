@@ -14,7 +14,8 @@ extension Configuration.Output.Support.HTTPSupport {
 
         /// When `registered` persisted operations is enabled, a hash of the GraphQL document
         /// is sent to the server instead of the full document, which the server is always expected to already have stored.
-        /// Generate and publish a persisted-operation manifest separately with `Codegen.persistedOperationManifest()`.
+        /// Generate and publish a persisted-operation manifest separately with
+        /// `Codegen.generatePersistedOperationManifestFile(at:)`.
         /// This adds a layer of security by preventing unknown operations from being executed by the server. It also
         /// can improve performance because servers no longer need to validate operations at request time.
         /// Set `allowUnregisteredOperations` to `true` to expose a runtime option for sending the full document
