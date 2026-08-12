@@ -28,16 +28,6 @@ public struct Configuration: Sendable {
         if case .spaces(let count) = output.indentation, count < 0 {
             throw Codegen.Error(description: "The indentation space count must not be negative.")
         }
-        switch output.support.HTTPSupport?.persistedOperations {
-        case .registered(let manifestJSONFileOutput, _):
-            try verifyLocalURL(
-                manifestJSONFileOutput,
-                expectedExtension: ["json"],
-                parameter: "manifestJSONFileOutput",
-                configuration: "persisted operations"
-            )
-        case .automatic, .none: break
-        }
         switch input.schemaSource {
         case .JSONSchemaFile(let url):
             try verifyLocalURL(

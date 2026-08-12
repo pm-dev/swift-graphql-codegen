@@ -1,7 +1,6 @@
 struct CodegenOutputPlan {
     let supportWriter: SupportWriter
     let documentsWriter: DocumentsWriter
-    let manifestWriter: PersistedOperationManifestWriter?
     let schemaWriter: SchemaWriter
 
     let configuration: Configuration
@@ -9,7 +8,6 @@ struct CodegenOutputPlan {
 
     init(
         configuration: Configuration,
-        documents: Documents,
         resolvedDocuments: ResolvedDocuments,
         schema: Schema
     ) throws {
@@ -28,18 +26,11 @@ struct CodegenOutputPlan {
             schema: schema,
             resolvedDocuments: resolvedDocuments
         )
-        let manifestWriter = documents.persistedOperationManifest.map { output in
-            PersistedOperationManifestWriter(
-                manifestURL: output.url,
-                operations: output.operations
-            )
-        }
         let topLevelDeclarations = supportWriter.topLevelDeclarations +
             documentsWriter.topLevelDeclarations + schemaWriter.topLevelDeclarations
         self.supportWriter = supportWriter
         self.configuration = configuration
         self.documentsWriter = documentsWriter
-        self.manifestWriter = manifestWriter
         self.schemaWriter = schemaWriter
         self.topLevelDeclarations = topLevelDeclarations
     }
@@ -52,6 +43,5 @@ struct CodegenOutputPlan {
         try documentsWriter.write(using: fileOutput)
         try schemaWriter.write(using: fileOutput)
         try supportWriter.write(using: fileOutput)
-        try manifestWriter?.write(using: fileOutput)
     }
 }
