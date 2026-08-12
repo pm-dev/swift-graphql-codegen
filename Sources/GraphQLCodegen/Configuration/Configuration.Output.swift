@@ -32,32 +32,3 @@ extension Configuration {
         public var support: Support
     }
 }
-
-extension Configuration.Output {
-    /// Controls the access level of a Swift type such as a struct or a property
-    public enum AccessLevel: Sendable {
-        /// Applies an internal access level to a Swift type. Since internal is the default
-        /// access level in Swift, an access level keyword will be ommitted from output source code
-        case `internal`
-
-        /// Applies a public access level to a Swift type. These locations will be visible outside the
-        /// module in which the source code lives.
-        case `public`
-    }
-
-    /// Controls whether indentation in generation files uses spaces or a tab
-    public enum Indentation: Sendable {
-        /// Indentation will use the \t character
-        case tab
-
-        /// Indentation will use the given number of spaces
-        case spaces(Int)
-
-        var string: String {
-            switch self {
-            case .tab: "\t"
-            case .spaces(let int): String(repeating: " ", count: int)
-            }
-        }
-    }
-}
