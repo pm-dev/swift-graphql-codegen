@@ -95,15 +95,7 @@ final class FileOutput {
     }
 
     func discard() throws {
-        var failures: [String] = []
-        for stagedFile in stagedFiles where fileExists(at: stagedFile.temporaryURL) {
-            if let failure = recoveryFailure(
-                "Failed to remove staged file \(stagedFile.temporaryURL.path)",
-                operation: { try FileManager.default.removeItem(at: stagedFile.temporaryURL) }
-            ) {
-                failures.append(failure)
-            }
-        }
+        let failures = removeStagedFiles()
         guard failures.isEmpty else {
             throw TransactionError(description: """
             Failed to discard staged generated output. The files were retained for recovery.
@@ -167,15 +159,18 @@ final class FileOutput {
             }
         }
 
-        for stagedFile in stagedFiles where fileExists(at: stagedFile.temporaryURL) {
-            if let failure = recoveryFailure(
+        failures.append(contentsOf: removeStagedFiles())
+        return failures
+    }
+
+    private func removeStagedFiles() -> [String] {
+        stagedFiles.compactMap { stagedFile in
+            guard fileExists(at: stagedFile.temporaryURL) else { return nil }
+            return recoveryFailure(
                 "Failed to remove staged file \(stagedFile.temporaryURL.path)",
                 operation: { try FileManager.default.removeItem(at: stagedFile.temporaryURL) }
-            ) {
-                failures.append(failure)
-            }
+            )
         }
-        return failures
     }
 
     private func removeCommittedBackups(_ backups: [Backup]) {

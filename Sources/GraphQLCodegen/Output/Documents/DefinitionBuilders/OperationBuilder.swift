@@ -120,7 +120,6 @@ struct OperationBuilder {
             )
             return
         }
-        let typeNames = variableDefinitions.map(\.typeName)
         operationStruct.addProperty(
             description: nil,
             deprecation: nil,
@@ -131,27 +130,14 @@ struct OperationBuilder {
             value: .unassigned(
                 type: SwiftTypeIdentifier.variables.source,
                 initialized: .flattened(
-                    variableDefinitions.enumerated().map { idx, variableDefinition in
-                        .named(
-                            variableDefinition.variable.name.value,
-                            type: typeNames[idx],
+                    variableDefinitions.map { variableDefinition in
+                        .init(
+                            name: variableDefinition.variable.name.value,
+                            type: variableDefinition.typeName,
                             description: variableDefinition.description?.value,
-                            defaultValue: {
-                                switch variableDefinition.type.typeName {
-                                case .optional:
-                                    if let defaultValue = variableDefinition.defaultValue {
-                                        "nil \(SwiftSource(value: defaultValue.description).blockComment)"
-                                    } else {
-                                        "nil"
-                                    }
-                                case .list, .name:
-                                    if let defaultValue = variableDefinition.defaultValue {
-                                        ".useDefault \(SwiftSource(value: defaultValue.description).blockComment)"
-                                    } else {
-                                        nil
-                                    }
-                                }
-                            }()
+                            defaultValue: variableDefinition.type.typeName.inputDefaultValue(
+                                variableDefinition.defaultValue?.description
+                            )
                         )
                     },
                     indentation: configuration.output.indentation
@@ -163,14 +149,13 @@ struct OperationBuilder {
     private func addVariablesStruct(to operationStruct: inout SwiftStructBuilder) {
         let variableDefinitions = operation.ast.variableDefinitions ?? []
         guard !variableDefinitions.isEmpty else { return }
-        let typeNames = variableDefinitions.map(\.typeName)
         var variablesStruct = SwiftStructBuilder(
             description: nil,
             isPublic: isPublic,
             name: SwiftTypeIdentifier.variables.source,
             conformances: configuration.output.documents.operations.variables.conformances
         )
-        for (idx, variableDefinition) in variableDefinitions.enumerated() {
+        for variableDefinition in variableDefinitions {
             variablesStruct.addProperty(
                 description: variableDefinition.description?.value,
                 deprecation: nil,
@@ -178,7 +163,7 @@ struct OperationBuilder {
                 isStatic: false,
                 immutable: configuration.output.documents.operations.variables.immutable,
                 name: variableDefinition.variable.name.value,
-                value: .unassigned(type: typeNames[idx], initialized: nil)
+                value: .unassigned(type: variableDefinition.typeName, initialized: nil)
             )
         }
         operationStruct.addNestedType(variablesStruct)

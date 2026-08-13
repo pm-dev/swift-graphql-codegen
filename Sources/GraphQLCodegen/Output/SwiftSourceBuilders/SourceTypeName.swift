@@ -66,4 +66,15 @@ extension SourceTypeName {
         case .list, .name: inputTypeName(hasDefaultValue: false)
         }
     }
+
+    func inputDefaultValue(_ defaultValue: String?) -> String? {
+        switch self {
+        case .optional:
+            guard let defaultValue else { return "nil" }
+            return "nil \(SwiftSource(value: defaultValue).blockComment)"
+        case .list, .name:
+            guard let defaultValue else { return nil }
+            return ".useDefault \(SwiftSource(value: defaultValue).blockComment)"
+        }
+    }
 }

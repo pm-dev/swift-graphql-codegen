@@ -9,20 +9,6 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             case flattened([InitializerArgument], indentation: Configuration.Output.Indentation)
 
             struct InitializerArgument {
-                static func named(
-                    _ name: String,
-                    type: String,
-                    description: String?,
-                    defaultValue: String?
-                ) -> InitializerArgument {
-                    InitializerArgument(
-                        name: name,
-                        type: type,
-                        description: description,
-                        defaultValue: defaultValue
-                    )
-                }
-
                 let name: String
                 let type: String
                 let description: String?
@@ -158,7 +144,7 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             case .direct(let defaultValue):
                 builder.addPropertyInitializerArguments("\(safeName): \(type)".addingDefaultValue(defaultValue))
                 let storedName = usesBackingStorage ? backingName : safeName
-                builder.addPropertyInitializerBody(["self.\(storedName) = \(safeName)"], isThrowing: false)
+                builder.addPropertyInitializerBody(["self.\(storedName) = \(safeName)"])
             case .flattened(let initializerArguments, let indentation):
                 for argument in initializerArguments {
                     builder.addPropertyInitializerArguments(
@@ -178,7 +164,7 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
                     assignmentLines.append(ln)
                 }
                 assignmentLines.append(")")
-                builder.addPropertyInitializerBody(assignmentLines, isThrowing: false)
+                builder.addPropertyInitializerBody(assignmentLines)
             case .none: break
             }
         }
