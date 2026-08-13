@@ -23,13 +23,60 @@ executable-document descriptions, schema coordinates, deprecated input values, a
 - Operation and response models built from Swift structs with stored properties
 - GraphQL enums and `@oneOf` input objects represented as Swift enums
 - Typed named fragments and conditional `@include` and `@skip` directives
-- Native `Codable` generation, `Sendable` defaults, and configurable model conformances
-- Supports [automatic persisted queries](https://the-guild.dev/graphql/yoga-server/docs/features/automatic-persisted-queries) and
-  [registered operations](https://the-guild.dev/graphql/yoga-server/docs/features/persisted-operations)
-- Optional `URLSession` support for POST requests, GET queries, and server-sent event (SSE) subscriptions
-- SDL, JSON, and introspection schema inputs
-- Configurable output locations, access levels, property mutability, and custom scalars
+- Native `Codable` generation and `Sendable` defaults
 - No runtime package dependency in client applications
+
+Given this GraphQL operation:
+
+```graphql
+query Hero($episode: Episode!) {
+  hero(episode: $episode) {
+    id
+    name
+  }
+}
+```
+
+Codegen produces an operation type with nested variables and response models:
+
+```swift
+struct HeroQuery: GraphQLQuery {
+    static let operationName: String? = "Hero"
+
+    static let document = #"""
+    query Hero($episode: Episode!) {
+      hero(episode: $episode) {
+        id
+        name
+      }
+    }
+    """#
+
+    let variables: Variables
+    let extensions: [String: AnyEncodable]?
+
+    struct Variables: Encodable, Sendable {
+        let episode: Episode
+    }
+
+    struct Data: Decodable, Sendable, Hashable {
+        let hero: Hero
+
+        struct Hero: Decodable, Sendable, Hashable {
+            let id: ID
+            let name: String
+        }
+    }
+}
+```
+
+- Response models mirror the shape of the response JSON.
+- Values decode directly into stored properties rather than a backing dictionary.
+- Named fragments remain separate types so you can extend and reuse them across operations.
+- Only schema types referenced by an operation are generated.
+
+The [Star Wars example](StarwarsExample) demonstrates the generator. The
+[generated Node query](Tests/Fixtures/Generated/Operations/NodeQuery.graphql.swift) shows a complete generated operation.
 
 ## Usage
 
@@ -153,67 +200,28 @@ swift run graphql-codegen --file-configuration /path/to/graphql-codegen.json --o
 Instead of using `--output-directory`, you can configure separate output locations for schema, support, and operation files.
 The standalone CLI also supports remote introspection endpoints and custom request headers.
 
-## Generated Output
+## Configuration
 
-Given this GraphQL operation:
+[Configuration](Sources/GraphQLCodegen/Configuration/Configuration.swift) supports:
 
-```graphql
-query Hero($episode: Episode!) {
-  hero(episode: $episode) {
-    id
-    name
-  }
-}
-```
-
-Codegen produces an operation type with nested variables and response models:
-
-```swift
-struct HeroQuery: GraphQLQuery {
-    static let operationName: String? = "Hero"
-
-    static let document = #"""
-    query Hero($episode: Episode!) {
-      hero(episode: $episode) {
-        id
-        name
-      }
-    }
-    """#
-
-    let variables: Variables
-    let extensions: [String: AnyEncodable]?
-
-    struct Variables: Encodable, Sendable {
-        let episode: Episode
-    }
-
-    struct Data: Decodable, Sendable, Hashable {
-        let hero: Hero
-
-        struct Hero: Decodable, Sendable, Hashable {
-            let id: ID
-            let name: String
-        }
-    }
-}
-```
-
-- Response models mirror the shape of the response JSON.
-- Values decode directly into stored properties rather than a backing dictionary.
-- Named fragments remain separate types so you can extend and reuse them across operations.
-- Only schema types referenced by an operation are generated.
-
-The [Star Wars example](StarwarsExample) demonstrates the generator. The
-[generated Node query](Tests/Fixtures/Generated/Operations/NodeQuery.graphql.swift) shows a complete generated operation.
+- Schema sources: SDL files, introspection JSON files, or remote introspection endpoints with custom request headers.
+- GraphQL document directories and whether to include or exclude deprecated schema members.
+- Separate output locations for generated schema types, operations and fragments, and shared support code.
+- Generated file indentation, headers, imported modules, and access levels.
+- Custom scalar mappings, including imported modules and optional module-qualified type names.
+- Enum protocol conformances and case conversion.
+- Input object property mutability and protocol conformances.
+- Operation document minification, extension and variable property mutability, and protocol conformances.
+- Variable, response, and named fragment model property mutability and protocol conformances.
+- Explicit memberwise initializers for generated document types.
+- Optional `URLSession` networking, GET queries, and server-sent event (SSE) subscriptions.
+- [Automatic persisted queries](https://the-guild.dev/graphql/yoga-server/docs/features/automatic-persisted-queries) or
+  [registered operations](https://the-guild.dev/graphql/yoga-server/docs/features/persisted-operations), with optional support for
+  unregistered operations.
 
 ## Contributing
 
 Contributions, documentation improvements, bug reports, and feature requests are welcome through pull requests and GitHub issues.
-
-## License
-
-Swift GraphQL Codegen is available under the [MIT License](LICENSE).
 
 ## Requirements
 
