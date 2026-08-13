@@ -2,6 +2,41 @@ import Foundation
 import GraphQLCodegen
 
 extension ExecutableConfigurationFile {
+    private static func deprecationPolicy(_ value: String) throws -> Configuration.Input.DeprecationPolicy {
+        switch value {
+        case "include":
+            .include
+        case "exclude":
+            .exclude
+        default:
+            throw ConfigurationError(description: "Unsupported deprecation policy: \(value)")
+        }
+    }
+
+    private static func accessLevel(_ value: String) throws -> Configuration.Output.AccessLevel {
+        switch value {
+        case "internal":
+            .internal
+        case "public":
+            .public
+        default:
+            throw ConfigurationError(description: "Unsupported access level: \(value)")
+        }
+    }
+
+    private static func casing(
+        _ value: String
+    ) throws -> Configuration.Output.Schema.Enums.CaseConversion.Case {
+        switch value {
+        case "lowerCamel":
+            .lowerCamel
+        case "macro":
+            .macro
+        default:
+            throw ConfigurationError(description: "Unsupported enum case conversion: \(value)")
+        }
+    }
+
     /// Converts this file representation into a configuration, resolving relative file URLs.
     func configuration(relativeTo directory: URL, outputDirectory: URL? = nil) throws -> Configuration {
         let schemaSource: Configuration.Input.SchemaSource
@@ -257,40 +292,5 @@ extension ExecutableConfigurationFile {
             }
         }
         return support
-    }
-
-    private static func deprecationPolicy(_ value: String) throws -> Configuration.Input.DeprecationPolicy {
-        switch value {
-        case "include":
-            .include
-        case "exclude":
-            .exclude
-        default:
-            throw ConfigurationError(description: "Unsupported deprecation policy: \(value)")
-        }
-    }
-
-    private static func accessLevel(_ value: String) throws -> Configuration.Output.AccessLevel {
-        switch value {
-        case "internal":
-            .internal
-        case "public":
-            .public
-        default:
-            throw ConfigurationError(description: "Unsupported access level: \(value)")
-        }
-    }
-
-    private static func casing(
-        _ value: String
-    ) throws -> Configuration.Output.Schema.Enums.CaseConversion.Case {
-        switch value {
-        case "lowerCamel":
-            .lowerCamel
-        case "macro":
-            .macro
-        default:
-            throw ConfigurationError(description: "Unsupported enum case conversion: \(value)")
-        }
     }
 }

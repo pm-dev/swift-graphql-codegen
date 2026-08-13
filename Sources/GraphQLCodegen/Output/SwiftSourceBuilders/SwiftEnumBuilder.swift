@@ -7,7 +7,7 @@ struct SwiftEnumBuilder: SwiftTypeBuildable {
         name: String,
         conformances: [String]
     ) {
-        builder = SwiftTypeBuilder(
+        self.builder = SwiftTypeBuilder(
             description: description,
             isPublic: isPublic,
             type: "enum",

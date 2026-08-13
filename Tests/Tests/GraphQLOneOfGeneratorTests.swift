@@ -1,7 +1,7 @@
-@testable import Fixtures
 import Foundation
 import GraphQLCodegen
 import Testing
+@testable import Fixtures
 
 struct GraphQLOneOfGeneratorTests {
     private static let testsDirectory = URL(fileURLWithPath: #filePath)

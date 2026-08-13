@@ -47,14 +47,14 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         name: String,
         conformances: [String]
     ) {
-        builder = SwiftTypeBuilder(
+        self.builder = SwiftTypeBuilder(
             description: description,
             isPublic: isPublic,
             type: "struct",
             name: identifier(name),
             conformances: conformances
         )
-        usesCodingKeys = conformances.contains { conformance in
+        self.usesCodingKeys = conformances.contains { conformance in
             SwiftConformanceName(source: conformance).usesCodingKeys
         }
     }

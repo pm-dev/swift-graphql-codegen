@@ -1,7 +1,7 @@
 import CryptoKit
-@testable import Fixtures
 import Foundation
 import Testing
+@testable import Fixtures
 
 struct DefaultURLQueryEncoderTests {
     private struct AnonymousQuery: GraphQLQuery {

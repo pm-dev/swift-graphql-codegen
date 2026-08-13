@@ -1,7 +1,7 @@
 import Dispatch
-@testable import Fixtures
 import Foundation
 import Testing
+@testable import Fixtures
 
 struct ServerSentEventTests {
     @Test
@@ -204,7 +204,7 @@ struct ServerSentEventTests {
 
 private final class SubscriptionURLProtocol: URLProtocol {
     // swiftlint:disable:next non_overridable_class_declaration static_over_final_class
-    override class func canInit(with request: URLRequest) -> Bool {
+    override class func canInit(with _: URLRequest) -> Bool {
         true
     }
 

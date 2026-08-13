@@ -4,7 +4,7 @@ struct IntrospectionQuery: Encodable {
     let query: String
 
     init() {
-        query = """
+        self.query = """
         query IntrospectionQuery {
           __schema {
             description

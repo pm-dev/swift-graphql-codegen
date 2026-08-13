@@ -1,6 +1,6 @@
-@testable import Fixtures
 import Foundation
 import Testing
+@testable import Fixtures
 
 struct GraphQLHasDefaultTests {
     @Test

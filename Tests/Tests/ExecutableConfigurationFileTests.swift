@@ -1,7 +1,7 @@
 import Foundation
-@testable import graphql_codegen
 import GraphQLCodegen
 import Testing
+@testable import graphql_codegen
 
 struct ExecutableConfigurationFileTests {
     @Test

@@ -57,7 +57,7 @@ struct TypeCache {
     var inputObjects: [String: Schema.InputObject] = [:]
 
     init(_ cache: TypeASTCache) {
-        scalars = cache.scalars.mapValues { Schema.Scalar(ast: $0) }
+        self.scalars = cache.scalars.mapValues { Schema.Scalar(ast: $0) }
         for (name, ast) in cache.objects {
             objects[name] = Schema.Object(
                 ast: ast,
@@ -78,8 +78,8 @@ struct TypeCache {
                 possibleTypes: Set(ast.possibleTypes.map(\.name))
             )
         }
-        enums = cache.enums.mapValues { Schema.Enum(ast: $0) }
-        inputObjects = cache.inputObjects.mapValues { Schema.InputObject(ast: $0) }
+        self.enums = cache.enums.mapValues { Schema.Enum(ast: $0) }
+        self.inputObjects = cache.inputObjects.mapValues { Schema.InputObject(ast: $0) }
     }
 }
 
