@@ -288,6 +288,38 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func acceptsFragmentNamedTypenameAlongsideTypenameField() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment typename on Character { name }
+
+            query Hero {
+              hero {
+                __typename
+                ... on Human {
+                  ...typename
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { name: String! }
+            type Human implements Character { name: String! }
+            type Droid implements Character { name: String! }
+            """
+        )
+
+        #expect(output.contains("let __typename: String"))
+        #expect(output.contains("let __typenameFragment: Typename?"))
+        #expect(
+            output.contains(
+                "__typenameFragment = __typename == \"Human\" ? try Typename(from: decoder) : nil"
+            )
+        )
+    }
+
+    @Test
     func rejectsAliasesThatProduceConflictingNestedTypeNames() async {
         await expectCodegenError(containing: "conflicting Swift nested type names") {
             try await runCodegen(

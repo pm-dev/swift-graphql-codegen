@@ -60,11 +60,7 @@ struct SelectionSetResolver {
                 )
             case .fragmentSpread(let fragmentSpread):
                 let fragmentName = fragmentSpread.name.value
-                if fragmentName == "typename" {
-                    throw Codegen.Error(description: """
-                    "typename" is not allowed as a fragment spread name.
-                    """)
-                }
+                let fragmentResponseKey = fragmentName == "typename" ? "__typenameFragment" : "__" + fragmentName
                 if inOptionalDirective || selection.hasOptionalDirective {
                     throw Codegen.Error(description: """
                     'skip' or 'include' directives are not currently supported on fragment spreads.
@@ -85,12 +81,12 @@ struct SelectionSetResolver {
                 case .always:
                     try resolvedSelectionSet.addSelection(
                         .fragmentSpread(fragmentName, checkTypenames: nil),
-                        responseKey: "__" + fragmentName
+                        responseKey: fragmentResponseKey
                     )
                 case .typename(let typename):
                     try resolvedSelectionSet.addSelection(
                         .fragmentSpread(fragmentName, checkTypenames: [typename]),
-                        responseKey: "__" + fragmentName
+                        responseKey: fragmentResponseKey
                     )
                 case .abstract:
                     // Because we can't verify whether these fragments are fulfilled, we'll
