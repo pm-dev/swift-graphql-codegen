@@ -6,7 +6,7 @@ A static GraphQL API for the Swift Star Wars example, deployed as a Cloudflare W
 
 - `/graphql` accepts arbitrary GraphQL operations and supports automatic persisted queries (APQ).
 - `/graphql-registered` accepts only the operations checked into
-  `../client/iOS/GraphQL`.
+  `../client-build-plugin/iOS/GraphQL`.
 - `/graphiql` opens GraphiQL against `/graphql`.
 
 The mutation returns its input without persisting it. The subscription emits `NEW_HOPE` once and then completes.

@@ -85,7 +85,6 @@ struct DocumentsWriter {
             var file = SwiftFileWriter()
             file.setHeader(configuration.output.documents.header)
             file.setImports(configuration.output.documents.importedModules)
-            var emptyFile = true
             for definition in plannedDocument.definitions {
                 switch definition {
                 case .operation(let resolvedOperation, let declaration):
@@ -95,7 +94,6 @@ struct DocumentsWriter {
                         in: document
                     )
                     file.addType(operation)
-                    emptyFile = false
                 case .fragment(
                     let resolvedFragment,
                     let includesSelectionSet,
@@ -109,15 +107,9 @@ struct DocumentsWriter {
                             in: document
                         )
                     )
-                    emptyFile = false
                 }
             }
-            let outputURL = document.outputURL(configuration)
-            if emptyFile {
-                fileOutput.remove(at: outputURL)
-            } else {
-                try file.write(to: outputURL, configuration: configuration, using: fileOutput)
-            }
+            try file.write(to: document.outputURL(configuration), configuration: configuration, using: fileOutput)
         }
         let generated = documentPlans.map { $0.document.outputURL(configuration) }
         let removed = try previouslyGeneratedFileURLs().subtracting(generated)

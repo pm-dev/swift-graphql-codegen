@@ -82,9 +82,12 @@ opt_in_rules:
 
 excluded:
   - .build/
-  - StarwarsExample/client/Codegen/.build/
-  - StarwarsExample/client/iOS/GraphQL/
-  - StarwarsExample/client/Packages/GraphQL/
+  - StarwarsExample/client-build-plugin/iOS/GraphQL/
+  - StarwarsExample/client-build-plugin/Packages/GraphQL/
+  - StarwarsExample/client-cli/iOS/GraphQL/
+  - StarwarsExample/client-cli/Packages/GraphQL/
+  - StarwarsExample/client-swift-api/iOS/GraphQL/
+  - StarwarsExample/client-swift-api/Packages/GraphQL/
   - Tests/Fixtures/Generated/
 
 trailing_comma:

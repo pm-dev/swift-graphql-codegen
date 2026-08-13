@@ -1,0 +1,1 @@
+../../Sources/graphql-codegen/ExecutableConfigurationFile.swift

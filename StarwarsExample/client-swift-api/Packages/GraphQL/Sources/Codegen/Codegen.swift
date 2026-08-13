@@ -3,18 +3,18 @@ import GraphQLCodegen
 
 @main
 enum StarwarsCodegen {
-    private static let exampleDirectory = URL(fileURLWithPath: #filePath)
+    private static let clientDirectory = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent() // In Codegen
         .deletingLastPathComponent() // In Sources
         .deletingLastPathComponent() // In GraphQL
         .deletingLastPathComponent() // In Packages
         .deletingLastPathComponent() // In client
-        .deletingLastPathComponent() // In StarwarsExample
 
-    private static let generatedDirectory = exampleDirectory
-        .appending(path: "client/Packages/GraphQL/Sources/GraphQL/Generated", directoryHint: .isDirectory)
+    private static let generatedDirectory = clientDirectory
+        .appending(path: "Packages/GraphQL/Sources/GraphQL/Generated", directoryHint: .isDirectory)
 
-    private static let schemaURL = exampleDirectory
+    private static let schemaURL = clientDirectory
+        .deletingLastPathComponent()
         .appending(path: "server/src/schema.graphql", directoryHint: .notDirectory)
 
     static func main() async throws {
@@ -22,7 +22,9 @@ enum StarwarsCodegen {
             .configuration(
                 input: .input(
                     schemaSource: .SDLSchemaFile(schemaURL),
-                    documentDirectories: [exampleDirectory.appending(path: "client/iOS/GraphQL", directoryHint: .isDirectory)]
+                    documentDirectories: [
+                        clientDirectory.appending(path: "iOS/GraphQL", directoryHint: .isDirectory),
+                    ]
                 ),
                 output: .output(
                     schema: .schema(

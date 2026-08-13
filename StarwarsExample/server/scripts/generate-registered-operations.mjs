@@ -10,7 +10,7 @@ import {
 
 const operationsDirectory = fileURLToPath(
   new URL(
-    "../../client/iOS/GraphQL/",
+    "../../client-build-plugin/iOS/GraphQL/",
     import.meta.url,
   ),
 );

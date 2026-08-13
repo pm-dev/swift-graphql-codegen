@@ -83,11 +83,22 @@ The generated GraphQL subscription API accepts LF, CRLF, and CR line endings and
 payloads, and decoded results waiting for the consumer. Configure these limits with `maximumLineByteCount`,
 `maximumEventByteCount`, and `maximumBufferedResultCount` when subscribing.
 
-## Getting Started
+## Using Codegen
 
-Create a Swift package executable that runs code generation separately from your client application.
+Swift GraphQL Codegen supports three integration options:
 
-### 1. Add the Package
+1. **Swift API:** Import `GraphQLCodegen`, create a `Configuration` in Swift, and run `Codegen` directly.
+   [Swift API client example](StarwarsExample/README.md#swift-api-client).
+2. **SwiftPM build-tool plugin and JSON configuration:** Attach `GraphQLCodegenPlugin` to a Swift package target and configure it
+   with `graphql-codegen.json`. [Build-tool plugin client example](StarwarsExample/README.md#build-tool-plugin-client).
+3. **Standalone CLI and JSON configuration:** Run the `graphql-codegen` executable with `--file-configuration` and a JSON file.
+   [Standalone CLI client example](StarwarsExample/README.md#standalone-cli-client).
+
+### 1. Swift API
+
+Create a Swift package executable that configures and runs code generation directly through the `GraphQLCodegen` Swift API.
+
+#### Add the Package
 
 In `Package.swift`, add an executable target that depends on `GraphQLCodegen`:
 
@@ -117,7 +128,7 @@ let package = Package(
 )
 ```
 
-### 2. Configure Code Generation
+#### Configure Code Generation
 
 The following executable reads `schema.sdl` and GraphQL operations from an `Operations` directory next to the source file, then
 writes generated schema and support files to `Generated`:
@@ -155,7 +166,7 @@ struct MyCodegenCLI {
 
 JSON schema files and introspection endpoints are also supported through `Configuration.Input.SchemaSource`.
 
-### 3. Run the Generator
+#### Run the Generator
 
 From the package directory, run:
 
@@ -163,9 +174,119 @@ From the package directory, run:
 swift run my-codegen-cli
 ```
 
-### Running the Executable Directly
+### 2. SwiftPM Build-Tool Plugin and JSON Configuration
 
-The standalone executable reads its options from a JSON configuration file:
+Use `GraphQLCodegenPlugin` to generate Swift sources automatically when SwiftPM builds a target. Add the plugin to each source
+target that owns GraphQL operations:
+
+```swift
+.target(
+    name: "MyAPI",
+    plugins: [
+        .plugin(
+            name: "GraphQLCodegenPlugin",
+            package: "swift-graphql-codegen"
+        ),
+    ]
+)
+```
+
+Place `graphql-codegen.json` in that target's directory, such as `Sources/MyAPI/graphql-codegen.json`. Every file or directory URL
+in the JSON must be relative to the directory containing `graphql-codegen.json`. The `output.schema` and `output.support` objects
+are required, but their contents may be empty:
+
+```json
+{
+  "input": {
+    "schemaSource": "schema.graphqls",
+    "documentDirectories": ["GraphQL"],
+    "deprecationPolicy": "include"
+  },
+  "output": {
+    "schema": {
+      "scalars": {
+        "scalarMapping": {
+          "DateTime": {
+            "typeName": "Date",
+            "module": {
+              "name": "Foundation",
+              "prefix": true
+            }
+          }
+        }
+      },
+      "accessLevel": "public"
+    },
+    "documents": {
+      "accessLevel": "public"
+    },
+    "support": {
+      "accessLevel": "public",
+      "httpSupport": {
+        "persistedOperations": {
+          "strategy": "registered",
+          "allowUnregisteredOperations": true
+        },
+        "subscriptionSupport": true
+      }
+    }
+  }
+}
+```
+
+The plugin declares one `Schema.swift` file, one `Support.swift` file, and one `.graphql.swift` file for each GraphQL document.
+Generated files are written directly inside the SwiftPM work directory, with document output preserving each document's path
+relative to its configured input directory. GraphQL document filenames must be unique within the target.
+Plugin configurations must not set `output.schema.directory`,
+`output.documents.directory`, or `output.support.directory`. The plugin never modifies `Sources` or executes the generator while
+declaring its build command. SwiftPM can skip code generation when no declared input has changed.
+
+Generated schema, document, and support access levels each default to `internal`. Set them to `public` when exposing generated types
+from a package library. Set `output.support.httpSupport.enabled` to `false` to omit generated HTTP networking support. Subscription
+support is disabled by default; enable it with `output.support.httpSupport.subscriptionSupport`. Set
+`output.support.httpSupport.enableGETQueries` to `true` to enable GET requests. Each output category includes a generated-file
+header by default; set its `includeHeader` option to `false` to omit that header.
+
+`output.support.httpSupport.persistedOperations.strategy` accepts `"automatic"`, `"registered"`, or `"disabled"`. Automatic
+persisted queries are enabled by default; use `"disabled"` to send complete GraphQL documents. Registered operations send their
+document hash. Generate a manifest separately by calling
+`Codegen.generatePersistedOperationManifestFile(at:)`.
+Set `output.support.httpSupport.persistedOperations.allowUnregisteredOperations` to `true` to choose between registered hashes
+and full operation documents at runtime, which allows unregistered operations during development.
+
+The schema must be a checked-in SDL or introspection JSON file. Remote introspection is unsupported because SwiftPM build-tool
+plugins run without network access. The plugin recursively declares every `.graphql` document in the configured directories,
+along with the original configuration and schema, as build-command inputs. It passes the original JSON configuration and its
+SwiftPM work directory directly to the executable.
+
+### 3. Standalone CLI and JSON Configuration
+
+Use the `graphql-codegen` executable to run code generation manually or from a script. It accepts the same JSON configuration
+options as the build-tool plugin without the plugin's output-directory or remote-introspection restrictions.
+
+Create a `graphql-codegen.json` file:
+
+```json
+{
+  "input": {
+    "schemaSource": "schema.graphqls",
+    "documentDirectories": ["GraphQL"]
+  },
+  "output": {
+    "schema": {
+      "directory": "Generated"
+    },
+    "documents": {
+      "directory": "Generated"
+    },
+    "support": {
+      "directory": "Generated"
+    }
+  }
+}
+```
+
+Pass that JSON file to the executable:
 
 ```bash
 swift run graphql-codegen --file-configuration /path/to/graphql-codegen.json
@@ -227,8 +348,8 @@ struct HeroQuery: GraphQLQuery {
 }
 ```
 
-The [Star Wars example](StarwarsExample) contains a runnable generator and its checked-in output, including the complete
-[generated Hero query](StarwarsExample/client/iOS/GraphQL/HeroQuery.graphql.swift).
+The [Star Wars example](StarwarsExample) demonstrates the generator. The
+[generated Node query](Tests/Fixtures/Generated/Operations/NodeQuery.graphql.swift) shows a complete generated operation.
 
 ## Design
 
