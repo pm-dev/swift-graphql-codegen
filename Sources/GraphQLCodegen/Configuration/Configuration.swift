@@ -28,6 +28,9 @@ public struct Configuration: Sendable {
         if case .spaces(let count) = output.indentation, count < 0 {
             throw Codegen.Error(description: "The indentation space count must not be negative.")
         }
+        if output.support.HTTPSupport != nil {
+            try validateHTTPOperationConformances()
+        }
         switch input.schemaSource {
         case .JSONSchemaFile(let url):
             try verifyLocalURL(
@@ -44,6 +47,30 @@ public struct Configuration: Sendable {
                 configuration: "schema source"
             )
         case .introspectionEndpoint: break
+        }
+    }
+
+    private func validateHTTPOperationConformances() throws {
+        let responseDataConformances = output.documents.operations.responseData.conformances.map {
+            SwiftConformanceName(source: $0)
+        }
+        guard responseDataConformances.contains(where: { $0.includesDecodable }),
+              responseDataConformances.contains(where: { $0.includesSendable })
+        else {
+            throw Codegen.Error(description: """
+            HTTP support requires output.documents.operations.responseData.conformances to include Decodable and Sendable.
+            """)
+        }
+
+        let variableConformances = output.documents.operations.variables.conformances.map {
+            SwiftConformanceName(source: $0)
+        }
+        guard variableConformances.contains(where: { $0.includesEncodable }),
+              variableConformances.contains(where: { $0.includesSendable })
+        else {
+            throw Codegen.Error(description: """
+            HTTP support requires output.documents.operations.variables.conformances to include Encodable and Sendable.
+            """)
         }
     }
 
