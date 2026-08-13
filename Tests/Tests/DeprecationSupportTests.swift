@@ -114,8 +114,8 @@ struct DeprecationSupportTests {
         #expect(location.column == 10)
     }
 
-    @Test
-    func rejectsDeprecatedUsageFromJSONSchema() async throws {
+    @Test(arguments: [false, true])
+    func rejectsDeprecatedUsageFromJSONSchema(isGraphQLResponse: Bool) async throws {
         let fixture = try makeFixture(document: #"query Search { search(old: "value") }"#)
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
         let graphQLJS = try GraphQLJS()
@@ -124,7 +124,8 @@ struct DeprecationSupportTests {
             introspectionQuery: IntrospectionQuery().query
         )
         let schemaJSONURL = fixture.directory.appending(path: "schema.json", directoryHint: .notDirectory)
-        try introspection.text.write(to: schemaJSONURL, atomically: true, encoding: .utf8)
+        let schemaJSON = isGraphQLResponse ? "{\"data\":\(introspection.text)}" : introspection.text
+        try schemaJSON.write(to: schemaJSONURL, atomically: true, encoding: .utf8)
         let configuration = makeConfiguration(
             schemaSource: .JSONSchemaFile(schemaJSONURL),
             deprecationPolicy: .exclude,

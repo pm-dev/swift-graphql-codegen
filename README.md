@@ -164,7 +164,9 @@ struct MyCodegenCLI {
 }
 ```
 
-JSON schema files and introspection endpoints are also supported through `Configuration.Input.SchemaSource`.
+JSON schema files and introspection endpoints are also supported through `Configuration.Input.SchemaSource`. JSON schema files
+can contain either the introspection query's `data` object (`{"__schema": ...}`) or the complete GraphQL response
+(`{"data": {"__schema": ...}}`).
 
 #### Run the Generator
 

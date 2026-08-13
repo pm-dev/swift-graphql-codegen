@@ -143,6 +143,17 @@ struct SchemaLoader {
 
     private func loadSchemaFromJSONFile(_ schemaFile: URL) throws -> LoadedIntrospection {
         let data = try Data(contentsOf: schemaFile)
+
+        if let response = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let schemaObject = response["data"] as? [String: Any] {
+            let __schema = try JSONDecoder().decode(IntrospectionResponse.self, from: data).data.__schema
+            let schemaJSON = try JSONSerialization.data(withJSONObject: schemaObject)
+            return try LoadedIntrospection(
+                schema: __schema,
+                schemaJSON: decodeUTF8(schemaJSON, source: schemaFile)
+            )
+        }
+
         let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: data).__schema
         return try LoadedIntrospection(
             schema: __schema,
