@@ -1,7 +1,13 @@
 [tools]
 periphery = "3.8.0"
+pre-commit = "4.6.1"
 swift = "6.3.3"
+swiftformat = "0.62.1"
 swiftlint = "0.65.0"
+
+[tasks.format]
+description = "Format Swift sources"
+run = "swiftformat . --cache ignore"
 
 [tasks.lint]
 description = "Lint Swift sources"

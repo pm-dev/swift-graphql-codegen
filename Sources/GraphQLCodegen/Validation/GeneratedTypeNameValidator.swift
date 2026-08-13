@@ -9,6 +9,10 @@ struct GeneratedTypeNameValidator {
     private let outputPlan: CodegenOutputPlan
     private let schemaTypeNames: Set<SwiftTypeIdentifier>
 
+    private var configuration: Configuration {
+        outputPlan.configuration
+    }
+
     init(outputPlan: CodegenOutputPlan) {
         self.outputPlan = outputPlan
         self.schemaTypeNames = Set(outputPlan.schemaWriter.topLevelDeclarations.map(\.name))
@@ -18,10 +22,6 @@ struct GeneratedTypeNameValidator {
         try validateTopLevelDeclarations()
         try validateSchemaEnumCaseNames()
         try validateDocumentScopes()
-    }
-
-    private var configuration: Configuration {
-        outputPlan.configuration
     }
 
     private func validateTopLevelDeclarations() throws {

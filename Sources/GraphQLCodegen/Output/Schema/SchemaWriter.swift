@@ -20,6 +20,15 @@ struct SchemaWriter {
     let indirectOneOfInputObjectFields: [String: Set<String>]
     let typePlans: [TypePlan]
 
+    var topLevelDeclarations: [GeneratedTypeDeclaration] {
+        typePlans.map { type in
+            GeneratedTypeDeclaration(
+                name: SwiftTypeIdentifier(swiftName: type.name),
+                origin: .schema(.type(type.name))
+            )
+        }
+    }
+
     init(configuration: Configuration, schema: Schema, resolvedDocuments: ResolvedDocuments) {
         self.configuration = configuration
         self.indirectOneOfInputObjectFields = resolvedDocuments.indirectOneOfInputObjectFields
@@ -31,15 +40,6 @@ struct SchemaWriter {
                 return `enum`.ast.isSystemType ? nil : .enum(`enum`)
             }
             return schema.typeCache.inputObjects[name].map(TypePlan.inputObject)
-        }
-    }
-
-    var topLevelDeclarations: [GeneratedTypeDeclaration] {
-        typePlans.map { type in
-            GeneratedTypeDeclaration(
-                name: SwiftTypeIdentifier(swiftName: type.name),
-                origin: .schema(.type(type.name))
-            )
         }
     }
 

@@ -6,6 +6,10 @@ struct SwiftTypeIdentifier: Hashable {
 
     let unescaped: String
 
+    var source: String {
+        identifier(unescaped)
+    }
+
     init(capitalizing graphQLName: String) {
         unescaped = graphQLName.capitalizedFirst
     }
@@ -53,9 +57,5 @@ struct SwiftTypeIdentifier: Hashable {
             }
             unescaped = typeName.hasSuffix(operationType) ? typeName : typeName + operationType
         }
-    }
-
-    var source: String {
-        identifier(unescaped)
     }
 }

@@ -4,7 +4,7 @@ import Testing
 
 struct GraphQLHasDefaultTests {
     @Test
-    func testUseDefaultOmitsValues() throws {
+    func useDefaultOmitsValues() throws {
         let data = try JSONEncoder().encode(DefaultsQuery().variables)
         let json = try #require(String(data: data, encoding: .utf8))
 
@@ -12,7 +12,7 @@ struct GraphQLHasDefaultTests {
     }
 
     @Test
-    func testValueEncodesValues() throws {
+    func valueEncodesValues() throws {
         let variables = DefaultsQuery(
             input: .value(DefaultsInput()),
             required: .value(3),

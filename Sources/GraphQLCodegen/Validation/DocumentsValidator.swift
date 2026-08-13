@@ -1,27 +1,6 @@
 import Foundation
 
 struct DocumentsValidator {
-    private struct GraphQLError: Decodable {
-        struct Location: Decodable {
-            let line: Int
-            let column: Int
-
-            var description: String {
-                "line: \(line), column: \(column)"
-            }
-        }
-
-        let message: String
-        let locations: [Location]
-
-        var description: String {
-            """
-            \(message)
-            \(locations.map(\.description).joined(separator: "\n"))
-            """
-        }
-    }
-
     struct ValidationError: CustomStringConvertible, Error {
         let documentErrors: [DocumentError]
 
@@ -45,6 +24,27 @@ struct DocumentsValidator {
 
         var description: String {
             "Operation: \(operationName ?? "<unnamed>")\n\n\(errors.joined(separator: "\n\n"))"
+        }
+    }
+
+    private struct GraphQLError: Decodable {
+        struct Location: Decodable {
+            let line: Int
+            let column: Int
+
+            var description: String {
+                "line: \(line), column: \(column)"
+            }
+        }
+
+        let message: String
+        let locations: [Location]
+
+        var description: String {
+            """
+            \(message)
+            \(locations.map(\.description).joined(separator: "\n"))
+            """
         }
     }
 

@@ -47,7 +47,7 @@ struct __Schema: Decodable {
         }
 
         struct Enum: Decodable {
-            private static let typeSystemEnums: Set<String> = ["__TypeKind", "__DirectiveLocation"]
+            private static let typeSystemEnums: Set = ["__TypeKind", "__DirectiveLocation"]
 
             let description: String?
             let name: String

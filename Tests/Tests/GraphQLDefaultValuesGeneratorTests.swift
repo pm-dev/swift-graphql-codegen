@@ -6,13 +6,14 @@ struct GraphQLDefaultValuesGeneratorTests {
     private static let testsDirectory = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent() // Inside 'Tests'
         .deletingLastPathComponent() // Inside root 'Tests'
+
     private let definitionsDirectory = GraphQLDefaultValuesGeneratorTests.testsDirectory
         .appending(path: "Fixtures/Definitions/Defaults", directoryHint: .isDirectory)
     private let expectedDirectory = GraphQLDefaultValuesGeneratorTests.testsDirectory
         .appending(path: "Fixtures/Generated/Defaults", directoryHint: .isDirectory)
 
     @Test
-    func testGeneratesDefaultValuesAPI() async throws {
+    func generatesDefaultValuesAPI() async throws {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
             path: UUID().uuidString,
             directoryHint: .isDirectory

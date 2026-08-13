@@ -23,10 +23,11 @@ struct DocumentsLoader {
         } else {
             excludedSchemaURL = nil
         }
-        let requiringUniqueFilenames = switch configuration.output.documents.directory {
-        case .definition: false
-        case .directory: true
-        }
+        let requiringUniqueFilenames =
+            switch configuration.output.documents.directory {
+            case .definition: false
+            case .directory: true
+            }
         let documentFiles = try DocumentScanner(
             directories: configuration.input.documentDirectories
         ).scan(excluding: excludedSchemaURL, requiringUniqueFilenames: requiringUniqueFilenames)

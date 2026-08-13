@@ -32,16 +32,6 @@ struct DeprecationUsageValidator {
         }
     }
 
-    private struct GraphQLIssue: Decodable {
-        struct Location: Decodable {
-            let line: Int
-            let column: Int
-        }
-
-        let message: String
-        let locations: [Location]
-    }
-
     struct ExcludedUsageError: CustomStringConvertible, Error {
         let diagnostics: [Diagnostic]
 
@@ -54,6 +44,16 @@ struct DeprecationUsageValidator {
         }
     }
 
+    private struct GraphQLIssue: Decodable {
+        struct Location: Decodable {
+            let line: Int
+            let column: Int
+        }
+
+        let message: String
+        let locations: [Location]
+    }
+
     let documents: Documents
     let graphQLJS: GraphQLJS
     let policy: Configuration.Input.DeprecationPolicy
@@ -62,10 +62,11 @@ struct DeprecationUsageValidator {
     func validate() throws -> [Diagnostic] {
         guard !documents.documents.isEmpty else { return [] }
 
-        let argumentsOnly = switch policy {
-        case .include: true
-        case .exclude: false
-        }
+        let argumentsOnly =
+            switch policy {
+            case .include: true
+            case .exclude: false
+            }
         let issuesJSON = try graphQLJS.findDeprecatedUsages(
             documents.documents.map(\.sourceText),
             schemaJSON: schemaJSON,

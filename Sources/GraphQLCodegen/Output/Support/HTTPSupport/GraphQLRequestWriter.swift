@@ -3,20 +3,13 @@ import Foundation
 struct GraphQLRequestWriter: SupportOutput {
     let plan: HTTPGenerationPlan
     let configuration: Configuration
+
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [SwiftTypeIdentifier(swiftName: "GraphQLRequest")]
         if case .automatic = plan.persistence {
             typeNames.append(SwiftTypeIdentifier(swiftName: "PersistedOperationRetry"))
         }
         return typeNames
-    }
-
-    private var includeSubscriptionSupport: Bool {
-        plan.includesSubscriptions
-    }
-
-    private var enableGETQueries: Bool {
-        plan.enablesGETQueries
     }
 
     var source: String {
@@ -28,6 +21,14 @@ struct GraphQLRequestWriter: SupportOutput {
         case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
         case .postWithoutPersistence: postWithNoPersistedOperations()
         }
+    }
+
+    private var includeSubscriptionSupport: Bool {
+        plan.includesSubscriptions
+    }
+
+    private var enableGETQueries: Bool {
+        plan.enablesGETQueries
     }
 
     private func requestDeclaration() -> String {
@@ -138,7 +139,7 @@ struct GraphQLRequestWriter: SupportOutput {
                 /// The retry configuration for an unknown persisted operation.
                 let persistedOperationRetry: PersistedOperationRetry?
             """
-        case .registered, .none:
+        case .none, .registered:
             ""
         }
     }

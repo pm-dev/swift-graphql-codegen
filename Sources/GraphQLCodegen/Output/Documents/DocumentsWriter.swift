@@ -2,10 +2,6 @@ import Foundation
 import OrderedCollections
 
 struct DocumentsWriter {
-    private enum GeneratedFileFinderError: Error {
-        case failedToEnumerateDirectory(URL)
-    }
-
     enum DefinitionPlan {
         case fragment(
             ResolvedFragment,
@@ -26,8 +22,16 @@ struct DocumentsWriter {
         let definitions: [DefinitionPlan]
     }
 
+    private enum GeneratedFileFinderError: Error {
+        case failedToEnumerateDirectory(URL)
+    }
+
     let configuration: Configuration
     let documentPlans: [DocumentPlan]
+
+    var topLevelDeclarations: [GeneratedTypeDeclaration] {
+        documentPlans.flatMap(\.definitions).map(\.declaration)
+    }
 
     init(configuration: Configuration, resolvedDocuments: ResolvedDocuments) throws {
         var documentPlans: [DocumentPlan] = []
@@ -36,8 +40,8 @@ struct DocumentsWriter {
             for definition in resolvedDocument.resolvedDefinitions {
                 switch definition {
                 case .operation(let operation):
-                    let declaration = GeneratedTypeDeclaration(
-                        name: try SwiftTypeIdentifier(
+                    let declaration = try GeneratedTypeDeclaration(
+                        name: SwiftTypeIdentifier(
                             operation: operation.operation,
                             in: resolvedDocument.document
                         ),
@@ -71,10 +75,6 @@ struct DocumentsWriter {
         self.documentPlans = documentPlans
     }
 
-    var topLevelDeclarations: [GeneratedTypeDeclaration] {
-        documentPlans.flatMap(\.definitions).map(\.declaration)
-    }
-
     func write(using fileOutput: FileOutput) throws {
         try validateOutputURLs()
         if case .directory(let url) = configuration.output.documents.directory {
@@ -99,8 +99,8 @@ struct DocumentsWriter {
                     let includesSelectionSet,
                     let declaration
                 ):
-                    file.addType(
-                        try buildFragment(
+                    try file.addType(
+                        buildFragment(
                             resolvedFragment,
                             typeName: declaration.name,
                             includesSelectionSet: includesSelectionSet,

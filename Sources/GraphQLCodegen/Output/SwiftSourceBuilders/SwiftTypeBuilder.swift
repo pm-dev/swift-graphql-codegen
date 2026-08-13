@@ -14,6 +14,7 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         var body: [String] = []
         var parameterDocumentation: [ParameterDocumentation] = []
     }
+
     private let declaration: [String]
     private let isPublic: Bool
     private var propertyInitializer = Initializer()
@@ -129,7 +130,7 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
 
     private func buildInitializer(_ initializer: Initializer, indentation: String) -> [String] {
         guard !initializer.body.isEmpty else { return [] }
-        var lines: [String] = [""]
+        var lines = [""]
         if !initializer.parameterDocumentation.isEmpty {
             lines.append(indentation + "/// - Parameters:")
             for parameter in initializer.parameterDocumentation {

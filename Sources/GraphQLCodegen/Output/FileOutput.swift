@@ -124,7 +124,7 @@ final class FileOutput {
         }
 
         for directory in commitState.createdDirectories.sorted(by: pathOrder).reversed()
-        where fileExists(at: directory) {
+            where fileExists(at: directory) {
             if let failure = recoveryFailure(
                 "Failed to remove created directory \(directory.path)",
                 operation: { try FileManager.default.removeItem(at: directory) }

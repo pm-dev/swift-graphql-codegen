@@ -2,12 +2,15 @@
 --disable hoistPatternLet
 --disable redundantRawValues
 --disable redundantSelf
+--disable wrapMultilineStatementBraces
+
+--exclude .build,node_modules,StarwarsExample/*/iOS/GraphQL,StarwarsExample/*/Packages/GraphQL,Tests/Fixtures/Generated
 
 --enable blankLineAfterImports
 --enable isEmpty
 --enable noExplicitOwnership
 --enable organizeDeclarations
---enable redundantProperty
+--enable redundantVariable
 --enable sortSwitchCases
 --enable unusedPrivateDeclarations
 --enable wrapEnumCases
@@ -26,8 +29,8 @@
 --markcategories false
 --typeorder beforeMarks,nestedType,staticProperty,staticPropertyWithBody,staticMethod,classPropertyWithBody,classMethod,overriddenProperty,swiftUIPropertyWrapper,instanceProperty,instancePropertyWithBody,instanceLifecycle,overriddenMethod,instanceMethod,swiftUIProperty,swiftUIMethod
 --xcodeindentation enabled
---storedvarattrs prev-line
---computedvarattrs prev-line
+--storedvarattrs same-line
+--computedvarattrs same-line
 --ranges no-space
 --wraparguments before-first
 --wrapcollections before-first

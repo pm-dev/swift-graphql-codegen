@@ -5,6 +5,15 @@ struct SupportWriter {
 
     private let outputs: [any SupportOutput]
 
+    var topLevelDeclarations: [GeneratedTypeDeclaration] {
+        outputs.flatMap(\.topLevelTypeNames).map { typeName in
+            GeneratedTypeDeclaration(
+                name: typeName,
+                origin: .support(typeName.unescaped)
+            )
+        }
+    }
+
     init(
         configuration: Configuration,
         hasMutation: Bool,
@@ -43,15 +52,6 @@ struct SupportWriter {
         }
         self.configuration = configuration
         self.outputs = outputs
-    }
-
-    var topLevelDeclarations: [GeneratedTypeDeclaration] {
-        outputs.flatMap(\.topLevelTypeNames).map { typeName in
-            GeneratedTypeDeclaration(
-                name: typeName,
-                origin: .support(typeName.unescaped)
-            )
-        }
     }
 
     func write(using fileOutput: FileOutput) throws {

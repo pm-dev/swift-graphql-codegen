@@ -4,6 +4,7 @@ struct GraphQLOperationWriter: SupportOutput {
     let configuration: Configuration
     let hasMutation: Bool
     let hasSubscription: Bool
+
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [
             SwiftTypeIdentifier(swiftName: "GraphQLOperation"),

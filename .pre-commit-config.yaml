@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: swiftformat
+        name: Format Swift
+        entry: mise exec -- swiftformat --cache ignore
+        language: system
+        types: [swift]
+        exclude: ^(StarwarsExample/[^/]+/(iOS/GraphQL|Packages/GraphQL)/|Tests/Fixtures/Generated/)

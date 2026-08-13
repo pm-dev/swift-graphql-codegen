@@ -16,10 +16,10 @@ struct GraphQLCodegenPlugin: BuildToolPlugin {
             excluding: schemaURL,
             requiringUniqueFilenames: true
         )
-        return [
+        return try [
             .buildCommand(
                 displayName: "Generate GraphQL sources for \(target.name)",
-                executable: try context.tool(named: "graphql-codegen").url,
+                executable: context.tool(named: "graphql-codegen").url,
                 arguments: [
                     "--file-configuration",
                     configurationURL.path,

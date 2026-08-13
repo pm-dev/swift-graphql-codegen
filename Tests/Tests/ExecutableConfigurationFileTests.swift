@@ -73,28 +73,28 @@ struct ExecutableConfigurationFileTests {
     func decodesScalarMappingsWithModuleDefaults() throws {
         let configuration = try configuration(
             from:
-                """
-                {
-                  "input": {
-                    "schemaSource": "schema.graphqls",
-                    "documentDirectories": []
-                  },
-                  "output": {
-                    "schema": {
-                      "directory": "Schema",
-                      "scalars": {
-                        "scalarMapping": {
-                          "UUID": {
-                            "typeName": "UUID",
-                            "module": { "name": "Foundation" }
-                          }
-                        }
+            """
+            {
+              "input": {
+                "schemaSource": "schema.graphqls",
+                "documentDirectories": []
+              },
+              "output": {
+                "schema": {
+                  "directory": "Schema",
+                  "scalars": {
+                    "scalarMapping": {
+                      "UUID": {
+                        "typeName": "UUID",
+                        "module": { "name": "Foundation" }
                       }
-                    },
-                    "support": { "directory": "Support" }
+                    }
                   }
-                }
-                """
+                },
+                "support": { "directory": "Support" }
+              }
+            }
+            """
         )
         let scalar = try #require(configuration.output.schema.scalars.scalarMapping["UUID"])
         #expect(scalar.typeName == "UUID")
@@ -117,7 +117,8 @@ struct ExecutableConfigurationFileTests {
             httpSupport: #"{"persistedOperations":{"strategy":"registered"}}"#
         )
         guard case .registered(let defaultAllowUnregisteredOperations)? =
-            registeredByDefault.output.support.HTTPSupport?.persistedOperations else {
+            registeredByDefault.output.support.HTTPSupport?.persistedOperations
+        else {
             Issue.record("Expected registered persisted operations with the factory default")
             return
         }
@@ -127,7 +128,8 @@ struct ExecutableConfigurationFileTests {
             httpSupport: #"{"persistedOperations":{"strategy":"registered","allowUnregisteredOperations":true}}"#
         )
         guard case .registered(let allowUnregisteredOperations)? =
-            registered.output.support.HTTPSupport?.persistedOperations else {
+            registered.output.support.HTTPSupport?.persistedOperations
+        else {
             Issue.record("Expected registered persisted operations")
             return
         }
@@ -138,19 +140,19 @@ struct ExecutableConfigurationFileTests {
     func decodesIntrospectionEndpointsWithoutBuildPluginRestrictions() throws {
         let configuration = try configuration(
             from:
-                """
-                {
-                  "input": {
-                    "schemaSource": "https://example.com/graphql",
-                    "schemaHeaders": { "Authorization": "Bearer token" },
-                    "documentDirectories": []
-                  },
-                  "output": {
-                    "schema": { "directory": "Schema" },
-                    "support": { "directory": "Support" }
-                  }
-                }
-                """
+            """
+            {
+              "input": {
+                "schemaSource": "https://example.com/graphql",
+                "schemaHeaders": { "Authorization": "Bearer token" },
+                "documentDirectories": []
+              },
+              "output": {
+                "schema": { "directory": "Schema" },
+                "support": { "directory": "Support" }
+              }
+            }
+            """
         )
 
         guard case .introspectionEndpoint(let url, let headers) = configuration.input.schemaSource else {
@@ -165,44 +167,44 @@ struct ExecutableConfigurationFileTests {
     func decodesExecutableConfigurationOptions() throws {
         let configuration = try configuration(
             from:
-                """
-                {
-                  "input": {
-                    "schemaSource": "schema.graphqls",
-                    "documentDirectories": ["Documents"],
-                    "deprecationPolicy": "exclude"
-                  },
-                  "output": {
-                    "indentation": { "style": "tab" },
-                    "schema": {
-                      "directory": "Schema",
-                      "includeHeader": false,
-                      "scalars": {
-                        "scalarMapping": {
-                          "UUID": {
-                            "typeName": "UUID",
-                            "module": { "name": "Foundation", "prefix": true }
-                          }
-                        }
-                      },
-                      "enums": {
-                        "caseConversion": { "from": "macro", "to": "lowerCamel" }
-                      },
-                      "accessLevel": "public"
-                    },
-                    "documents": {
-                      "includeHeader": false,
-                      "accessLevel": "public"
-                    },
-                    "support": {
-                      "directory": "Support",
-                      "httpSupport": {
-                        "persistedOperations": { "strategy": "disabled" }
+            """
+            {
+              "input": {
+                "schemaSource": "schema.graphqls",
+                "documentDirectories": ["Documents"],
+                "deprecationPolicy": "exclude"
+              },
+              "output": {
+                "indentation": { "style": "tab" },
+                "schema": {
+                  "directory": "Schema",
+                  "includeHeader": false,
+                  "scalars": {
+                    "scalarMapping": {
+                      "UUID": {
+                        "typeName": "UUID",
+                        "module": { "name": "Foundation", "prefix": true }
                       }
                     }
+                  },
+                  "enums": {
+                    "caseConversion": { "from": "macro", "to": "lowerCamel" }
+                  },
+                  "accessLevel": "public"
+                },
+                "documents": {
+                  "includeHeader": false,
+                  "accessLevel": "public"
+                },
+                "support": {
+                  "directory": "Support",
+                  "httpSupport": {
+                    "persistedOperations": { "strategy": "disabled" }
                   }
                 }
-                """
+              }
+            }
+            """
         )
 
         #expect(configuration.input.deprecationPolicy == .exclude)
@@ -233,19 +235,19 @@ struct ExecutableConfigurationFileTests {
         let outputDirectory = URL(fileURLWithPath: "/tmp/GraphQLProject/Generated")
         let configuration = try configuration(
             from:
-                """
-                {
-                  "input": {
-                    "schemaSource": "schema.graphqls",
-                    "documentDirectories": ["Documents"]
-                  },
-                  "output": {
-                    "schema": \(schema),
-                    "documents": \(documents),
-                    "support": \(support)
-                  }
-                }
-                """,
+            """
+            {
+              "input": {
+                "schemaSource": "schema.graphqls",
+                "documentDirectories": ["Documents"]
+              },
+              "output": {
+                "schema": \(schema),
+                "documents": \(documents),
+                "support": \(support)
+              }
+            }
+            """,
             outputDirectory: outputDirectory
         )
 
@@ -303,21 +305,21 @@ struct ExecutableConfigurationFileTests {
     private func configuration(httpSupport json: String) throws -> Configuration {
         try configuration(
             from:
-                """
-                {
-                  "input": {
-                    "schemaSource": "schema.graphqls",
-                    "documentDirectories": []
-                  },
-                  "output": {
-                    "schema": { "directory": "Schema" },
-                    "support": {
-                      "directory": "Support",
-                      "httpSupport": \(json)
-                    }
-                  }
+            """
+            {
+              "input": {
+                "schemaSource": "schema.graphqls",
+                "documentDirectories": []
+              },
+              "output": {
+                "schema": { "directory": "Schema" },
+                "support": {
+                  "directory": "Support",
+                  "httpSupport": \(json)
                 }
-                """
+              }
+            }
+            """
         )
     }
 

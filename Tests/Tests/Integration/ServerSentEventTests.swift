@@ -9,10 +9,10 @@ struct ServerSentEventTests {
         let session = makeSession()
         defer { session.invalidateAndCancel() }
 
-        let stream = try await session.subscribe(try makeRequest(path: "standards"))
+        let stream = try await session.subscribe(makeRequest(path: "standards"))
         var values: [GraphQLEnum<State>] = []
         for try await response in stream {
-            values.append(try #require(response.data).stateChanged)
+            try values.append(#require(response.data).stateChanged)
         }
 
         #expect(values == [.known(.stopped)])
@@ -23,7 +23,7 @@ struct ServerSentEventTests {
         let session = makeSession()
         defer { session.invalidateAndCancel() }
 
-        let stream = try await session.subscribe(try makeRequest(path: "complete-without-data"))
+        let stream = try await session.subscribe(makeRequest(path: "complete-without-data"))
         var yieldedResult = false
         for try await _ in stream {
             yieldedResult = true
@@ -39,7 +39,7 @@ struct ServerSentEventTests {
 
         var rejected = false
         do {
-            let stream = try await session.subscribe(try makeRequest(path: "missing-complete"))
+            let stream = try await session.subscribe(makeRequest(path: "missing-complete"))
             for try await _ in stream {}
         } catch URLSession.SubscriptionError.missingCompleteEvent {
             rejected = true
@@ -56,7 +56,7 @@ struct ServerSentEventTests {
         var rejectedMaximumByteCount: Int?
         do {
             let stream = try await session.subscribe(
-                try makeRequest(path: "oversized"),
+                makeRequest(path: "oversized"),
                 maximumEventByteCount: 8
             )
             for try await _ in stream {}
@@ -75,7 +75,7 @@ struct ServerSentEventTests {
         var rejectedMaximumByteCount: Int?
         do {
             let stream = try await session.subscribe(
-                try makeRequest(path: "oversized-line"),
+                makeRequest(path: "oversized-line"),
                 maximumLineByteCount: 8
             )
             for try await _ in stream {}
@@ -92,7 +92,7 @@ struct ServerSentEventTests {
         defer { session.invalidateAndCancel() }
 
         let stream = try await session.subscribe(
-            try makeRequest(path: "maximum-line"),
+            makeRequest(path: "maximum-line"),
             maximumLineByteCount: 15
         )
         var yieldedResult = false
@@ -111,7 +111,7 @@ struct ServerSentEventTests {
         var rejectedMaximumByteCount: Int?
         do {
             _ = try await session.subscribe(
-                try makeRequest(path: "unused"),
+                makeRequest(path: "unused"),
                 maximumLineByteCount: 0
             )
         } catch URLSession.SubscriptionError.invalidMaximumLineByteCount(let maximumByteCount) {
@@ -128,7 +128,7 @@ struct ServerSentEventTests {
 
         var rejected = false
         do {
-            let stream = try await session.subscribe(try makeRequest(path: "invalid-utf8"))
+            let stream = try await session.subscribe(makeRequest(path: "invalid-utf8"))
             for try await _ in stream {}
         } catch URLSession.SubscriptionError.invalidUTF8 {
             rejected = true
@@ -145,7 +145,7 @@ struct ServerSentEventTests {
         let secondResultDecoded = DispatchSemaphore(value: 0)
         let request = try GraphQLRequest(
             subscription: OverflowProbeSubscription(),
-            endpoint: URL(string: "https://subscriptions.test/overflow")!
+            endpoint: #require(URL(string: "https://subscriptions.test/overflow"))
         )
         let stream = try await session.subscribe(
             request,
@@ -273,11 +273,12 @@ private final class SubscriptionURLProtocol: URLProtocol {
 private struct OverflowProbeData: Decodable, Sendable {}
 
 private struct OverflowProbeSubscription: GraphQLSubscription {
-    static let operationName: String? = "OverflowProbe"
-    static let document = "subscription OverflowProbe { stateChanged }"
-    let variables: Never? = nil
-    let extensions: [String: Fixtures.AnyEncodable]? = nil
-
     typealias Data = OverflowProbeData
     typealias Variables = Never?
+
+    static let operationName: String? = "OverflowProbe"
+    static let document = "subscription OverflowProbe { stateChanged }"
+
+    let variables: Never? = nil
+    let extensions: [String: Fixtures.AnyEncodable]? = nil
 }

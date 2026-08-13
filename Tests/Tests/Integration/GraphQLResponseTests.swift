@@ -3,6 +3,8 @@ import Foundation
 import Testing
 
 struct GraphQLResponseTests {
+    private struct Payload: Decodable, Sendable {}
+
     @Test
     func treatsExplicitNullDataAsAnExecutionResult() throws {
         let response = try JSONDecoder().decode(
@@ -56,6 +58,4 @@ struct GraphQLResponseTests {
             )
         }
     }
-
-    private struct Payload: Decodable, Sendable {}
 }

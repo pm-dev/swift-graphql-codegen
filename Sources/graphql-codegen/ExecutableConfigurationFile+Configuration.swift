@@ -17,17 +17,17 @@ extension ExecutableConfigurationFile {
                 : .SDLSchemaFile(url)
         }
 
-        var configuredInput = Configuration.Input.input(
+        var configuredInput = try Configuration.Input.input(
             schemaSource: schemaSource,
-            documentDirectories: try resolveDocumentDirectories(relativeTo: directory)
+            documentDirectories: resolveDocumentDirectories(relativeTo: directory)
         )
         if let deprecationPolicy = input.deprecationPolicy {
             configuredInput.deprecationPolicy = try Self.deprecationPolicy(deprecationPolicy)
         }
 
-        var configuredOutput = Configuration.Output.output(
-            schema: try schemaConfiguration(relativeTo: directory, outputDirectory: outputDirectory),
-            support: try supportConfiguration(relativeTo: directory, outputDirectory: outputDirectory)
+        var configuredOutput = try Configuration.Output.output(
+            schema: schemaConfiguration(relativeTo: directory, outputDirectory: outputDirectory),
+            support: supportConfiguration(relativeTo: directory, outputDirectory: outputDirectory)
         )
         if let indentation = output.indentation {
             switch indentation.style {
@@ -80,7 +80,8 @@ extension ExecutableConfigurationFile {
             relativeTo: directory,
             override: outputDirectory,
             parameter: "output.schema.directory"
-        ) else {
+        )
+        else {
             throw ConfigurationError(description: "Missing required output directory: output.schema.directory")
         }
         var schema = Configuration.Output.Schema.schema(directory: schemaDirectory)
@@ -112,9 +113,9 @@ extension ExecutableConfigurationFile {
                 schema.enums.conformances = conformances
             }
             if let caseConversion = enums.caseConversion {
-                schema.enums.caseConversion = .conversion(
-                    from: try Self.casing(caseConversion.from),
-                    to: try Self.casing(caseConversion.to)
+                schema.enums.caseConversion = try .conversion(
+                    from: Self.casing(caseConversion.from),
+                    to: Self.casing(caseConversion.to)
                 )
             }
         }
@@ -211,7 +212,8 @@ extension ExecutableConfigurationFile {
             relativeTo: directory,
             override: outputDirectory,
             parameter: "output.support.directory"
-        ) else {
+        )
+        else {
             throw ConfigurationError(description: "Missing required output directory: output.support.directory")
         }
         var support = Configuration.Output.Support.support(directory: supportDirectory)
