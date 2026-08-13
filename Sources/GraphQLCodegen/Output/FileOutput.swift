@@ -40,6 +40,11 @@ final class FileOutput {
     }
 
     func write(_ data: Data, to url: URL) throws {
+        if fileExists(at: url),
+           try Data(contentsOf: url, options: .mappedIfSafe) == data {
+            return
+        }
+
         let tempURL = temporaryURL()
         try data.write(to: tempURL)
         stagedFiles.append(StagedFile(temporaryURL: tempURL, finalURL: url))
