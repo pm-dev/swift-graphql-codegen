@@ -154,9 +154,9 @@ struct GraphQLRequestWriter: SupportOutput {
     private func defaultDecoderDeclaration() -> String {
         """
 
-            /// The decoding function used by default for a GraphQL response.
-            \(accessLevel)static var defaultDecoder: @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
-                { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
+            /// The decoding function used by default for an operation and its GraphQL response.
+            \(accessLevel)static var defaultDecoder: @Sendable (Operation, Data) throws -> GraphQLResponse<Operation.Data> {
+                { _, data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
             }
         """
     }

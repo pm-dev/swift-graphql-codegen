@@ -439,10 +439,10 @@ extension URLSession {
     /// Executes a single-response GraphQL operation.
     /// - Parameters:
     ///   - request: The request containing the `URLRequest` to be performed.
-    ///   - decoder: The function used to turn response data into an Operation.Data instance.
+    ///   - decoder: The function used to decode response data for the operation.
     public func request<Operation: GraphQLSingleResponseOperation>(
         _ request: GraphQLRequest<Operation>,
-        decoder: (Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
+        decoder: (Operation, Data) throws -> GraphQLResponse<Operation.Data> = GraphQLRequest<Operation>.defaultDecoder
     ) async throws -> GraphQLResponse<Operation.Data>.ExecutionResult {
         let (data, response) = try await data(for: request.urlRequest)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -462,7 +462,7 @@ extension URLSession {
         guard isGraphQLResponse || (200..<300).contains(httpResponse.statusCode) else {
             throw HTTPError.badResponse(httpResponse, data)
         }
-        switch try decoder(data) {
+        switch try decoder(request.operation, data) {
         case .executionResult(let executionResult): return executionResult
         case .requestError(let requestError): throw requestError
         }
@@ -489,14 +489,14 @@ extension URLSession {
     /// - Parameters:
     ///   - request: The request containing the `URLRequest` to be performed. The `URLRequest` must have
     ///   `text/event-stream` set in the "accept" header.
-    ///   - decoder: The function used to turn response data into a Subscription.Data instance.
+    ///   - decoder: The function used to decode response data for the subscription.
     ///   - maximumEventByteCount: The largest combined payload allowed across an event's `data` fields.
     ///   - maximumLineByteCount: The largest SSE line allowed, excluding its terminator. The default provides
     ///   framing headroom beyond `maximumEventByteCount` for a payload sent on one `data` line.
     ///   - maximumBufferedResultCount: The number of decoded results that may wait for the stream consumer.
     public func subscribe<Subscription: GraphQLSubscription>(
         _ request: GraphQLRequest<Subscription>,
-        decoder: @escaping @Sendable (Data) throws -> GraphQLResponse<Subscription.Data> = GraphQLRequest<Subscription>.defaultDecoder,
+        decoder: @escaping @Sendable (Subscription, Data) throws -> GraphQLResponse<Subscription.Data> = GraphQLRequest<Subscription>.defaultDecoder,
         maximumEventByteCount: Int = 1_048_576,
         maximumLineByteCount: Int = 1_052_672,
         maximumBufferedResultCount: Int = 16
@@ -520,6 +520,7 @@ extension URLSession {
         guard response.mimeType?.caseInsensitiveCompare("text/event-stream") == .orderedSame else {
             throw SubscriptionError.invalidContentType(response.mimeType)
         }
+        let operation = request.operation
         return AsyncThrowingStream(
             bufferingPolicy: .bufferingOldest(maximumBufferedResultCount)
         ) { continuation in
@@ -540,7 +541,7 @@ extension URLSession {
                         guard let event else { continue }
                         switch event.name {
                         case .next:
-                            switch try decoder(event.data) {
+                            switch try decoder(operation, event.data) {
                             case .executionResult(let executionResult):
                                 switch continuation.yield(executionResult) {
                                 case .enqueued: break
@@ -747,9 +748,9 @@ public struct GraphQLRequest<Operation: GraphQLOperation> {
 }
 
 extension GraphQLRequest {
-    /// The decoding function used by default for a GraphQL response.
-    public static var defaultDecoder: @Sendable (Data) throws -> GraphQLResponse<Operation.Data> {
-        { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
+    /// The decoding function used by default for an operation and its GraphQL response.
+    public static var defaultDecoder: @Sendable (Operation, Data) throws -> GraphQLResponse<Operation.Data> {
+        { _, data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
     }
 
     /// Describes how the `GraphQLRequest` should encode a `GraphQLQuery` operation into its `URLRequest`.
