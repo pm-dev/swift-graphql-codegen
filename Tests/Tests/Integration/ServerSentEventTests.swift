@@ -149,7 +149,7 @@ struct ServerSentEventTests {
         )
         let stream = try await session.subscribe(
             request,
-            decoder: { data in
+            decoder: { _, data in
                 let text = try #require(String(bytes: data, encoding: .utf8))
                 if text.contains("RUNNING") {
                     secondResultDecoded.signal()
