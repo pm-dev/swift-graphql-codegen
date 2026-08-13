@@ -16,8 +16,6 @@ struct SchemaWriter {
     }
 
     let configuration: Configuration
-
-    let indirectOneOfInputObjectFields: [String: Set<String>]
     let typePlans: [TypePlan]
 
     var topLevelDeclarations: [GeneratedTypeDeclaration] {
@@ -31,7 +29,6 @@ struct SchemaWriter {
 
     init(configuration: Configuration, schema: Schema, resolvedDocuments: ResolvedDocuments) {
         self.configuration = configuration
-        self.indirectOneOfInputObjectFields = resolvedDocuments.indirectOneOfInputObjectFields
         self.typePlans = resolvedDocuments.usedTypes.sorted().compactMap { name -> TypePlan? in
             if let scalar = schema.typeCache.scalars[name] {
                 return scalar.ast.requiresGeneratedTypeDefinition ? .scalar(scalar) : nil
@@ -64,12 +61,7 @@ struct SchemaWriter {
             case .enum(let `enum`):
                 file.addType(SchemaEnumBuilder(enum: `enum`))
             case .inputObject(let inputObject):
-                file.addType(
-                    SchemaInputObjectBuilder(
-                        inputObject: inputObject,
-                        indirectInputFields: indirectOneOfInputObjectFields[inputObject.ast.name, default: []]
-                    )
-                )
+                file.addType(SchemaInputObjectBuilder(inputObject: inputObject))
             case .scalar(let scalar):
                 file.addType(SchemaScalarBuilder(scalar: scalar))
             }

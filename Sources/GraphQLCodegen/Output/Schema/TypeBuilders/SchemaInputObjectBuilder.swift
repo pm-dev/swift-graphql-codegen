@@ -1,6 +1,5 @@
 struct SchemaInputObjectBuilder: SwiftTypeBuildable {
     let inputObject: Schema.InputObject
-    let indirectInputFields: Set<String>
 
     func build(configuration: Configuration) -> [String] {
         if inputObject.ast.isOneOf {
@@ -28,7 +27,10 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
             if let deprecation = inputField.deprecation {
                 builder.addDeprecationDocumentation(deprecation.reason)
             }
-            let indirect = indirectInputFields.contains(inputField.name) ? "indirect " : ""
+            let indirect = switch inputField.type {
+            case .INPUT_OBJECT: "indirect "
+            default: ""
+            }
             builder.addLine("\(indirect)case \(identifier(inputField.name))(\(inputField.oneOfTypeName))")
         }
 

@@ -6,7 +6,6 @@ struct ResolvedDocuments {
     let fulfilledFragments: Set<String>
     let hasMutation: Bool
     let hasSubscription: Bool
-    let indirectOneOfInputObjectFields: [String: Set<String>]
     let requiresIndirectNullable: Bool
     let usedTypes: Set<String>
 }
