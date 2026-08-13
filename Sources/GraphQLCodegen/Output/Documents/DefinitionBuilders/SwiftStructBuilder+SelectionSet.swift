@@ -206,7 +206,7 @@ extension SwiftStructBuilder {
                 let fragmentTypeName = SwiftTypeIdentifier(capitalizing: fragmentSpreadName).source
                 var assignment = "\(identifier(responseKey)) = "
                 if let condition {
-                    if condition.requiresTypename, !hasNonnilTypenameField {
+                    if condition.requiresCurrentTypename, !hasNonnilTypenameField {
                         throw SelectionSetError.fragmentSpreadNeedsTypename(fragmentSpread: fragmentSpreadName)
                     }
                     assignment.append(fragmentConditionSource(condition) + " ? ")

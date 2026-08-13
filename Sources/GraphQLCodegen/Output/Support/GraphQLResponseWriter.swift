@@ -82,7 +82,7 @@ struct GraphQLResponseWriter: SupportOutput {
             \(accessLevel)let directiveVariables: [String: Bool]
 
             @TaskLocal
-            static var ancestorTypenames: [String?] = []
+            private static var ancestorTypenames: [String?] = []
 
             /// Creates a context from effective directive values, including applied operation defaults.
             \(accessLevel)init(directiveVariables: [String: Bool]) {

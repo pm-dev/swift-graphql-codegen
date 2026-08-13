@@ -174,7 +174,7 @@ struct SelectionSetResolver {
                 switch selection {
                 case .fragmentSpread(let name, let condition):
                     guard condition?.dependsOnDirectiveVariables == true ||
-                        fragmentDependsOnDirectiveVariables(name) else { continue }
+                        fragmentContainsDirectiveConditionalSpread(name) else { continue }
                     conditionedSelectionSet[responseKey] = .fragmentSpread(
                         name,
                         condition: FragmentFulfillmentCondition.all(
@@ -197,7 +197,7 @@ struct SelectionSetResolver {
         }
     }
 
-    private func fragmentDependsOnDirectiveVariables(_ name: String) -> Bool {
+    private func fragmentContainsDirectiveConditionalSpread(_ name: String) -> Bool {
         guard let fragment = documents.fragmentLookup[name] else { return false }
         var selectionSets = [(fragment.ast.selectionSet, false)]
         var visitedFragments: Set<String> = [name]

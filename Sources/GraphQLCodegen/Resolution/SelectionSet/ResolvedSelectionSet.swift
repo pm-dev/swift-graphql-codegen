@@ -40,11 +40,11 @@ indirect enum FragmentFulfillmentCondition: Equatable, Sendable {
         }
     }
 
-    var requiresTypename: Bool {
+    var requiresCurrentTypename: Bool {
         switch self {
         case .typename: true
         case .literal, .ancestorTypename, .include, .skip: false
-        case .and(let conditions), .or(let conditions): conditions.contains { $0.requiresTypename }
+        case .and(let conditions), .or(let conditions): conditions.contains { $0.requiresCurrentTypename }
         }
     }
 
