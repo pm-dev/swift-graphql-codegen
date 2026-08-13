@@ -199,7 +199,7 @@ public enum JSONValue: Decodable, Sendable {
     }
 }
 
-/// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
+/// A URLQueryEncoder that encodes an operation into `URLEncodedQueryItem`s
 /// using the spec described at:
 /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
 public struct DefaultURLQueryEncoder: URLQueryEncoder {
@@ -212,7 +212,7 @@ public struct DefaultURLQueryEncoder: URLQueryEncoder {
     public func encode<Operation: GraphQLOperation>(
         operation: Operation,
         automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
-    ) throws -> [URLQueryItem] {
+    ) throws -> [URLEncodedQueryItem] {
         try .from(
             Body(
                 operation: operation,
@@ -223,18 +223,18 @@ public struct DefaultURLQueryEncoder: URLQueryEncoder {
     }
 }
 
-private extension [URLQueryItem] {
+private extension [URLEncodedQueryItem] {
     static func from(_ body: Body, jsonEncoder: JSONEncoder) throws -> Self {
-        var items = [URLQueryItem]()
+        var items = [URLEncodedQueryItem]()
         if let operationName = body.operationName {
-            items.append(URLQueryItem(name: "operationName", value: operationName))
+            items.append(URLEncodedQueryItem(name: "operationName", value: operationName))
         }
         if let query = body.query {
-            items.append(URLQueryItem(name: "query", value: query))
+            items.append(URLEncodedQueryItem(name: "query", value: query))
         }
         if let variables = body.variables {
             items.append(
-                URLQueryItem(
+                URLEncodedQueryItem(
                     name: "variables",
                     value: String(decoding: try jsonEncoder.encode(variables), as: UTF8.self)
                 )
@@ -242,7 +242,7 @@ private extension [URLQueryItem] {
         }
         if let extensions = body.extensions {
             items.append(
-                URLQueryItem(
+                URLEncodedQueryItem(
                     name: "extensions",
                     value: String(decoding: try jsonEncoder.encode(extensions), as: UTF8.self)
                 )
@@ -364,7 +364,30 @@ public protocol GraphQLMutation: GraphQLSingleResponseOperation {}
 
 public protocol GraphQLSubscription: GraphQLOperation {}
 
-/// A `URLQueryEncoder` converts a GraphQL operation into `URLQueryItem`s for a GET request.
+/// A name-value pair encoded using `application/x-www-form-urlencoded` rules.
+public struct URLEncodedQueryItem: Sendable {
+    /// The unencoded parameter name.
+    public let name: String
+
+    /// The unencoded parameter value.
+    public let value: String
+
+    public init(name: String, value: String) {
+        self.name = name
+        self.value = value
+    }
+
+    var percentEncoded: String {
+        let allowedCharacters = CharacterSet(
+            charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789*-._"
+        )
+        let name = name.addingPercentEncoding(withAllowedCharacters: allowedCharacters)!
+        let value = value.addingPercentEncoding(withAllowedCharacters: allowedCharacters)!
+        return (name + "=" + value).replacingOccurrences(of: "%20", with: "+")
+    }
+}
+
+/// A `URLQueryEncoder` converts a GraphQL operation into `URLEncodedQueryItem`s for a GET request.
 public protocol URLQueryEncoder {
 
     /// Encodes an operation for a GET request.
@@ -373,11 +396,11 @@ public protocol URLQueryEncoder {
     ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
     ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
     ///   should always be sent.
-    /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
+    /// - Returns: An array of `URLEncodedQueryItem`s to be used as the URL's query component.
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
         automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
-    ) throws -> [URLQueryItem]
+    ) throws -> [URLEncodedQueryItem]
 }
 
 /// A `HTTPBodyEncoder` converts a GraphQL operation into the data to be set as the HTTP body
@@ -416,6 +439,7 @@ public enum AutomaticPersistedOperationPhase {
 extension URLSession {
     public enum HTTPError: Error {
         case invalidType(URLResponse)
+        case invalidContentType(String?)
         case badResponse(HTTPURLResponse, Data?)
     }
 
@@ -431,19 +455,28 @@ extension URLSession {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw HTTPError.invalidType(response)
         }
-        guard
-            (200..<300).contains(httpResponse.statusCode) ||
-            httpResponse.mimeType?.caseInsensitiveCompare(
-                "application/graphql-response+json"
-            ) == .orderedSame
-        else {
+        let contentType = httpResponse.value(forHTTPHeaderField: "content-type")
+        let mediaType = contentType?.split(separator: ";", maxSplits: 1).first.map {
+            $0.trimmingCharacters(in: .whitespaces)
+        }
+        let isGraphQLResponse = mediaType?.caseInsensitiveCompare(
+            "application/graphql-response+json"
+        ) == .orderedSame
+        let isJSONResponse = mediaType?.caseInsensitiveCompare("application/json") == .orderedSame
+        guard isGraphQLResponse || isJSONResponse else {
+            throw HTTPError.invalidContentType(contentType)
+        }
+        guard isGraphQLResponse || (200..<300).contains(httpResponse.statusCode) else {
             throw HTTPError.badResponse(httpResponse, data)
         }
         switch try decoder(data) {
         case .executionResult(let executionResult): return executionResult
         case .requestError(let requestError):
             let containsPersistedQueryNotFound = requestError.errors.contains { error in
-                error.message == "PersistedQueryNotFound"
+                if case .string("PERSISTED_QUERY_NOT_FOUND")? = error.extensions?["code"] {
+                    return true
+                }
+                return error.message == "PersistedQueryNotFound"
             }
             if containsPersistedQueryNotFound,
                let retry = request.persistedOperationRetry {
@@ -710,6 +743,19 @@ extension URLSession {
     }
 }
 
+private extension URL {
+    func appending(queryItems: [URLEncodedQueryItem]) -> URL {
+        var components = URLComponents(url: self, resolvingAgainstBaseURL: false)!
+        let percentEncodedQuery = queryItems.map(\.percentEncoded).joined(separator: "&")
+        if let existingQuery = components.percentEncodedQuery, !existingQuery.isEmpty {
+            components.percentEncodedQuery = existingQuery + "&" + percentEncodedQuery
+        } else {
+            components.percentEncodedQuery = percentEncodedQuery
+        }
+        return components.url!
+    }
+}
+
 enum PersistedOperationRetry {
     case GET(queryEncoder: URLQueryEncoder)
     case POST(bodyEncoder: HTTPBodyEncoder)
@@ -833,13 +879,13 @@ extension GraphQLRequest {
     ///   and automatic persisted operations is enabled. If the initial request results in a
     ///   "PersistedQueryNotFound" error, the configured retry policy sends the full query document.
     ///   - accept: The value to use in the "accept" header field. By default this is
-    ///   "application/graphql-response+json". This field is required by the spec:
+    ///   "application/graphql-response+json, application/json;q=0.9". This field is required by the spec:
     ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
     public init(
         query: Operation,
         endpoint: URL,
         strategy: QueryStrategy = .GETWithAutomaticPersistedOperations(),
-        accept: String = "application/graphql-response+json"
+        accept: String = "application/graphql-response+json, application/json;q=0.9"
     ) throws where Operation: GraphQLQuery {
         let persistedOperationRetry: PersistedOperationRetry?
         switch strategy {
@@ -894,7 +940,7 @@ extension GraphQLRequest {
         endpoint: URL,
         automaticPersistedOperations: Bool = true,
         bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-        accept: String = "application/graphql-response+json"
+        accept: String = "application/graphql-response+json, application/json;q=0.9"
     ) throws where Operation: GraphQLSingleResponseOperation {
         self.urlRequest = URLRequest(url: endpoint)
         self.urlRequest.httpMethod = "POST"

@@ -17,8 +17,12 @@ enum StarwarsCodegen {
         .deletingLastPathComponent()
         .appending(path: "server/src/schema.graphql", directoryHint: .notDirectory)
 
+    private static let registeredOperationsManifestURL = schemaURL
+        .deletingLastPathComponent()
+        .appending(path: "registered-operations.generated.json", directoryHint: .notDirectory)
+
     static func main() async throws {
-        try await Codegen(
+        let codegen = Codegen(
             .configuration(
                 input: .input(
                     schemaSource: .SDLSchemaFile(schemaURL),
@@ -45,12 +49,17 @@ enum StarwarsCodegen {
                         accessLevel: .public,
                         HTTPSupport: .httpSupport(
                             enableGETQueries: true,
-                            persistedOperations: .automatic,
+                            persistedOperations: .registered(allowUnregisteredOperations: true),
                             subscriptionSupport: true
                         )
                     )
                 )
             )
-        ).run()
+        )
+
+        try await codegen.run()
+
+        // Normally you would run this step only for a release
+        try await codegen.generatePersistedOperationManifestFile(at: registeredOperationsManifestURL)
     }
 }

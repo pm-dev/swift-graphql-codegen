@@ -199,46 +199,53 @@ public enum JSONValue: Decodable, Sendable {
     }
 }
 
-/// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
+/// A URLQueryEncoder that encodes an operation into `URLEncodedQueryItem`s
 /// using the spec described at:
 /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
 public struct DefaultURLQueryEncoder: URLQueryEncoder {
-    public init() {}
-    public func encode<Operation: GraphQLOperation>(
-        operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
-    ) throws -> [URLQueryItem] {
-        try .from(
-            Body(
-                operation: operation,
-                automaticPersistedOperationPhase: automaticPersistedOperationPhase
-            )
-        )
+    private let jsonEncoder: JSONEncoder
+
+    public init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+        self.jsonEncoder = jsonEncoder
+    }
+
+    public func encode<Query: GraphQLQuery>(
+        query: Query,
+        useRegisteredOperation: Bool
+    ) throws -> [URLEncodedQueryItem] {
+        try .from(Body(operation: query, useRegisteredOperation: useRegisteredOperation), jsonEncoder: jsonEncoder)
+    }
+
+    public func encode<Subscription: GraphQLSubscription>(
+        subscription: Subscription,
+        useRegisteredOperation: Bool
+    ) throws -> [URLEncodedQueryItem] {
+        try .from(Body(operation: subscription, useRegisteredOperation: useRegisteredOperation), jsonEncoder: jsonEncoder)
     }
 }
 
-private extension [URLQueryItem] {
-    static func from(_ body: Body) throws -> Self {
-        var items = [URLQueryItem]()
+private extension [URLEncodedQueryItem] {
+    static func from(_ body: Body, jsonEncoder: JSONEncoder) throws -> Self {
+        var items = [URLEncodedQueryItem]()
         if let operationName = body.operationName {
-            items.append(URLQueryItem(name: "operationName", value: operationName))
+            items.append(URLEncodedQueryItem(name: "operationName", value: operationName))
         }
         if let query = body.query {
-            items.append(URLQueryItem(name: "query", value: query))
+            items.append(URLEncodedQueryItem(name: "query", value: query))
         }
         if let variables = body.variables {
             items.append(
-                URLQueryItem(
+                URLEncodedQueryItem(
                     name: "variables",
-                    value: String(decoding: try JSONEncoder().encode(variables), as: UTF8.self)
+                    value: String(decoding: try jsonEncoder.encode(variables), as: UTF8.self)
                 )
             )
         }
         if let extensions = body.extensions {
             items.append(
-                URLQueryItem(
+                URLEncodedQueryItem(
                     name: "extensions",
-                    value: String(decoding: try JSONEncoder().encode(extensions), as: UTF8.self)
+                    value: String(decoding: try jsonEncoder.encode(extensions), as: UTF8.self)
                 )
             )
         }
@@ -250,17 +257,19 @@ private extension [URLQueryItem] {
 /// as specified by the spec:
 /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
 public struct JSONBodyEncoder: HTTPBodyEncoder {
-    public init() {}
+    private let jsonEncoder: JSONEncoder
+
+    public init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+        self.jsonEncoder = jsonEncoder
+    }
+
     public let contentType = "application/json"
     public func encode<Operation: GraphQLOperation>(
         operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
+        useRegisteredOperation: Bool
     ) throws -> Data {
-        try JSONEncoder().encode(
-            Body(
-                operation: operation,
-                automaticPersistedOperationPhase: automaticPersistedOperationPhase
-            )
+        try jsonEncoder.encode(
+            Body(operation: operation, useRegisteredOperation: useRegisteredOperation)
         )
     }
 }
@@ -273,19 +282,19 @@ private struct Body: Encodable {
 
     init<Operation: GraphQLOperation>(
         operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
+        useRegisteredOperation: Bool
     ) {
         var extensions = operation.extensions
-        if automaticPersistedOperationPhase != nil {
-            var persistedExtensions = extensions ?? [:]
-            persistedExtensions["persistedQuery"] = AnyEncodable([
+        if useRegisteredOperation {
+            var registeredExtensions = extensions ?? [:]
+            registeredExtensions["persistedQuery"] = AnyEncodable([
                 "version": AnyEncodable(1),
                 "sha256Hash": AnyEncodable(persistedOperationHash(Operation.document))
             ])
-            extensions = persistedExtensions
+            extensions = registeredExtensions
         }
         self.operationName = Operation.operationName
-        self.query = automaticPersistedOperationPhase == .initialRequestWithHash ? nil : Operation.document
+        self.query = useRegisteredOperation ? nil : Operation.document
         self.variables = operation.requestVariables
         self.extensions = extensions
     }
@@ -353,20 +362,52 @@ public protocol GraphQLMutation: GraphQLSingleResponseOperation {}
 
 public protocol GraphQLSubscription: GraphQLOperation {}
 
-/// A `URLQueryEncoder` converts a GraphQL operation into `URLQueryItem`s for a GET request.
+/// A name-value pair encoded using `application/x-www-form-urlencoded` rules.
+public struct URLEncodedQueryItem: Sendable {
+    /// The unencoded parameter name.
+    public let name: String
+
+    /// The unencoded parameter value.
+    public let value: String
+
+    public init(name: String, value: String) {
+        self.name = name
+        self.value = value
+    }
+
+    var percentEncoded: String {
+        let allowedCharacters = CharacterSet(
+            charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789*-._"
+        )
+        let name = name.addingPercentEncoding(withAllowedCharacters: allowedCharacters)!
+        let value = value.addingPercentEncoding(withAllowedCharacters: allowedCharacters)!
+        return (name + "=" + value).replacingOccurrences(of: "%20", with: "+")
+    }
+}
+
+/// A `URLQueryEncoder` converts a GraphQL query operation into `URLEncodedQueryItem`s when a GET request.
+/// is being used.
 public protocol URLQueryEncoder {
 
-    /// Encodes an operation for a GET request.
+    /// Encodes a query operation for a GET request.
     /// - Parameters:
-    ///   operation: The operation to encode.
-    ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
-    ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
-    ///   should always be sent.
-    /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
-    func encode<Operation: GraphQLOperation>(
-        operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
-    ) throws -> [URLQueryItem]
+    ///   query: The query operation to encode.
+    ///   useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
+    /// - Returns: An array of `URLEncodedQueryItem`s to be used as the URL's query component.
+    func encode<Query: GraphQLQuery>(
+        query: Query,
+        useRegisteredOperation: Bool
+    ) throws -> [URLEncodedQueryItem]
+
+    /// Encodes a subscription operation for a GET request.
+    /// - Parameters:
+    ///   subscription: The subscription operation to encode.
+    ///   useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
+    /// - Returns: An array of `URLEncodedQueryItem`s to be used as the URL's query component.
+    func encode<Subscription: GraphQLSubscription>(
+        subscription: Subscription,
+        useRegisteredOperation: Bool
+    ) throws -> [URLEncodedQueryItem]
 }
 
 /// A `HTTPBodyEncoder` converts a GraphQL operation into the data to be set as the HTTP body
@@ -379,32 +420,19 @@ public protocol HTTPBodyEncoder {
     /// Encodes an operation into body data for a POST request.
     /// - Parameters:
     ///   operation: The GraphQL operation to encode.
-    ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
-    ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
-    ///   should always be sent.
+    ///   useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
     /// - Returns: The encoded data to be set as the HTTP body of the POST request.
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
-        automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
+        useRegisteredOperation: Bool
     ) throws -> Data
-}
-
-/// Indicates which phase of Automatic Persisted Operations the request is for.
-public enum AutomaticPersistedOperationPhase {
-
-    /// This phase indicates encoders should encode an operation's hash instead of the document
-    /// text.
-    case initialRequestWithHash
-
-    /// This phase indicates encoders should encode an operation's document text as well as its hash, because
-    /// the document's hash was not previously found by the server.
-    case persistRequestWithDocument
 }
 
 /// Defaults conform to https://graphql.github.io/graphql-over-http/draft/
 extension URLSession {
     public enum HTTPError: Error {
         case invalidType(URLResponse)
+        case invalidContentType(String?)
         case badResponse(HTTPURLResponse, Data?)
     }
 
@@ -420,28 +448,23 @@ extension URLSession {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw HTTPError.invalidType(response)
         }
-        guard
-            (200..<300).contains(httpResponse.statusCode) ||
-            httpResponse.mimeType?.caseInsensitiveCompare(
-                "application/graphql-response+json"
-            ) == .orderedSame
-        else {
+        let contentType = httpResponse.value(forHTTPHeaderField: "content-type")
+        let mediaType = contentType?.split(separator: ";", maxSplits: 1).first.map {
+            $0.trimmingCharacters(in: .whitespaces)
+        }
+        let isGraphQLResponse = mediaType?.caseInsensitiveCompare(
+            "application/graphql-response+json"
+        ) == .orderedSame
+        let isJSONResponse = mediaType?.caseInsensitiveCompare("application/json") == .orderedSame
+        guard isGraphQLResponse || isJSONResponse else {
+            throw HTTPError.invalidContentType(contentType)
+        }
+        guard isGraphQLResponse || (200..<300).contains(httpResponse.statusCode) else {
             throw HTTPError.badResponse(httpResponse, data)
         }
         switch try decoder(data) {
         case .executionResult(let executionResult): return executionResult
-        case .requestError(let requestError):
-            let containsPersistedQueryNotFound = requestError.errors.contains { error in
-                error.message == "PersistedQueryNotFound"
-            }
-            if containsPersistedQueryNotFound,
-               let retry = request.persistedOperationRetry {
-                return try await self.request(
-                    try request.updated(for: retry),
-                    decoder: decoder
-                )
-            }
-            throw requestError
+        case .requestError(let requestError): throw requestError
         }
     }
 
@@ -460,8 +483,6 @@ extension URLSession {
     /// Initiates an event stream using a GraphQL subscription.
     /// This implementation assumes your server uses the "GraphQL over Server-Sent Events" spec:
     /// https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverSSE.md#distinct-connections-mode
-    /// - Important: Automatic persisted operations are not supported for subscriptions. Subscription
-    /// requests always include the full operation document.
     ///
     /// Lines, complete event payloads, and decoded results waiting for the consumer are bounded independently.
     /// - Important: This API requires version 26 or newer of macOS, iOS, tvOS, watchOS, or visionOS.
@@ -530,9 +551,7 @@ extension URLSession {
                                 case .terminated: return
                                 @unknown default: return
                                 }
-                            case .requestError(let requestError):
-                                // TODO: Support automatic persisted operation fallback for subscriptions.
-                                throw requestError
+                            case .requestError(let requestError): throw requestError
                         }
                         case .complete:
                             continuation.finish()
@@ -699,10 +718,19 @@ extension URLSession {
     }
 }
 
-enum PersistedOperationRetry {
-    case GET(queryEncoder: URLQueryEncoder)
-    case POST(bodyEncoder: HTTPBodyEncoder)
+private extension URL {
+    func appending(queryItems: [URLEncodedQueryItem]) -> URL {
+        var components = URLComponents(url: self, resolvingAgainstBaseURL: false)!
+        let percentEncodedQuery = queryItems.map(\.percentEncoded).joined(separator: "&")
+        if let existingQuery = components.percentEncodedQuery, !existingQuery.isEmpty {
+            components.percentEncodedQuery = existingQuery + "&" + percentEncodedQuery
+        } else {
+            components.percentEncodedQuery = percentEncodedQuery
+        }
+        return components.url!
+    }
 }
+
 
 /// A `GraphQLRequest` represents a `URLRequest` for a GraphQL operation.
 public struct GraphQLRequest<Operation: GraphQLOperation> {
@@ -716,20 +744,6 @@ public struct GraphQLRequest<Operation: GraphQLOperation> {
 
     /// The GraphQL operation executed in the request.
     public let operation: Operation
-    /// The retry configuration for an unknown persisted operation.
-    let persistedOperationRetry: PersistedOperationRetry?
-
-    private init(
-        urlRequest: URLRequest,
-        endpoint: URL,
-        operation: Operation,
-        persistedOperationRetry: PersistedOperationRetry?
-    ) {
-        self.urlRequest = urlRequest
-        self.endpoint = endpoint
-        self.operation = operation
-        self.persistedOperationRetry = persistedOperationRetry
-    }
 }
 
 extension GraphQLRequest {
@@ -738,164 +752,74 @@ extension GraphQLRequest {
         { data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
     }
 
-    /// Returns a request updated to retry an unknown persisted operation with its full document.
-    func updated(
-        for retry: PersistedOperationRetry
-    ) throws -> Self where Operation: GraphQLSingleResponseOperation {
-        var urlRequest = urlRequest
-        switch retry {
-        case .GET(let queryEncoder):
-            urlRequest.url = endpoint.appending(
-                queryItems: try queryEncoder.encode(
-                    operation: operation,
-                    automaticPersistedOperationPhase: .persistRequestWithDocument
-                )
-            )
-            urlRequest.httpMethod = "GET"
-            urlRequest.httpBody = nil
-            urlRequest.setValue(nil, forHTTPHeaderField: "content-type")
-        case .POST(let bodyEncoder):
-            urlRequest.url = endpoint
-            urlRequest.httpMethod = "POST"
-            urlRequest.httpBody = try bodyEncoder.encode(
-                operation: operation,
-                automaticPersistedOperationPhase: .persistRequestWithDocument
-            )
-            urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
-        }
-        return Self(
-            urlRequest: urlRequest,
-            endpoint: endpoint,
-            operation: operation,
-            persistedOperationRetry: nil
-        )
-    }
-
-    /// Describes how the `GraphQLRequest` should encode a `GraphQLQuery` operation into its `URLRequest`
+    /// Describes how the `GraphQLRequest` should encode a `GraphQLQuery` operation into its `URLRequest`.
     public enum QueryStrategy {
 
-        /// Describes how to retry an automatic persisted operation when its hash is not recognized.
-        public enum AutomaticPersistedOperationRetryPolicy {
-
-            /// Retries with the full document encoded in the URL query component.
-            case GET(queryEncoder: URLQueryEncoder = DefaultURLQueryEncoder())
-
-            /// Retries with the full document encoded in the HTTP body.
-            case POST(bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder())
-
-            var retry: PersistedOperationRetry {
-                switch self {
-                case .GET(let queryEncoder):
-                    return .GET(queryEncoder: queryEncoder)
-                case .POST(let bodyEncoder):
-                    return .POST(bodyEncoder: bodyEncoder)
-                }
-            }
-        }
-
-        /// Instructs the request to be a GET request without support for automatic persisted queries
+        /// Instructs the request to be a GET request, encoding the operation into the url query component.
         case GET(queryEncoder: URLQueryEncoder = DefaultURLQueryEncoder())
 
-        /// Instructs the request to be a POST request without support for automatic persisted queries
+        /// Instructs the request to be a POST request, encoding the operation into the http body.
         case POST(bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder())
-
-        /// Instructs the request to be a GET request, enabling automatic persisted queries
-        case GETWithAutomaticPersistedOperations(
-            queryEncoder: URLQueryEncoder = DefaultURLQueryEncoder(),
-            retryPolicy: AutomaticPersistedOperationRetryPolicy = .POST()
-        )
-
-        /// Instructs the request to be a POST request, enabling automatic persisted queries.
-        /// The retry policy must be selected explicitly.
-        case POSTWithAutomaticPersistedOperations(
-            bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-            retryPolicy: AutomaticPersistedOperationRetryPolicy
-        )
     }
 
     /// Initializes a new `GraphQLRequest` with a query operation
     /// - Parameters:
     ///   - query: The GraphQLQuery operation the request is for.
     ///   - endpoint: The GraphQL server endpoint.
-    ///   - strategy: The option describing whether the request should be a GET or POST and whether
-    ///   automatic persisted operations is enabled. By default `GET` is used
-    ///   and automatic persisted operations is enabled. If the initial request results in a
-    ///   "PersistedQueryNotFound" error, the configured retry policy sends the full query document.
+    ///   - useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
+    ///   - strategy: The option describing whether the request should be a GET or POST. `GET` by default.
     ///   - accept: The value to use in the "accept" header field. By default this is
-    ///   "application/graphql-response+json". This field is required by the spec:
+    ///   "application/graphql-response+json, application/json;q=0.9". This field is required by the spec:
     ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
     public init(
         query: Operation,
         endpoint: URL,
-        strategy: QueryStrategy = .GETWithAutomaticPersistedOperations(),
-        accept: String = "application/graphql-response+json"
+        useRegisteredOperation: Bool = true,
+        strategy: QueryStrategy = .GET(),
+        accept: String = "application/graphql-response+json, application/json;q=0.9"
     ) throws where Operation: GraphQLQuery {
-        let persistedOperationRetry: PersistedOperationRetry?
         switch strategy {
         case .GET(let queryEncoder):
-            persistedOperationRetry = nil
             let url = endpoint.appending(
                 queryItems: try queryEncoder.encode(
-                    operation: query,
-                    automaticPersistedOperationPhase: nil
+                    query: query,
+                    useRegisteredOperation: useRegisteredOperation
                 )
             )
             self.urlRequest = URLRequest(url: url)
             self.urlRequest.httpMethod = "GET"
         case .POST(let bodyEncoder):
-            persistedOperationRetry = nil
             self.urlRequest = URLRequest(url: endpoint)
             self.urlRequest.httpMethod = "POST"
             self.urlRequest.httpBody = try bodyEncoder.encode(
                 operation: query,
-                automaticPersistedOperationPhase: nil
-            )
-            self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
-        case .GETWithAutomaticPersistedOperations(let queryEncoder, let retryPolicy):
-            persistedOperationRetry = retryPolicy.retry
-            let url = endpoint.appending(
-                queryItems: try queryEncoder.encode(
-                    operation: query,
-                    automaticPersistedOperationPhase: .initialRequestWithHash
-                )
-            )
-            self.urlRequest = URLRequest(url: url)
-            self.urlRequest.httpMethod = "GET"
-        case .POSTWithAutomaticPersistedOperations(let bodyEncoder, let retryPolicy):
-            persistedOperationRetry = retryPolicy.retry
-            self.urlRequest = URLRequest(url: endpoint)
-            self.urlRequest.httpMethod = "POST"
-            self.urlRequest.httpBody = try bodyEncoder.encode(
-                operation: query,
-                automaticPersistedOperationPhase: .initialRequestWithHash
+                useRegisteredOperation: useRegisteredOperation
             )
             self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
         }
         self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
         self.endpoint = endpoint
         self.operation = query
-        self.persistedOperationRetry = persistedOperationRetry
     }
 
-    /// Initializes a POST request for a single-response GraphQL operation.
+    /// Initializes a POST request for a registered single-response GraphQL operation.
     public init(
         operation: Operation,
         endpoint: URL,
-        automaticPersistedOperations: Bool = true,
+        useRegisteredOperation: Bool = true,
         bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-        accept: String = "application/graphql-response+json"
+        accept: String = "application/graphql-response+json, application/json;q=0.9"
     ) throws where Operation: GraphQLSingleResponseOperation {
         self.urlRequest = URLRequest(url: endpoint)
         self.urlRequest.httpMethod = "POST"
         self.urlRequest.httpBody = try bodyEncoder.encode(
             operation: operation,
-            automaticPersistedOperationPhase: automaticPersistedOperations ? .initialRequestWithHash : nil
+            useRegisteredOperation: useRegisteredOperation
         )
         self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
         self.urlRequest.setValue(accept, forHTTPHeaderField: "accept")
         self.endpoint = endpoint
         self.operation = operation
-        self.persistedOperationRetry = automaticPersistedOperations ? .POST(bodyEncoder: bodyEncoder) : nil
     }
 
     /// Describes how the `GraphQLRequest` should encode a `GraphQLSubscription` operation into its
@@ -912,20 +836,21 @@ extension GraphQLRequest {
     /// Initializes a new `GraphQLRequest` with a subscription operation
     /// - Parameters:
     ///   - subscription: The GraphQLSubscription operation the request is for.
-    ///   - endpoint: The GraphQL server endpoint supporting GraphQL over Server-Sent Events.
+    ///   - endpoint: The GraphQL server endpoint.
+    ///   - useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
     ///   - strategy: The option describing whether the request should be a GET or POST. `GET` by default.
-    ///   Automatic persisted operations are unavailable because subscription fallback is not supported.
     public init(
         subscription: Operation,
         endpoint: URL,
+        useRegisteredOperation: Bool = true,
         strategy: SubscriptionStrategy = .GET()
     ) throws where Operation: GraphQLSubscription {
         switch strategy {
         case .GET(let queryEncoder):
             let url = endpoint.appending(
                 queryItems: try queryEncoder.encode(
-                    operation: subscription,
-                    automaticPersistedOperationPhase: nil
+                    subscription: subscription,
+                    useRegisteredOperation: useRegisteredOperation
                 )
             )
             self.urlRequest = URLRequest(url: url)
@@ -935,13 +860,12 @@ extension GraphQLRequest {
             self.urlRequest.httpMethod = "POST"
             self.urlRequest.httpBody = try bodyEncoder.encode(
                 operation: subscription,
-                automaticPersistedOperationPhase: nil
+                useRegisteredOperation: useRegisteredOperation
             )
             self.urlRequest.setValue(bodyEncoder.contentType, forHTTPHeaderField: "content-type")
         }
         self.urlRequest.setValue("text/event-stream", forHTTPHeaderField: "accept")
         self.endpoint = endpoint
         self.operation = subscription
-        self.persistedOperationRetry = nil
     }
 }
