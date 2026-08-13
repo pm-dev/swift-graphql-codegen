@@ -9,7 +9,9 @@ struct SchemaScalarBuilder: SwiftTypeBuildable {
             }
         }
         if let specifiedByURL = scalar.ast.specifiedByURL {
-            lines.append("/// @specifiedBy \(specifiedByURL)")
+            for line in "@specifiedBy \(specifiedByURL)".components(separatedBy: .newlines) {
+                lines.append("/// \(line)")
+            }
         }
         let isPublic = configuration.output.schema.accessLevel == .public
         let typeName = SwiftTypeIdentifier(swiftName: scalar.ast.name).source
