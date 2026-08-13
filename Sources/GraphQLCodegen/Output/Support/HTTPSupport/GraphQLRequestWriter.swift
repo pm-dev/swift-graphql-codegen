@@ -515,6 +515,7 @@ struct GraphQLRequestWriter: SupportOutput {
             }
         }
 
+
         """
     }
 
