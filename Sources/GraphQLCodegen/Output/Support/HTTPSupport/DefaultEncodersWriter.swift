@@ -17,9 +17,9 @@ struct DefaultEncodersWriter: SupportOutput {
         case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
         case .getWithRegisteredPersistence: getWithRegisteredPersistedOperations()
         case .getWithoutPersistence: getWithNoPersistedOperations()
-        case .postWithAutomaticPersistence: postWithAutomaticPersistedOperations()
-        case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
-        case .postWithoutPersistence: postWithNoPersistedOperations()
+        case .postWithAutomaticPersistence: httpBodyEncoderWithAutomaticPersistedOperations()
+        case .postWithRegisteredPersistence: httpBodyEncoderWithRegisteredPersistedOperations()
+        case .postWithoutPersistence: httpBodyEncoderWithNoPersistedOperations()
         }
     }
 
@@ -85,10 +85,6 @@ struct DefaultEncodersWriter: SupportOutput {
             }
         }
         """
-    }
-
-    private var includeSubscriptionSupport: Bool {
-        plan.includesSubscriptions
     }
 
     private var registeredOperationParameter: String {
@@ -177,24 +173,6 @@ struct DefaultEncodersWriter: SupportOutput {
 
         \(urlQueryItemsExtensionSource)
 
-        \(httpBodyEncoderWithNoPersistedOperations())
-        """
-    }
-
-    private func postWithAutomaticPersistedOperations() -> String {
-        """
-        \(httpBodyEncoderWithAutomaticPersistedOperations())
-        """
-    }
-
-    private func postWithRegisteredPersistedOperations() -> String {
-        """
-        \(httpBodyEncoderWithRegisteredPersistedOperations())
-        """
-    }
-
-    private func postWithNoPersistedOperations() -> String {
-        """
         \(httpBodyEncoderWithNoPersistedOperations())
         """
     }
@@ -369,7 +347,7 @@ struct DefaultEncodersWriter: SupportOutput {
     }
 
     private func subscriptionSupportWithRegisteredPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         return """
 
 
@@ -382,7 +360,7 @@ struct DefaultEncodersWriter: SupportOutput {
     }
 
     private func subscriptionSupportWithNoPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         return """
 
 

@@ -115,16 +115,7 @@ extension SwiftStructBuilder {
                 }
             }
             addNestedType(nestedStruct)
-        case .optional(let innerType):
-            try addNestedStruct(
-                responseKey: responseKey,
-                for: innerType,
-                immutable: immutable,
-                isPublic: isPublic,
-                conformances: conformances,
-                configuration: configuration
-            )
-        case .list(let innerType):
+        case .list(let innerType), .optional(let innerType):
             try addNestedStruct(
                 responseKey: responseKey,
                 for: innerType,

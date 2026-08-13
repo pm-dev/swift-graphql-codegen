@@ -1,17 +1,13 @@
-import OrderedCollections
-
 struct OperationTextResolver {
     let fragmentLookup: [String: Document.Fragment]
     let operationAST: GraphQLAST.OperationDefinition
     let operationSourceText: Substring
 
-    func expandSourceText(
-        mapFragmentSpread: (Document.Fragment) -> Substring
-    ) throws -> String {
+    func expandSourceText() throws -> String {
         var text = """
         \(operationSourceText)
         """
-        let fragmentSpreads = try fragmentSpreadsDeep().compactMap(mapFragmentSpread)
+        let fragmentSpreads = try fragmentSpreadsDeep().map(\.sourceText)
         if !fragmentSpreads.isEmpty {
             text.append("\n")
             text.append(fragmentSpreads.joined(separator: "\n"))
@@ -29,18 +25,16 @@ struct OperationTextResolver {
                 case .inlineFragment(let inlineFragment):
                     stack.append(inlineFragment.selectionSet)
                 case .fragmentSpread(let fragmentSpread):
-                    if !visited.contains(fragmentSpread.name.value) {
-                        visited.insert(fragmentSpread.name.value)
-                        guard let fragment = fragmentLookup[fragmentSpread.name.value] else {
-                            throw Codegen.Error(description: """
-                            Fragment spread '...\(fragmentSpread.name.value)' used in operation \
-                            \(operationAST.name?.value ?? "")
-                            but no definition was found for the fragment.
-                            """)
-                        }
-                        result.append(fragment)
-                        stack.append(fragment.ast.selectionSet)
+                    guard visited.insert(fragmentSpread.name.value).inserted else { continue }
+                    guard let fragment = fragmentLookup[fragmentSpread.name.value] else {
+                        throw Codegen.Error(description: """
+                        Fragment spread '...\(fragmentSpread.name.value)' used in operation \
+                        \(operationAST.name?.value ?? "")
+                        but no definition was found for the fragment.
+                        """)
                     }
+                    result.append(fragment)
+                    stack.append(fragment.ast.selectionSet)
                 case .field(let field):
                     if let selectionSet = field.selectionSet {
                         stack.append(selectionSet)

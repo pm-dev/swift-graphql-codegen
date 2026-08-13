@@ -20,7 +20,7 @@ struct DocumentsResolver {
     func resolve() throws -> ResolvedDocuments {
         let usedFragments = try usedFragments()
         let resolvedFragments = try resolveFragments(usedFragments)
-        let resolvedDocuments = try resolveDocuments(documents)
+        let resolvedDocuments = try resolveDocuments()
         let usage = try usage(in: resolvedDocuments, resolvedFragments: resolvedFragments)
         return try ResolvedDocuments(
             documents: resolvedDocuments,
@@ -54,11 +54,10 @@ struct DocumentsResolver {
                     }
                 case .fragmentSpread(let fragmentSpread):
                     let fragmentSpreadName = fragmentSpread.name.value
-                    if !usedFragments.keys.contains(fragmentSpreadName) {
-                        let fragment = try documents.fragment(fragmentSpreadName)
-                        usedFragments[fragmentSpreadName] = fragment
-                        selectionSets.append(fragment.ast.selectionSet)
-                    }
+                    guard usedFragments[fragmentSpreadName] == nil else { continue }
+                    let fragment = try documents.fragment(fragmentSpreadName)
+                    usedFragments[fragmentSpreadName] = fragment
+                    selectionSets.append(fragment.ast.selectionSet)
                 case .inlineFragment(let inlineFragment):
                     selectionSets.append(inlineFragment.selectionSet)
                 }
@@ -86,7 +85,7 @@ struct DocumentsResolver {
         return resolvedFragments
     }
 
-    private func resolveDocuments(_ documents: Documents) throws -> [ResolvedDocument] {
+    private func resolveDocuments() throws -> [ResolvedDocument] {
         var resolvedDocuments: [ResolvedDocument] = []
         for document in documents.documents {
             var resolvedDefinitions: [ResolvedDefinition] = []
@@ -202,9 +201,10 @@ struct DocumentsResolver {
     }
 
     private func indirectOneOfInputObjectFields(in usedTypes: Set<String>) throws -> [String: Set<String>] {
-        let recursiveDependencies = try recursiveInputObjectDependencies(in: usedTypes) { inputObject in
-            try directlyStoredInputObjectDependencies(in: inputObject)
-        }
+        let recursiveDependencies = try recursiveInputObjectDependencies(
+            in: usedTypes,
+            dependencies: directlyStoredInputObjectDependencies(in:)
+        )
         return recursiveDependencies.reduce(into: [:]) { result, dependency in
             guard schema.typeCache.inputObjects[dependency.inputObjectName]?.ast.isOneOf == true else { return }
             result[dependency.inputObjectName, default: []].insert(dependency.fieldName)

@@ -14,21 +14,28 @@ struct GraphQLRequestWriter: SupportOutput {
 
     var source: String {
         switch plan.mode {
-        case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
-        case .getWithRegisteredPersistence: getWithRegisteredPersistedOperations()
-        case .getWithoutPersistence: getWithNoPersistedOperations()
-        case .postWithAutomaticPersistence: postWithAutomaticPersistedOperations()
-        case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
-        case .postWithoutPersistence: postWithNoPersistedOperations()
+        case .getWithAutomaticPersistence:
+            requestContent(
+                querySupport: automaticQuerySupport(),
+                subscriptionSupport: subscriptionSupportGetWithAutomaticPersistedOperations()
+            )
+        case .getWithRegisteredPersistence:
+            requestContent(
+                querySupport: registeredQuerySupport(),
+                subscriptionSupport: subscriptionSupportGetWithRegisteredPersistedOperations()
+            )
+        case .getWithoutPersistence:
+            requestContent(
+                querySupport: querySupportWithoutPersistence(),
+                subscriptionSupport: subscriptionSupportGetWithNoPersistedOperations()
+            )
+        case .postWithAutomaticPersistence:
+            requestContent(subscriptionSupport: subscriptionSupportPostWithAutomaticPersistedOperations())
+        case .postWithRegisteredPersistence:
+            requestContent(subscriptionSupport: subscriptionSupportPostWithRegisteredPersistedOperations())
+        case .postWithoutPersistence:
+            requestContent(subscriptionSupport: subscriptionSupportPostWithNoPersistedOperations())
         }
-    }
-
-    private var includeSubscriptionSupport: Bool {
-        plan.includesSubscriptions
-    }
-
-    private var enableGETQueries: Bool {
-        plan.enablesGETQueries
     }
 
     private func requestDeclaration() -> String {
@@ -80,7 +87,7 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func persistedOperationGETRetryCase() -> String {
-        guard enableGETQueries else { return "" }
+        guard plan.enablesGETQueries else { return "" }
         return "    case GET(queryEncoder: URLQueryEncoder)"
     }
 
@@ -115,7 +122,7 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func persistedOperationGETUpdate() -> String {
-        guard enableGETQueries else { return "" }
+        guard plan.enablesGETQueries else { return "" }
         return """
 
                 case .GET(let queryEncoder):
@@ -238,13 +245,6 @@ struct GraphQLRequestWriter: SupportOutput {
         """
     }
 
-    private func getWithAutomaticPersistedOperations() -> String {
-        requestContent(
-            querySupport: automaticQuerySupport(),
-            subscriptionSupport: subscriptionSupportGetWithAutomaticPersistedOperations()
-        )
-    }
-
     private func automaticQuerySupport() -> String {
         """
 
@@ -357,13 +357,6 @@ struct GraphQLRequestWriter: SupportOutput {
         """
     }
 
-    private func getWithRegisteredPersistedOperations() -> String {
-        requestContent(
-            querySupport: registeredQuerySupport(),
-            subscriptionSupport: subscriptionSupportGetWithRegisteredPersistedOperations()
-        )
-    }
-
     private func registeredQuerySupport() -> String {
         guard plan.allowsUnregisteredOperations else { return querySupportWithoutPersistence() }
         return """
@@ -421,13 +414,6 @@ struct GraphQLRequestWriter: SupportOutput {
         """
     }
 
-    private func getWithNoPersistedOperations() -> String {
-        requestContent(
-            querySupport: querySupportWithoutPersistence(),
-            subscriptionSupport: subscriptionSupportGetWithNoPersistedOperations()
-        )
-    }
-
     private func querySupportWithoutPersistence() -> String {
         """
 
@@ -474,18 +460,6 @@ struct GraphQLRequestWriter: SupportOutput {
         """
     }
 
-    private func postWithAutomaticPersistedOperations() -> String {
-        requestContent(subscriptionSupport: subscriptionSupportPostWithAutomaticPersistedOperations())
-    }
-
-    private func postWithRegisteredPersistedOperations() -> String {
-        requestContent(subscriptionSupport: subscriptionSupportPostWithRegisteredPersistedOperations())
-    }
-
-    private func postWithNoPersistedOperations() -> String {
-        requestContent(subscriptionSupport: subscriptionSupportPostWithNoPersistedOperations())
-    }
-
     private func requestContent(
         querySupport: String = "",
         subscriptionSupport: String
@@ -500,7 +474,7 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func queryItemEncoding() -> String {
-        guard enableGETQueries else { return "" }
+        guard plan.enablesGETQueries else { return "" }
         return """
         private extension URL {
             func appending(queryItems: [URLEncodedQueryItem]) -> URL {
@@ -535,7 +509,7 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func subscriptionSupportGetWithAutomaticPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         return """
 
 
@@ -580,7 +554,7 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func subscriptionSupportGetWithRegisteredPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         guard plan.allowsUnregisteredOperations else {
             return subscriptionSupportGetWithNoPersistedOperations()
         }
@@ -628,7 +602,7 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func subscriptionSupportGetWithNoPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         return """
 
 
@@ -665,7 +639,7 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func subscriptionSupportPostWithAutomaticPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         return """
 
 
@@ -697,7 +671,7 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func subscriptionSupportPostWithRegisteredPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         guard plan.allowsUnregisteredOperations else {
             return subscriptionSupportPostWithNoPersistedOperations()
         }
@@ -731,7 +705,7 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func subscriptionSupportPostWithNoPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         return """
 
 

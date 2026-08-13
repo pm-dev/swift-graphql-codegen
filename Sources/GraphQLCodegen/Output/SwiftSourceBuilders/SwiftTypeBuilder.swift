@@ -77,9 +77,8 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         }
     }
 
-    mutating func addPropertyInitializerBody(_ lines: [String], isThrowing: Bool) {
+    mutating func addPropertyInitializerBody(_ lines: [String]) {
         propertyInitializer.body.append(contentsOf: lines)
-        propertyInitializer.isThrowing = propertyInitializer.isThrowing || isThrowing
     }
 
     mutating func addComment(_ comment: String) {
@@ -87,7 +86,9 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
     }
 
     mutating func addDeprecation(_ deprecationReason: String) {
-        contents.append(_deprecation(deprecationReason))
+        contents.append(
+            "@available(*, deprecated, message: \(SwiftSource(value: deprecationReason).singleLineStringLiteral))"
+        )
     }
 
     mutating func addDeprecationDocumentation(_ deprecationReason: String) {
@@ -170,10 +171,6 @@ struct SwiftTypeBuilder: SwiftTypeBuildable {
         lines.append(contentsOf: initializer.body.map { indentation + indentation + $0 })
         lines.append(indentation + "}")
         return lines
-    }
-
-    private func _deprecation(_ deprecationReason: String) -> String {
-        "@available(*, deprecated, message: \(SwiftSource(value: deprecationReason).singleLineStringLiteral))"
     }
 }
 

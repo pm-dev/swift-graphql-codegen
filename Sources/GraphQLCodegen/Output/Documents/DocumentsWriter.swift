@@ -1,5 +1,4 @@
 import Foundation
-import OrderedCollections
 
 struct DocumentsWriter {
     enum DefinitionPlan {
@@ -124,11 +123,11 @@ struct DocumentsWriter {
         case .directory(let directory):
             directories = [directory]
         }
-        let generatedFileURLs = try directories
-            .sorted { $0.path < $1.path }
-            .map(generatedFileURLs(in:))
-            .flatMap { $0 }
-        return Set(generatedFileURLs)
+        return try Set(
+            directories
+                .sorted { $0.path < $1.path }
+                .flatMap(generatedFileURLs(in:))
+        )
     }
 
     private func generatedFileURLs(in directory: URL) throws -> [URL] {

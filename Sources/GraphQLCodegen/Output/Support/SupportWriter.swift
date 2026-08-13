@@ -37,7 +37,7 @@ struct SupportWriter {
                 configuration: configuration,
                 hasSubscription: hasSubscription
             )
-            let httpOutputs: [any SupportOutput] = [
+            outputs.append(contentsOf: [
                 DefaultEncodersWriter(plan: httpGenerationPlan, configuration: configuration),
                 GraphQLOperationWriter(
                     configuration: configuration,
@@ -47,8 +47,7 @@ struct SupportWriter {
                 EncodersWriter(plan: httpGenerationPlan, configuration: configuration),
                 URLSessionWriter(hasSubscription: hasSubscription, configuration: configuration),
                 GraphQLRequestWriter(plan: httpGenerationPlan, configuration: configuration),
-            ]
-            outputs.append(contentsOf: httpOutputs)
+            ])
         }
         self.configuration = configuration
         self.outputs = outputs

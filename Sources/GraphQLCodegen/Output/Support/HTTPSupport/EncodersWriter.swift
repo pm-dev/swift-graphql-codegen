@@ -21,14 +21,12 @@ struct EncodersWriter: SupportOutput {
         case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
         case .getWithRegisteredPersistence: getWithRegisteredPersistedOperations()
         case .getWithoutPersistence: getWithNoPersistedOperations()
-        case .postWithAutomaticPersistence: postWithAutomaticPersistedOperations()
-        case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
-        case .postWithoutPersistence: postWithNoPersistedOperations()
+        case .postWithAutomaticPersistence: httpBodyEncoderWithAutomaticPersistedOperations()
+        case .postWithRegisteredPersistence where plan.allowsUnregisteredOperations:
+            httpBodyEncoderWithRegisteredPersistedOperations()
+        case .postWithRegisteredPersistence, .postWithoutPersistence:
+            httpBodyEncoderWithNoPersistedOperations()
         }
-    }
-
-    private var includeSubscriptionSupport: Bool {
-        plan.includesSubscriptions
     }
 
     private func getWithAutomaticPersistedOperations() -> String {
@@ -125,25 +123,6 @@ struct EncodersWriter: SupportOutput {
         """
     }
 
-    private func postWithAutomaticPersistedOperations() -> String {
-        """
-        \(httpBodyEncoderWithAutomaticPersistedOperations())
-        """
-    }
-
-    private func postWithRegisteredPersistedOperations() -> String {
-        guard plan.allowsUnregisteredOperations else { return postWithNoPersistedOperations() }
-        return """
-        \(httpBodyEncoderWithRegisteredPersistedOperations())
-        """
-    }
-
-    private func postWithNoPersistedOperations() -> String {
-        """
-        \(httpBodyEncoderWithNoPersistedOperations())
-        """
-    }
-
     private func httpBodyEncoderWithAutomaticPersistedOperations() -> String {
         """
         /// A `HTTPBodyEncoder` converts a GraphQL operation into the data to be set as the HTTP body
@@ -221,7 +200,7 @@ struct EncodersWriter: SupportOutput {
     }
 
     private func subscriptionSupportWithRegisteredPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         return """
 
 
@@ -238,7 +217,7 @@ struct EncodersWriter: SupportOutput {
     }
 
     private func subscriptionSupportWithNoPersistedOperations() -> String {
-        guard includeSubscriptionSupport else { return "" }
+        guard plan.includesSubscriptions else { return "" }
         return """
 
 

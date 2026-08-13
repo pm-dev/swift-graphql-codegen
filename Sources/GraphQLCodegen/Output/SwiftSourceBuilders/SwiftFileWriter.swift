@@ -27,11 +27,7 @@ struct SwiftFileWriter {
     }
 
     mutating func setImports(_ importedModules: any Sequence<String>) {
-        var imports: Set<String> = []
-        for importedModule in importedModules {
-            imports.insert("import " + importedModule)
-        }
-        self.imports = imports.sorted()
+        imports = Set(importedModules.map { "import " + $0 }).sorted()
     }
 
     mutating func addType(_ type: SwiftTypeBuildable) {

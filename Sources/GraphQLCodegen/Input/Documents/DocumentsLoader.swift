@@ -122,7 +122,7 @@ struct DocumentsLoader {
                         fragmentLookup: fragmentLookup,
                         operationAST: operationAST,
                         operationSourceText: operationSourceText
-                    ).expandSourceText { $0.sourceText }
+                    ).expandSourceText()
                     let canonicalText = try graphQLJS.canonicalize(expandedText)
                     updatedDefinitions.append(
                         .operation(

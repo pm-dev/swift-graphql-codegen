@@ -115,24 +115,7 @@ struct SchemaInputObjectBuilder: SwiftTypeBuildable {
                 name: inputField.name,
                 value: .unassigned(
                     type: inputField.typeName,
-                    initialized: .direct(
-                        defaultValue: {
-                            switch inputField.type.swiftName {
-                            case .optional:
-                                if let defaultValue = inputField.defaultValue {
-                                    "nil \(SwiftSource(value: defaultValue.description).blockComment)"
-                                } else {
-                                    "nil"
-                                }
-                            case .list, .name:
-                                if let defaultValue = inputField.defaultValue {
-                                    ".useDefault \(SwiftSource(value: defaultValue.description).blockComment)"
-                                } else {
-                                    nil
-                                }
-                            }
-                        }()
-                    )
+                    initialized: .direct(defaultValue: inputField.type.swiftName.inputDefaultValue(inputField.defaultValue))
                 )
             )
         }
