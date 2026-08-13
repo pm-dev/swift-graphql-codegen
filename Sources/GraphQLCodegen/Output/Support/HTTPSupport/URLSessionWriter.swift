@@ -15,6 +15,7 @@ struct URLSessionWriter: SupportOutput {
         extension URLSession {
             \(accessLevel)enum HTTPError: Error {
                 case invalidType(URLResponse)
+                case invalidContentType(String?)
                 case badResponse(HTTPURLResponse, Data?)
             }
 
@@ -30,12 +31,18 @@ struct URLSessionWriter: SupportOutput {
                 guard let httpResponse = response as? HTTPURLResponse else {
                     throw HTTPError.invalidType(response)
                 }
-                guard
-                    (200..<300).contains(httpResponse.statusCode) ||
-                    httpResponse.mimeType?.caseInsensitiveCompare(
-                        \"application/graphql-response+json\"
-                    ) == .orderedSame
-                else {
+                let contentType = httpResponse.value(forHTTPHeaderField: \"content-type\")
+                let mediaType = contentType?.split(separator: \";\", maxSplits: 1).first.map {
+                    $0.trimmingCharacters(in: .whitespaces)
+                }
+                let isGraphQLResponse = mediaType?.caseInsensitiveCompare(
+                    \"application/graphql-response+json\"
+                ) == .orderedSame
+                let isJSONResponse = mediaType?.caseInsensitiveCompare(\"application/json\") == .orderedSame
+                guard isGraphQLResponse || isJSONResponse else {
+                    throw HTTPError.invalidContentType(contentType)
+                }
+                guard isGraphQLResponse || (200..<300).contains(httpResponse.statusCode) else {
                     throw HTTPError.badResponse(httpResponse, data)
                 }
                 switch try decoder(data) {
