@@ -173,13 +173,13 @@ struct SelectionSetResolver {
             for (responseKey, selection) in selectionSet {
                 switch selection {
                 case .fragmentSpread(let name, let condition):
-                    guard let condition, condition.dependsOnDirectiveVariables else { continue }
+                    guard condition?.dependsOnDirectiveVariables == true ||
+                        fragmentDependsOnDirectiveVariables(name) else { continue }
                     conditionedSelectionSet[responseKey] = .fragmentSpread(
                         name,
-                        condition: FragmentFulfillmentCondition.all([
-                            .ancestorTypename(typename, levelsUp: levelsUp),
-                            condition,
-                        ])
+                        condition: FragmentFulfillmentCondition.all(
+                            [.ancestorTypename(typename, levelsUp: levelsUp), condition].compactMap { $0 }
+                        )
                     )
                 case .field(let field, let conditional):
                     guard field.type.unwrappedMap() != nil else { continue }
@@ -195,6 +195,33 @@ struct SelectionSetResolver {
         case .optional(let innerType):
             return .optional(innerType: addingAncestorTypename(typename, to: innerType, levelsUp: levelsUp))
         }
+    }
+
+    private func fragmentDependsOnDirectiveVariables(_ name: String) -> Bool {
+        guard let fragment = documents.fragmentLookup[name] else { return false }
+        var selectionSets = [(fragment.ast.selectionSet, false)]
+        var visitedFragments: Set<String> = [name]
+        while let (selectionSet, inheritedCondition) = selectionSets.popLast() {
+            for selection in selectionSet.selections {
+                let isConditional = inheritedCondition ||
+                    directiveCondition(for: selection)?.dependsOnDirectiveVariables == true
+                switch selection {
+                case .field(let field):
+                    if let nestedSelectionSet = field.selectionSet {
+                        selectionSets.append((nestedSelectionSet, isConditional))
+                    }
+                case .fragmentSpread(let spread):
+                    if isConditional { return true }
+                    let fragmentName = spread.name.value
+                    guard visitedFragments.insert(fragmentName).inserted,
+                          let nestedFragment = documents.fragmentLookup[fragmentName] else { continue }
+                    selectionSets.append((nestedFragment.ast.selectionSet, false))
+                case .inlineFragment(let inlineFragment):
+                    selectionSets.append((inlineFragment.selectionSet, isConditional))
+                }
+            }
+        }
+        return false
     }
 
     private func nestedTypeCondition(

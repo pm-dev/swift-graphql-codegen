@@ -470,6 +470,53 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func preservesParentTypenameThroughTransitiveConditionalNamedFragments() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            fragment ViewerContainer on Viewer {
+              ...ViewerFields @include(if: $includeDetails)
+            }
+
+            fragment ViewerEnvelope on Viewer {
+              ...ViewerContainer
+            }
+
+            query Hero($includeDetails: Boolean!) {
+              hero {
+                __typename
+                companion { id }
+                ... on Human {
+                  companion {
+                    ...ViewerEnvelope
+                  }
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { companion: Viewer! }
+            type Human implements Character { companion: Viewer! }
+            type Droid implements Character { companion: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("let __ViewerEnvelope: ViewerEnvelope?"))
+        #expect(output.contains("""
+        companion = try GraphQLResponseDecodingContext.withAncestorTypename(__typename) { \
+        try container.decode(Companion.self, forKey: .companion) }
+        """))
+        #expect(output.contains("""
+        __ViewerEnvelope = GraphQLResponseDecodingContext.ancestorTypename(levelsUp: 1) == "Human" \
+        ? try ViewerEnvelope(from: decoder) : nil
+        """))
+        #expect(output.contains("\"includeDetails\": variables.includeDetails"))
+    }
+
+    @Test
     func preservesAncestorTypenameAcrossMultipleNestedObjectSelections() async throws {
         let output = try await runCodegen(
             document: """
