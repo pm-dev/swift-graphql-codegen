@@ -21,6 +21,7 @@ with stored properties and can optionally generate networking helpers tailored t
 - Operation and response models built from Swift structs with stored properties
 - GraphQL enums represented as Swift enums
 - Native `Codable` generation, `Sendable` defaults, and configurable model conformances
+- Typed named fragments with `@include` and `@skip` support, including nested conditional selections
 - Automatic and registered persisted operations
 - Optional `URLSession` support for POST requests, GET queries, and server-sent event subscriptions
 - SDL, JSON, and introspection schema inputs
@@ -352,6 +353,60 @@ struct HeroQuery: GraphQLQuery {
 
 The [Star Wars example](StarwarsExample) demonstrates the generator. The
 [generated Node query](Tests/Fixtures/Generated/Operations/NodeQuery.graphql.swift) shows a complete generated operation.
+
+### Named Fragments and Conditional Directives
+
+Named fragment spreads support `@include` and `@skip` directly and inside conditional inline fragments:
+
+```graphql
+fragment ViewerFields on Viewer {
+  name
+}
+
+fragment PrivateViewerFields on Viewer {
+  email
+}
+
+query Viewer($includeDetails: Boolean!, $hidePrivate: Boolean! = false) {
+  viewer {
+    id
+    ...ViewerFields @include(if: $includeDetails)
+    ... @skip(if: $hidePrivate) {
+      ...PrivateViewerFields
+    }
+  }
+}
+```
+
+Conditional named fragments remain typed and become optional properties on the generated response model:
+
+```swift
+struct Viewer: Decodable, Sendable, Hashable {
+    let id: ID
+    let __ViewerFields: ViewerFields?
+    let __PrivateViewerFields: PrivateViewerFields?
+}
+```
+
+The generated response decoder evaluates each fragment against its operation variables, including operation defaults. Only
+variables used by conditional named fragments are included in the decoding context. Fragments nested under conditional object
+fields or inline fragments preserve their enclosing conditions. Fragments with conditional concrete-type matches also require
+`__typename` in the same selection set.
+
+`GraphQLResponseDecodingContext`, its `CodingUserInfoKey`, and operation context properties are generated only when at least one
+operation contains a named fragment whose condition depends on an operation variable. Operations that do not use conditional
+named fragments need no generated context property.
+
+The default HTTP response decoder installs the operation context automatically. A custom response decoder must pass that context
+to its `JSONDecoder` before decoding a conditional named fragment:
+
+```swift
+let result = try await URLSession.shared.request(request) { operation, data in
+    let decoder = JSONDecoder()
+    decoder.userInfo[.graphQLResponseDecodingContext] = operation.responseDecodingContext
+    return try decoder.decode(GraphQLResponse<ViewerQuery.Data>.self, from: data)
+}
+```
 
 ## Design
 

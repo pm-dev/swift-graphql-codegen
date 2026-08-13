@@ -35,7 +35,7 @@ extension SwiftStructBuilder {
                             .direct(defaultValue: nil) : nil
                     )
                 )
-            case .fragmentSpread(let fragmentSpreadName, let checkTypenames):
+            case .fragmentSpread(let fragmentSpreadName, let condition):
                 addProperty(
                     description: nil,
                     deprecation: nil,
@@ -45,7 +45,7 @@ extension SwiftStructBuilder {
                     name: responseKey,
                     value: .unassigned(
                         type: SwiftTypeIdentifier(capitalizing: fragmentSpreadName).source +
-                            (checkTypenames != nil ? "?" : ""),
+                            (condition != nil ? "?" : ""),
                         initialized: configuration.output.documents.memberwiseInitializer ?
                             .direct(defaultValue: nil) : nil
                     )
@@ -164,22 +164,32 @@ extension SwiftStructBuilder {
             case .fragmentSpread: break
             }
         }
+        if selectionSet.contains(where: { _, selection in
+            guard case .fragmentSpread(_, let condition) = selection else { return false }
+            return condition?.directiveVariableNames.isEmpty == false
+        }) {
+            let indentation = configuration.output.indentation.string
+            initializerBody.append(contentsOf: [
+                "guard let fragmentDecodingContext = " +
+                    "decoder.userInfo[.graphQLResponseDecodingContext] as? GraphQLResponseDecodingContext else {",
+                "\(indentation)throw DecodingError.dataCorrupted(DecodingError.Context(",
+                "\(indentation)\(indentation)codingPath: decoder.codingPath,",
+                "\(indentation)\(indentation)debugDescription: \"Conditional fragments require operation directive variables.\"",
+                "\(indentation)))",
+                "}",
+            ])
+        }
         for (responseKey, selection) in selectionSet {
             switch selection {
             case .field: break
-            case .fragmentSpread(let fragmentSpreadName, let checkTypenames):
+            case .fragmentSpread(let fragmentSpreadName, let condition):
                 let fragmentTypeName = SwiftTypeIdentifier(capitalizing: fragmentSpreadName).source
                 var assignment = "\(identifier(responseKey)) = "
-                if let checkTypenames {
-                    if !hasNonnilTypenameField {
+                if let condition {
+                    if condition.requiresTypename, !hasNonnilTypenameField {
                         throw SelectionSetError.fragmentSpreadNeedsTypename(fragmentSpread: fragmentSpreadName)
                     }
-                    assignment.append(
-                        checkTypenames
-                            .sorted()
-                            .map { "__typename == \"\($0)\"" }
-                            .joined(separator: " || ") + " ? "
-                    )
+                    assignment.append(fragmentConditionSource(condition) + " ? ")
                     assignment.append("try \(fragmentTypeName)(from: decoder) : nil")
                 } else {
                     assignment.append("try \(fragmentTypeName)(from: decoder)")
@@ -197,5 +207,21 @@ extension SwiftStructBuilder {
             body: initializerBody,
             isThrowing: true
         )
+    }
+
+    private func fragmentConditionSource(_ condition: FragmentFulfillmentCondition) -> String {
+        switch condition {
+        case .literal(let value): return String(value)
+        case .typename(let typename):
+            return "__typename == \(SwiftSource(value: typename).singleLineStringLiteral)"
+        case .include(let variable):
+            return "fragmentDecodingContext.directiveVariables[\(SwiftSource(value: variable).singleLineStringLiteral)] == true"
+        case .skip(let variable):
+            return "fragmentDecodingContext.directiveVariables[\(SwiftSource(value: variable).singleLineStringLiteral)] != true"
+        case .and(let conditions):
+            return "(" + conditions.map(fragmentConditionSource).joined(separator: " && ") + ")"
+        case .or(let conditions):
+            return "(" + conditions.map(fragmentConditionSource).joined(separator: " || ") + ")"
+        }
     }
 }

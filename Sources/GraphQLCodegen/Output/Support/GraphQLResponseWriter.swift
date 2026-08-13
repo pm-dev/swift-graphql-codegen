@@ -1,10 +1,17 @@
 struct GraphQLResponseWriter: SupportOutput {
     let configuration: Configuration
+    let requiresResponseDecodingContext: Bool
 
-    let topLevelTypeNames = [SwiftTypeIdentifier(swiftName: "GraphQLResponse")]
+    var topLevelTypeNames: [SwiftTypeIdentifier] {
+        var typeNames = [SwiftTypeIdentifier(swiftName: "GraphQLResponse")]
+        if requiresResponseDecodingContext {
+            typeNames.append(SwiftTypeIdentifier(swiftName: "GraphQLResponseDecodingContext"))
+        }
+        return typeNames
+    }
 
     var source: String {
-        """
+        responseDecodingContext() + """
         \(accessLevel)enum GraphQLResponse<Data>: Decodable where Data: Decodable, Data: Sendable {
             \(accessLevel)struct ExecutionResult: Sendable {
                 \(accessLevel)let data: Data?
@@ -64,6 +71,30 @@ struct GraphQLResponseWriter: SupportOutput {
                 }
             }
         }
+        """
+    }
+
+    private func responseDecodingContext() -> String {
+        guard requiresResponseDecodingContext else { return "" }
+        return """
+        /// Carries the effective Boolean operation variables needed to decode conditional fragment spreads.
+        \(accessLevel)struct GraphQLResponseDecodingContext: Sendable {
+            \(accessLevel)let directiveVariables: [String: Bool]
+
+            /// Creates a context from effective directive values, including applied operation defaults.
+            \(accessLevel)init(directiveVariables: [String: Bool]) {
+                self.directiveVariables = directiveVariables
+            }
+        }
+
+        extension CodingUserInfoKey {
+            /// Makes the operation's directive variables available throughout nested response decoding.
+            \(accessLevel)static let graphQLResponseDecodingContext = CodingUserInfoKey(
+                rawValue: "GraphQLResponseDecodingContext"
+            )!
+        }
+
+
         """
     }
 }

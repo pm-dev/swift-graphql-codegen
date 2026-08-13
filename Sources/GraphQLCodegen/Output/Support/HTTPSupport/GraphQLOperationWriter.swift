@@ -4,6 +4,7 @@ struct GraphQLOperationWriter: SupportOutput {
     let configuration: Configuration
     let hasMutation: Bool
     let hasSubscription: Bool
+    let requiresResponseDecodingContext: Bool
 
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [
@@ -36,7 +37,7 @@ struct GraphQLOperationWriter: SupportOutput {
 
             /// The operation's variables erased for request encoding.
             /// Variable-free operations return `nil` so request encoders omit them.
-            var requestVariables: AnyEncodable? { get }
+            var requestVariables: AnyEncodable? { get }\(responseDecodingContextRequirement())
 
             /// Metadata associated with the operation to include in the request.
             var extensions: [String: AnyEncodable]? { get }
@@ -49,7 +50,7 @@ struct GraphQLOperationWriter: SupportOutput {
             \(accessLevel)var requestVariables: AnyEncodable? {
                 let requestVariables: AnyEncodable = AnyEncodable(variables)
                 return requestVariables
-            }
+            }\(defaultResponseDecodingContext())
         }
 
         extension GraphQLOperation where Variables == Never? {
@@ -61,6 +62,25 @@ struct GraphQLOperationWriter: SupportOutput {
         \(accessLevel)protocol GraphQLSingleResponseOperation: GraphQLOperation {}
 
         \(accessLevel)protocol GraphQLQuery: GraphQLSingleResponseOperation {}\(mutationProtocol())\(subscriptionProtocol())
+        """
+    }
+
+    private func responseDecodingContextRequirement() -> String {
+        guard requiresResponseDecodingContext else { return "" }
+        return """
+
+            /// Effective directive variables used to decide whether typed fragment spreads are fulfilled.
+            var responseDecodingContext: GraphQLResponseDecodingContext { get }
+        """
+    }
+
+    private func defaultResponseDecodingContext() -> String {
+        guard requiresResponseDecodingContext else { return "" }
+        return """
+
+            \(accessLevel)var responseDecodingContext: GraphQLResponseDecodingContext {
+                GraphQLResponseDecodingContext(directiveVariables: [:])
+            }
         """
     }
 

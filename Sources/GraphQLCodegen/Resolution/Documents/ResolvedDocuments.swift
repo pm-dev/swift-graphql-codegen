@@ -7,6 +7,7 @@ struct ResolvedDocuments {
     let hasMutation: Bool
     let hasSubscription: Bool
     let requiresIndirectNullable: Bool
+    let requiresResponseDecodingContext: Bool
     let usedTypes: Set<String>
 }
 
@@ -23,6 +24,11 @@ enum ResolvedDefinition {
 struct ResolvedOperation {
     let operation: Document.Operation
     let resolvedSelectionSet: ResolvedSelectionSet
+    let fragmentDirectiveVariableNames: Set<String>
+
+    var requiresResponseDecodingContext: Bool {
+        !fragmentDirectiveVariableNames.isEmpty
+    }
 }
 
 struct ResolvedFragment {

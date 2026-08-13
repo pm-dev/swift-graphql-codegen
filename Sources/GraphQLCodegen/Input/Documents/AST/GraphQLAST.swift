@@ -96,7 +96,7 @@ enum GraphQLAST {
             }
         }
 
-        private var directives: [Directive] {
+        var directives: [Directive] {
             switch self {
             case .field(let field): field.directives ?? []
             case .fragmentSpread(let fragmentSpread): fragmentSpread.directives ?? []

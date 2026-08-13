@@ -15,7 +15,8 @@ struct CodegenOutputPlan {
             configuration: configuration,
             hasMutation: resolvedDocuments.hasMutation,
             hasSubscription: resolvedDocuments.hasSubscription,
-            requiresIndirectNullable: resolvedDocuments.requiresIndirectNullable
+            requiresIndirectNullable: resolvedDocuments.requiresIndirectNullable,
+            requiresResponseDecodingContext: resolvedDocuments.requiresResponseDecodingContext
         )
         let documentsWriter = try DocumentsWriter(
             configuration: configuration,

@@ -21,12 +21,13 @@ struct SelectionSetResolver {
 
     /// Ensure field ordering matches response ordering by following a similar algorithm to:
     /// https://spec.graphql.org/September2025/#sec-Field-Collection
-    func resolve() throws -> ResolvedSelectionSet {
+    func resolve(inheritedFragmentCondition: FragmentFulfillmentCondition? = nil) throws -> ResolvedSelectionSet {
         try collect(
             selectionSet: selectionSet,
             onType: onType,
             typeCondition: .always,
-            inOptionalDirective: false
+            directiveCondition: nil,
+            inheritedFragmentCondition: inheritedFragmentCondition
         )
     }
 
@@ -34,10 +35,15 @@ struct SelectionSetResolver {
         selectionSet: GraphQLAST.SelectionSet,
         onType: Schema.SelectionSet,
         typeCondition: TypeCondition,
-        inOptionalDirective: Bool
+        directiveCondition: FragmentFulfillmentCondition?,
+        inheritedFragmentCondition: FragmentFulfillmentCondition?
     ) throws -> ResolvedSelectionSet {
         var resolvedSelectionSet = ResolvedSelectionSet()
         for selection in selectionSet.selections {
+            let selectionCondition = self.directiveCondition(for: selection)
+            let effectiveFragmentCondition = FragmentFulfillmentCondition.all(
+                [inheritedFragmentCondition, directiveCondition, selectionCondition].compactMap { $0 }
+            )
             switch selection {
             case .field(let field):
                 let resolvedField = field.name.value == "__typename" ? ResolvedField(
@@ -49,10 +55,11 @@ struct SelectionSetResolver {
                     fieldSchema: onType.field(field),
                     schema: schema,
                     schemaCoordinate: .member(type: onType.name, member: field.name.value),
-                    documents: documents
+                    documents: documents,
+                    inheritedFragmentCondition: effectiveFragmentCondition
                 ).resolve()
                 let conditional = typeCondition.isConditional ||
-                    inOptionalDirective ||
+                    directiveCondition != nil ||
                     selection.hasOptionalDirective
                 try resolvedSelectionSet.addSelection(
                     .field(resolvedField, conditional: conditional),
@@ -61,15 +68,6 @@ struct SelectionSetResolver {
             case .fragmentSpread(let fragmentSpread):
                 let fragmentName = fragmentSpread.name.value
                 let fragmentResponseKey = fragmentName == "typename" ? "__typenameFragment" : "__" + fragmentName
-                if inOptionalDirective || selection.hasOptionalDirective {
-                    throw Codegen.Error(description: """
-                    'skip' or 'include' directives are not currently supported on fragment spreads.
-                    It's not possible to determine whether this fragment spread is fulfilled.
-                    During decoding, we don't have access to the variable which determines whether the
-                    fragment spread is fulfilled.
-                    Fragment name: \(fragmentName)
-                    """)
-                }
                 let fragment = try documents.fragment(fragmentName)
                 let fragmentType = try schema.fragmentType(fragment.ast)
                 let fragmentTypeCondition = nestedTypeCondition(
@@ -80,12 +78,17 @@ struct SelectionSetResolver {
                 switch fragmentTypeCondition {
                 case .always:
                     try resolvedSelectionSet.addSelection(
-                        .fragmentSpread(fragmentName, checkTypenames: nil),
+                        .fragmentSpread(fragmentName, condition: effectiveFragmentCondition),
                         responseKey: fragmentResponseKey
                     )
                 case .typename(let typename):
                     try resolvedSelectionSet.addSelection(
-                        .fragmentSpread(fragmentName, checkTypenames: [typename]),
+                        .fragmentSpread(
+                            fragmentName,
+                            condition: FragmentFulfillmentCondition.all(
+                                [.typename(typename), effectiveFragmentCondition].compactMap { $0 }
+                            )
+                        ),
                         responseKey: fragmentResponseKey
                     )
                 case .abstract:
@@ -96,7 +99,8 @@ struct SelectionSetResolver {
                         selectionSet: fragment.ast.selectionSet,
                         onType: fragmentType,
                         typeCondition: fragmentTypeCondition,
-                        inOptionalDirective: inOptionalDirective || selection.hasOptionalDirective
+                        directiveCondition: effectiveFragmentCondition,
+                        inheritedFragmentCondition: nil
                     )
                     try resolvedSelectionSet.merge(fragmentGroupedSelections) { try $0.merging(with: $1) }
                 }
@@ -110,12 +114,34 @@ struct SelectionSetResolver {
                         fragmentType: fragmentType,
                         onType: onType
                     ),
-                    inOptionalDirective: inOptionalDirective || selection.hasOptionalDirective
+                    directiveCondition: FragmentFulfillmentCondition.all(
+                        [directiveCondition, selectionCondition].compactMap { $0 }
+                    ),
+                    inheritedFragmentCondition: inheritedFragmentCondition
                 )
                 try resolvedSelectionSet.merge(fragmentGroupedSelections) { try $0.merging(with: $1) }
             }
         }
         return resolvedSelectionSet
+    }
+
+    private func directiveCondition(for selection: GraphQLAST.Selection) -> FragmentFulfillmentCondition? {
+        let conditions = selection.directives.compactMap { directive -> FragmentFulfillmentCondition? in
+            let name = directive.name.value
+            guard name == "include" || name == "skip",
+                  let argument = directive.arguments?.first(where: { $0.name.value == "if" }) else {
+                return nil
+            }
+            switch argument.value {
+            case .boolean(let boolean):
+                return .literal(name == "include" ? boolean.value : !boolean.value)
+            case .variable(let variable):
+                return name == "include" ? .include(variable.name.value) : .skip(variable.name.value)
+            default:
+                return nil
+            }
+        }
+        return FragmentFulfillmentCondition.all(conditions)
     }
 
     private func nestedTypeCondition(

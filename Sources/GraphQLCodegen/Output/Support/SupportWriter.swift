@@ -18,7 +18,8 @@ struct SupportWriter {
         configuration: Configuration,
         hasMutation: Bool,
         hasSubscription: Bool,
-        requiresIndirectNullable: Bool
+        requiresIndirectNullable: Bool,
+        requiresResponseDecodingContext: Bool
     ) {
         var outputs: [any SupportOutput] = [
             AnyEncodableWriter(configuration: configuration),
@@ -29,7 +30,10 @@ struct SupportWriter {
                 configuration: configuration,
                 requiresIndirectNullable: requiresIndirectNullable
             ),
-            GraphQLResponseWriter(configuration: configuration),
+            GraphQLResponseWriter(
+                configuration: configuration,
+                requiresResponseDecodingContext: requiresResponseDecodingContext
+            ),
             JSONValueWriter(configuration: configuration),
         ]
         if configuration.output.support.HTTPSupport != nil {
@@ -42,11 +46,16 @@ struct SupportWriter {
                 GraphQLOperationWriter(
                     configuration: configuration,
                     hasMutation: hasMutation,
-                    hasSubscription: hasSubscription
+                    hasSubscription: hasSubscription,
+                    requiresResponseDecodingContext: requiresResponseDecodingContext
                 ),
                 EncodersWriter(plan: httpGenerationPlan, configuration: configuration),
                 URLSessionWriter(hasSubscription: hasSubscription, configuration: configuration),
-                GraphQLRequestWriter(plan: httpGenerationPlan, configuration: configuration),
+                GraphQLRequestWriter(
+                    plan: httpGenerationPlan,
+                    configuration: configuration,
+                    requiresResponseDecodingContext: requiresResponseDecodingContext
+                ),
             ]
             outputs.append(contentsOf: httpOutputs)
         }
