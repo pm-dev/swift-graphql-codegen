@@ -2,6 +2,41 @@ import Foundation
 import GraphQLCodegen
 
 extension ExecutableConfigurationFile {
+    private static func deprecationPolicy(_ value: String) throws -> Configuration.Input.DeprecationPolicy {
+        switch value {
+        case "include":
+            .include
+        case "exclude":
+            .exclude
+        default:
+            throw ConfigurationError(description: "Unsupported deprecation policy: \(value)")
+        }
+    }
+
+    private static func accessLevel(_ value: String) throws -> Configuration.Output.AccessLevel {
+        switch value {
+        case "internal":
+            .internal
+        case "public":
+            .public
+        default:
+            throw ConfigurationError(description: "Unsupported access level: \(value)")
+        }
+    }
+
+    private static func casing(
+        _ value: String
+    ) throws -> Configuration.Output.Schema.Enums.CaseConversion.Case {
+        switch value {
+        case "lowerCamel":
+            .lowerCamel
+        case "macro":
+            .macro
+        default:
+            throw ConfigurationError(description: "Unsupported enum case conversion: \(value)")
+        }
+    }
+
     /// Converts this file representation into a configuration, resolving relative file URLs.
     func configuration(relativeTo directory: URL, outputDirectory: URL? = nil) throws -> Configuration {
         let schemaSource: Configuration.Input.SchemaSource
@@ -17,17 +52,17 @@ extension ExecutableConfigurationFile {
                 : .SDLSchemaFile(url)
         }
 
-        var configuredInput = Configuration.Input.input(
+        var configuredInput = try Configuration.Input.input(
             schemaSource: schemaSource,
-            documentDirectories: try resolveDocumentDirectories(relativeTo: directory)
+            documentDirectories: resolveDocumentDirectories(relativeTo: directory)
         )
         if let deprecationPolicy = input.deprecationPolicy {
             configuredInput.deprecationPolicy = try Self.deprecationPolicy(deprecationPolicy)
         }
 
-        var configuredOutput = Configuration.Output.output(
-            schema: try schemaConfiguration(relativeTo: directory, outputDirectory: outputDirectory),
-            support: try supportConfiguration(relativeTo: directory, outputDirectory: outputDirectory)
+        var configuredOutput = try Configuration.Output.output(
+            schema: schemaConfiguration(relativeTo: directory, outputDirectory: outputDirectory),
+            support: supportConfiguration(relativeTo: directory, outputDirectory: outputDirectory)
         )
         if let indentation = output.indentation {
             switch indentation.style {
@@ -80,7 +115,8 @@ extension ExecutableConfigurationFile {
             relativeTo: directory,
             override: outputDirectory,
             parameter: "output.schema.directory"
-        ) else {
+        )
+        else {
             throw ConfigurationError(description: "Missing required output directory: output.schema.directory")
         }
         var schema = Configuration.Output.Schema.schema(directory: schemaDirectory)
@@ -112,9 +148,9 @@ extension ExecutableConfigurationFile {
                 schema.enums.conformances = conformances
             }
             if let caseConversion = enums.caseConversion {
-                schema.enums.caseConversion = .conversion(
-                    from: try Self.casing(caseConversion.from),
-                    to: try Self.casing(caseConversion.to)
+                schema.enums.caseConversion = try .conversion(
+                    from: Self.casing(caseConversion.from),
+                    to: Self.casing(caseConversion.to)
                 )
             }
         }
@@ -211,7 +247,8 @@ extension ExecutableConfigurationFile {
             relativeTo: directory,
             override: outputDirectory,
             parameter: "output.support.directory"
-        ) else {
+        )
+        else {
             throw ConfigurationError(description: "Missing required output directory: output.support.directory")
         }
         var support = Configuration.Output.Support.support(directory: supportDirectory)
@@ -255,40 +292,5 @@ extension ExecutableConfigurationFile {
             }
         }
         return support
-    }
-
-    private static func deprecationPolicy(_ value: String) throws -> Configuration.Input.DeprecationPolicy {
-        switch value {
-        case "include":
-            .include
-        case "exclude":
-            .exclude
-        default:
-            throw ConfigurationError(description: "Unsupported deprecation policy: \(value)")
-        }
-    }
-
-    private static func accessLevel(_ value: String) throws -> Configuration.Output.AccessLevel {
-        switch value {
-        case "internal":
-            .internal
-        case "public":
-            .public
-        default:
-            throw ConfigurationError(description: "Unsupported access level: \(value)")
-        }
-    }
-
-    private static func casing(
-        _ value: String
-    ) throws -> Configuration.Output.Schema.Enums.CaseConversion.Case {
-        switch value {
-        case "lowerCamel":
-            .lowerCamel
-        case "macro":
-            .macro
-        default:
-            throw ConfigurationError(description: "Unsupported enum case conversion: \(value)")
-        }
     }
 }

@@ -39,7 +39,7 @@ struct GraphQLJS {
             return .failure(.bundleResourceMissing)
         }
         do {
-            return .success(try String(contentsOf: url, encoding: .utf8))
+            return try .success(String(contentsOf: url, encoding: .utf8))
         } catch {
             return .failure(.bundleReadFailed(url, String(describing: error)))
         }
@@ -60,7 +60,8 @@ struct GraphQLJS {
         guard let library = context.objectForKeyedSubscript("GraphQL"),
               library.isObject,
               !library.isNull,
-              !library.isUndefined else {
+              !library.isUndefined
+        else {
             throw Error.missingExport("GraphQL")
         }
         self.context = context
@@ -87,8 +88,8 @@ struct GraphQLJS {
         schemaJSON: String,
         argumentsOnly: Bool
     ) throws -> Data {
-        Data(
-            try stringResult(
+        try Data(
+            stringResult(
                 function: "findDeprecatedUsages",
                 arguments: [sourceTexts, schemaJSON, argumentsOnly]
             ).utf8
@@ -96,12 +97,12 @@ struct GraphQLJS {
     }
 
     func parse(_ sourceText: String) throws -> Data {
-        Data(try stringResult(function: "parseGraphQL", arguments: [sourceText]).utf8)
+        try Data(stringResult(function: "parseGraphQL", arguments: [sourceText]).utf8)
     }
 
     func validate(_ sourceTexts: [String], schemaJSON: String) throws -> Data {
-        Data(
-            try stringResult(
+        try Data(
+            stringResult(
                 function: "validateDocuments",
                 arguments: [sourceTexts, schemaJSON]
             ).utf8
@@ -112,7 +113,8 @@ struct GraphQLJS {
         guard let function = library.objectForKeyedSubscript(name),
               function.isObject,
               !function.isNull,
-              !function.isUndefined else {
+              !function.isUndefined
+        else {
             throw Error.missingExport(name)
         }
         context.exception = nil
@@ -128,21 +130,24 @@ struct GraphQLJS {
         }
         guard let statusValue = result.objectForKeyedSubscript("status"),
               statusValue.isString,
-              let status = statusValue.toString() else {
+              let status = statusValue.toString()
+        else {
             throw Error.unexpectedResult(function: name, expected: "an outcome status")
         }
         switch status {
         case "success":
             guard let value = result.objectForKeyedSubscript("value"),
                   value.isString,
-                  let string = value.toString() else {
+                  let string = value.toString()
+            else {
                 throw Error.unexpectedResult(function: name, expected: "a string value")
             }
             return string
         case "invalidInput":
             guard let messageValue = result.objectForKeyedSubscript("message"),
                   messageValue.isString,
-                  let message = messageValue.toString() else {
+                  let message = messageValue.toString()
+            else {
                 throw Error.unexpectedResult(function: name, expected: "an input error message")
             }
             throw Error.inputRejected(function: name, message: message)

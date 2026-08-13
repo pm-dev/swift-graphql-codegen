@@ -5,10 +5,6 @@ struct URLSessionWriter: SupportOutput {
     let configuration: Configuration
     let topLevelTypeNames: [SwiftTypeIdentifier] = []
 
-    private var includeSubscriptionSupport: Bool {
-        hasSubscription && configuration.output.support.HTTPSupport?.subscriptionSupport == true
-    }
-
     var source: String {
         """
         /// Defaults conform to https://graphql.github.io/graphql-over-http/draft/
@@ -54,6 +50,10 @@ struct URLSessionWriter: SupportOutput {
         """
     }
 
+    private var includeSubscriptionSupport: Bool {
+        hasSubscription && configuration.output.support.HTTPSupport?.subscriptionSupport == true
+    }
+
     private func requestErrorHandling() -> String {
         switch configuration.output.support.HTTPSupport?.persistedOperations {
         case .automatic:
@@ -74,7 +74,7 @@ struct URLSessionWriter: SupportOutput {
                         }
                         throw requestError
             """
-        case .registered, .none:
+        case .none, .registered:
             "case .requestError(let requestError): throw requestError"
         }
     }
@@ -352,7 +352,7 @@ struct URLSessionWriter: SupportOutput {
                                             // TODO: Support automatic persisted operation fallback for subscriptions.
                                             throw requestError
             """
-        case .registered, .none:
+        case .none, .registered:
             "case .requestError(let requestError): throw requestError"
         }
     }

@@ -22,7 +22,7 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources/graphql.bundle.js"),
-            ],
+            ]
         ),
         .executableTarget(
             name: "graphql-codegen",

@@ -84,6 +84,12 @@ enum GraphQLAST {
         case fragmentSpread(FragmentSpread)
         case inlineFragment(InlineFragment)
 
+        private enum Kind: String, Decodable {
+            case Field
+            case FragmentSpread
+            case InlineFragment
+        }
+
         var hasOptionalDirective: Bool {
             directives.contains {
                 $0.name.value == "skip" || $0.name.value == "include"
@@ -96,12 +102,6 @@ enum GraphQLAST {
             case .fragmentSpread(let fragmentSpread): fragmentSpread.directives ?? []
             case .inlineFragment(let inlineFragment): inlineFragment.directives ?? []
             }
-        }
-
-        private enum Kind: String, Decodable {
-            case Field
-            case FragmentSpread
-            case InlineFragment
         }
 
         init(from decoder: Decoder) throws {
@@ -344,10 +344,10 @@ enum GraphQLAST {
         var typeName: SourceTypeName {
             switch self {
             case .named(let namedType): return .optional(
-                .name(
-                    SourceTypeName(nativeGraphQLScalarName: namedType.name.value)?.formatted() ?? namedType.name.value
+                    .name(
+                        SourceTypeName(nativeGraphQLScalarName: namedType.name.value)?.formatted() ?? namedType.name.value
+                    )
                 )
-            )
             case .list(let innerType): return .optional(.list(innerType.type.typeName))
             case .nonNull(let innerType): return innerType.type.typeName
             }

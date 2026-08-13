@@ -7,7 +7,9 @@ enum EpisodeChoice: String, CaseIterable, Identifiable {
     case empire
     case jedi
 
-    var id: Self { self }
+    var id: Self {
+        self
+    }
 
     var title: String {
         switch self {

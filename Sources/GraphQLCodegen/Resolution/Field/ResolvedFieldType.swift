@@ -16,7 +16,7 @@ indirect enum ResolvedFieldType: Sendable {
             }
             return self
         case (.map(let selectionSet1), .map(let selectionSet2)):
-            return .map(try selectionSet1.merging(selectionSet2) { try $0.merging(with: $1) })
+            return try .map(selectionSet1.merging(selectionSet2) { try $0.merging(with: $1) })
         case (.optional(let inner1), .optional(let inner2)):
             return try .optional(innerType: inner1.merging(with: inner2))
         case (.list(let inner1), .list(let inner2)):

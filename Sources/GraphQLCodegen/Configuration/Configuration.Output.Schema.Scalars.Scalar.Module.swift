@@ -1,9 +1,6 @@
 extension Configuration.Output.Schema.Scalars.Scalar {
     /// A module imported by the generated `Schema.swift` file.
     public struct Module: Sendable {
-        public var name: String
-        public var prefix: Bool
-
         /// Creates a module configuration for a generated scalar declaration.
         ///
         /// - Parameters:
@@ -12,5 +9,8 @@ extension Configuration.Output.Schema.Scalars.Scalar {
         public static func module(name: String, prefix: Bool = false) -> Module {
             Module(name: name, prefix: prefix)
         }
+
+        public var name: String
+        public var prefix: Bool
     }
 }

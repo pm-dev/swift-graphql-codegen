@@ -70,7 +70,6 @@ opt_in_rules:
   - redundant_type_annotation
   - self_binding
   - sorted_first_last
-  - sorted_imports
   - toggle_bool
   - type_contents_order
   - unneeded_parentheses_in_closure_argument

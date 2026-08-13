@@ -4,14 +4,15 @@ extension Configuration.Output.Schema.Enums {
     /// If a CaseConversion is used, it must specify `from: .macro` and `to` may be any case.
     /// If `lowerCamel` is used, this codegen would create `case northWest`
     public struct CaseConversion: Sendable {
-        public var from: Case
-        public var to: Case
         public static func conversion(from: Case, to: Case) -> CaseConversion {
             CaseConversion(
                 from: from,
                 to: to
             )
         }
+
+        public var from: Case
+        public var to: Case
 
         func convert(_ value: String) -> String {
             let words = from.words(in: value)

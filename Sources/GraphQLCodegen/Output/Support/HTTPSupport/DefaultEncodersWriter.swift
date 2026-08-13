@@ -12,6 +12,17 @@ struct DefaultEncodersWriter: SupportOutput {
         return typeNames
     }
 
+    var source: String {
+        switch plan.mode {
+        case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
+        case .getWithRegisteredPersistence: getWithRegisteredPersistedOperations()
+        case .getWithoutPersistence: getWithNoPersistedOperations()
+        case .postWithAutomaticPersistence: postWithAutomaticPersistedOperations()
+        case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
+        case .postWithoutPersistence: postWithNoPersistedOperations()
+        }
+    }
+
     private var persistedOperationHashSource: String {
         """
         private func persistedOperationHash(_ document: String) -> String {
@@ -88,17 +99,6 @@ struct DefaultEncodersWriter: SupportOutput {
     private var registeredOperationArgument: String {
         guard plan.allowsUnregisteredOperations else { return "" }
         return ", useRegisteredOperation: useRegisteredOperation"
-    }
-
-    var source: String {
-        switch plan.mode {
-        case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
-        case .getWithRegisteredPersistence: getWithRegisteredPersistedOperations()
-        case .getWithoutPersistence: getWithNoPersistedOperations()
-        case .postWithAutomaticPersistence: postWithAutomaticPersistedOperations()
-        case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
-        case .postWithoutPersistence: postWithNoPersistedOperations()
-        }
     }
 
     private func getWithAutomaticPersistedOperations() -> String {

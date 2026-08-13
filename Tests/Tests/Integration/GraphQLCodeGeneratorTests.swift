@@ -7,6 +7,7 @@ struct GraphQLCodeGeneratorTests {
         .deletingLastPathComponent() // Inside 'Integration'
         .deletingLastPathComponent() // Inside 'Tests'
         .deletingLastPathComponent() // Inside root 'Tests'
+
     private let definitionsDirectory = GraphQLCodeGeneratorTests.testsDirectory
         .appending(path: "Fixtures/Definitions/Integration", directoryHint: .isDirectory)
     private let expectedDirectory = GraphQLCodeGeneratorTests.testsDirectory
@@ -112,7 +113,7 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
-    func testGeneratesCodeForValidSchemaAndDocument() async throws {
+    func generatesCodeForValidSchemaAndDocument() async throws {
         let generatedDirectory = FileManager.default.temporaryDirectory.appending(
             path: UUID().uuidString,
             directoryHint: .isDirectory

@@ -6,18 +6,22 @@ struct SwiftTypeIdentifier: Hashable {
 
     let unescaped: String
 
+    var source: String {
+        identifier(unescaped)
+    }
+
     init(capitalizing graphQLName: String) {
-        unescaped = graphQLName.capitalizedFirst
+        self.unescaped = graphQLName.capitalizedFirst
     }
 
     init(swiftName: String) {
-        unescaped = swiftName
+        self.unescaped = swiftName
     }
 
     init(operation: Document.Operation, in document: Document) throws {
         let operationType = operation.ast.operation.rawValue.capitalizedFirst
         if let name = operation.ast.name {
-            unescaped = name.value + operationType
+            self.unescaped = name.value + operationType
         } else {
             let operationCount = document.definitions.count { definition in
                 switch definition {
@@ -51,11 +55,7 @@ struct SwiftTypeIdentifier: Hashable {
             if typeName.first?.isNumber == true {
                 typeName = "_" + typeName
             }
-            unescaped = typeName.hasSuffix(operationType) ? typeName : typeName + operationType
+            self.unescaped = typeName.hasSuffix(operationType) ? typeName : typeName + operationType
         }
-    }
-
-    var source: String {
-        identifier(unescaped)
     }
 }

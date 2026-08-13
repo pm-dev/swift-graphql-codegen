@@ -47,7 +47,7 @@ struct __Schema: Decodable {
         }
 
         struct Enum: Decodable {
-            private static let typeSystemEnums: Set<String> = ["__TypeKind", "__DirectiveLocation"]
+            private static let typeSystemEnums: Set = ["__TypeKind", "__DirectiveLocation"]
 
             let description: String?
             let name: String
@@ -360,7 +360,7 @@ extension __Schema.__Field {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: IntrospectionDeprecationCodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
         args = try container.decode([__Schema.__InputValue].self, forKey: .args)
         type = try container.decode(__Schema.__TypeRef.self, forKey: .type)
         deprecation = try Deprecation(introspection: decoder)
@@ -371,7 +371,7 @@ extension __Schema.__EnumValue {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: IntrospectionDeprecationCodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
         deprecation = try Deprecation(introspection: decoder)
     }
 }
@@ -380,7 +380,7 @@ extension __Schema.__InputValue {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: IntrospectionDeprecationCodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
         type = try container.decode(__Schema.__TypeRef.self, forKey: .type)
         defaultValue = try container.decodeIfPresent(String.self, forKey: .defaultValue)
         deprecation = try Deprecation(introspection: decoder)

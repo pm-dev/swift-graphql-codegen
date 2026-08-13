@@ -1,4 +1,4 @@
-// https://spec.graphql.org/September2025/#sec-Schema-Coordinates
+/// https://spec.graphql.org/September2025/#sec-Schema-Coordinates
 enum SchemaCoordinate: CustomStringConvertible {
     case argument(type: String, field: String, argument: String)
     case directive(String)

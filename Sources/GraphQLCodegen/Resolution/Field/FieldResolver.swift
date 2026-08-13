@@ -8,8 +8,8 @@ struct FieldResolver {
     let documents: Documents
 
     func resolve() throws -> ResolvedField {
-        ResolvedField(
-            type: try resolveFieldType(schema.fieldType(fieldSchema)),
+        try ResolvedField(
+            type: resolveFieldType(schema.fieldType(fieldSchema)),
             deprecation: fieldSchema.deprecation,
             description: fieldSchema.description
         )
@@ -19,7 +19,7 @@ struct FieldResolver {
         _ fieldType: Schema.Field
     ) throws -> ResolvedFieldType {
         switch fieldType {
-        case .nullable(let value): .optional(innerType: try resolveFieldValue(value))
+        case .nullable(let value): try .optional(innerType: resolveFieldValue(value))
         case .nonNull(let value): try resolveFieldValue(value)
         }
     }
@@ -39,7 +39,7 @@ struct FieldResolver {
         case .ENUM(let `enum`):
             return .scalar(typeName: `enum`.ast.name, isEnum: true)
         case .LIST(let innerType):
-            return .list(innerType: try resolveFieldType(innerType))
+            return try .list(innerType: resolveFieldType(innerType))
         }
     }
 
@@ -47,8 +47,8 @@ struct FieldResolver {
         guard let selectionSet = fieldSelection.selectionSet else {
             throw missingSelectionSetError()
         }
-        return .map(
-            try SelectionSetResolver(
+        return try .map(
+            SelectionSetResolver(
                 onType: type,
                 selectionSet: selectionSet,
                 schema: schema,

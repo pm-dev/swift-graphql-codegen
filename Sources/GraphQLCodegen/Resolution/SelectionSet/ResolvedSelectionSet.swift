@@ -6,6 +6,10 @@ enum ResolvedSelection {
     case fragmentSpread(String, checkTypenames: Set<String>?)
     case field(ResolvedField, conditional: Bool)
 
+    private enum MergeError: Error {
+        case incompatibleSelectionTypes(ResolvedSelection, ResolvedSelection)
+    }
+
     func merging(with other: ResolvedSelection) throws -> ResolvedSelection {
         switch self {
         case .fragmentSpread(let name, let checkTypenames):
@@ -21,12 +25,8 @@ enum ResolvedSelection {
             switch other {
             case .fragmentSpread: throw MergeError.incompatibleSelectionTypes(self, other)
             case .field(let otherField, let otherConditional):
-                return .field(try field.merging(with: otherField), conditional: conditional && otherConditional)
+                return try .field(field.merging(with: otherField), conditional: conditional && otherConditional)
             }
         }
-    }
-
-    private enum MergeError: Error {
-        case incompatibleSelectionTypes(ResolvedSelection, ResolvedSelection)
     }
 }

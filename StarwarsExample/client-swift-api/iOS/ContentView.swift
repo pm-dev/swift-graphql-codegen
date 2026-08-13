@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  StarwarsExample
-//
-//  Created by Peter Meyers on 8/9/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
@@ -56,7 +49,7 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder private var episodeOptions: some View {
+    private var episodeOptions: some View {
         ForEach(EpisodeChoice.allCases) { episode in
             Text(episode.title).tag(episode)
         }

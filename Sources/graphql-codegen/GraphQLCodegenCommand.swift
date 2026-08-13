@@ -7,7 +7,8 @@ enum GraphQLCodegenCommand {
         let arguments = Array(CommandLine.arguments.dropFirst())
         guard arguments.count == 2 || arguments.count == 4,
               arguments[0] == "--file-configuration",
-              arguments.count == 2 || arguments[2] == "--output-directory" else {
+              arguments.count == 2 || arguments[2] == "--output-directory"
+        else {
             throw CommandError.invalidArguments
         }
 

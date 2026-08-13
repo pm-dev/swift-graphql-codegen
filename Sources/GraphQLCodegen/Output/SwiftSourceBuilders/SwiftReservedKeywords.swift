@@ -2,7 +2,7 @@ func identifier(_ identifier: String) -> String {
     swiftReservedKeywords.contains(identifier) ? "`\(identifier)`" : identifier
 }
 
-private let swiftReservedKeywords: Set<String> = [
+private let swiftReservedKeywords: Set = [
     "Any",
     "Self",
     "as",

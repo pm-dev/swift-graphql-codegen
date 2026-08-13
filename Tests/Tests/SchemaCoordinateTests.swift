@@ -1,5 +1,5 @@
-@testable import GraphQLCodegen
 import Testing
+@testable import GraphQLCodegen
 
 struct SchemaCoordinateTests {
     @Test

@@ -1,6 +1,6 @@
 import Foundation
-@testable import GraphQLCodegen
 import Testing
+@testable import GraphQLCodegen
 
 struct IntrospectionQueryTests {
     @Test
@@ -21,10 +21,12 @@ struct IntrospectionQueryTests {
             #"{"description":null,"name":"Choice","inputFields":[],"isOneOf":true}"#.utf8
         )
         let inputValueData = Data(
-            #"{"name":"oldValue","description":null,"type":{"kind":"SCALAR","name":"String"},"defaultValue":null,"isDeprecated":true,"deprecationReason":"Use newValue."}"#.utf8
+            #"{"name":"oldValue","description":null,"type":{"kind":"SCALAR","name":"String"},"defaultValue":null,"isDeprecated":true,"deprecationReason":"Use newValue."}"#
+                .utf8
         )
         let fieldData = Data(
-            #"{"name":"oldField","description":null,"args":[],"type":{"kind":"SCALAR","name":"String"},"isDeprecated":true,"deprecationReason":"Use newField."}"#.utf8
+            #"{"name":"oldField","description":null,"args":[],"type":{"kind":"SCALAR","name":"String"},"isDeprecated":true,"deprecationReason":"Use newField."}"#
+                .utf8
         )
         let enumValueData = Data(
             #"{"name":"OLD_VALUE","description":null,"isDeprecated":true,"deprecationReason":"Use NEW_VALUE."}"#.utf8
@@ -46,7 +48,8 @@ struct IntrospectionQueryTests {
     @Test
     func rejectsDeprecatedInputValueWithoutReason() {
         let inputValueData = Data(
-            #"{"name":"oldValue","description":null,"type":{"kind":"SCALAR","name":"String"},"defaultValue":null,"isDeprecated":true,"deprecationReason":null}"#.utf8
+            #"{"name":"oldValue","description":null,"type":{"kind":"SCALAR","name":"String"},"defaultValue":null,"isDeprecated":true,"deprecationReason":null}"#
+                .utf8
         )
 
         #expect(throws: DecodingError.self) {

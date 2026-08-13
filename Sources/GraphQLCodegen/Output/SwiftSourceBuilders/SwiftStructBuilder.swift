@@ -1,9 +1,4 @@
 struct SwiftStructBuilder: SwiftTypeBuildable {
-    private struct StoredProperty {
-        let name: String
-        let storageName: String
-    }
-
     enum PropertyValue {
         case unassigned(type: String, initialized: Initialized?)
         case assigned(String, type: String?)
@@ -36,6 +31,11 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         }
     }
 
+    private struct StoredProperty {
+        let name: String
+        let storageName: String
+    }
+
     private var builder: SwiftTypeBuilder
     private var reservedPropertyNames: Set<String> = []
     private var storedProperties: [StoredProperty] = []
@@ -47,14 +47,14 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         name: String,
         conformances: [String]
     ) {
-        builder = SwiftTypeBuilder(
+        self.builder = SwiftTypeBuilder(
             description: description,
             isPublic: isPublic,
             type: "struct",
             name: identifier(name),
             conformances: conformances
         )
-        usesCodingKeys = conformances.contains { conformance in
+        self.usesCodingKeys = conformances.contains { conformance in
             SwiftConformanceName(source: conformance).usesCodingKeys
         }
     }
@@ -95,10 +95,11 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             case .assigned, .unassigned: immutable ? "let" : "var"
             }
         let safeName = identifier(name)
-        let usesBackingStorage = switch value {
-        case .unassigned: deprecation != nil
-        case .assigned, .computed: false
-        }
+        let usesBackingStorage =
+            switch value {
+            case .unassigned: deprecation != nil
+            case .assigned, .computed: false
+            }
         let backingName = usesBackingStorage ? backingStorageName(for: name) : safeName
         if isStatic == false {
             switch value {
@@ -187,15 +188,6 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
         storedProperties.first { $0.name == name }?.storageName ?? identifier(name)
     }
 
-    private func backingStorageName(for propertyName: String) -> String {
-        var name = "__\(propertyName)"
-        let storedPropertyNames = Set(storedProperties.map(\.storageName))
-        while reservedPropertyNames.contains(name) || storedPropertyNames.contains(name) {
-            name = "_\(name)"
-        }
-        return name
-    }
-
     mutating func addNestedType(_ type: SwiftTypeBuildable) {
         builder.addNestedType(type)
     }
@@ -210,6 +202,15 @@ struct SwiftStructBuilder: SwiftTypeBuildable {
             body: body,
             isThrowing: isThrowing
         )
+    }
+
+    private func backingStorageName(for propertyName: String) -> String {
+        var name = "__\(propertyName)"
+        let storedPropertyNames = Set(storedProperties.map(\.storageName))
+        while reservedPropertyNames.contains(name) || storedPropertyNames.contains(name) {
+            name = "_\(name)"
+        }
+        return name
     }
 }
 

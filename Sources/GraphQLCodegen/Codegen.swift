@@ -23,8 +23,8 @@ public struct Codegen: Sendable {
     ///
     /// Operation bodies use the document formatting configured for generated operations.
     public func generatePersistedOperationManifestFile(at manifestURL: URL) async throws {
-        let manifest = PersistedOperationManifest(
-            documents: try await prepareInput().documents,
+        let manifest = try PersistedOperationManifest(
+            documents: await prepareInput().documents,
             minifyDocument: configuration.output.documents.operations.minifyDocument
         )
         let encoder = JSONEncoder()

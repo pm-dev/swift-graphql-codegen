@@ -15,10 +15,6 @@ struct EncodersWriter: SupportOutput {
         return typeNames
     }
 
-    private var includeSubscriptionSupport: Bool {
-        plan.includesSubscriptions
-    }
-
     var source: String {
         switch plan.mode {
         case .getWithAutomaticPersistence: getWithAutomaticPersistedOperations()
@@ -28,6 +24,10 @@ struct EncodersWriter: SupportOutput {
         case .postWithRegisteredPersistence: postWithRegisteredPersistedOperations()
         case .postWithoutPersistence: postWithNoPersistedOperations()
         }
+    }
+
+    private var includeSubscriptionSupport: Bool {
+        plan.includesSubscriptions
     }
 
     private func getWithAutomaticPersistedOperations() -> String {

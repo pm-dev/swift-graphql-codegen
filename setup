@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -eu
+
+repository_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$repository_directory"
+
+if ! command -v mise >/dev/null 2>&1; then
+    curl -fsSL https://mise.run | sh
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+mise trust
+mise install
+mise exec -- pre-commit install

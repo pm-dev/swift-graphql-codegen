@@ -15,8 +15,12 @@ struct ResolvedField {
             throw MergeError.incompatibleFields(self, other)
         }
         var descriptions = OrderedSet<String>()
-        if let description { descriptions.append(description) }
-        if let otherDescription = other.description { descriptions.append(otherDescription) }
+        if let description {
+            descriptions.append(description)
+        }
+        if let otherDescription = other.description {
+            descriptions.append(otherDescription)
+        }
         return try ResolvedField(
             type: type.merging(with: other.type),
             deprecation: deprecation,

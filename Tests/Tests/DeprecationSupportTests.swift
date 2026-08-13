@@ -1,6 +1,6 @@
 import Foundation
-@testable import GraphQLCodegen
 import Testing
+@testable import GraphQLCodegen
 
 struct DeprecationSupportTests {
     struct DeprecatedUsage: Sendable {

@@ -1,9 +1,6 @@
 extension Configuration.Output.Schema.Scalars {
     /// The Swift type and optional module used to represent a GraphQL scalar.
     public struct Scalar: Sendable {
-        public var typeName: String
-        public var module: Module?
-
         /// Creates a Swift type mapping for a GraphQL scalar.
         ///
         /// - Parameters:
@@ -12,5 +9,8 @@ extension Configuration.Output.Schema.Scalars {
         public static func scalar(typeName: String, module: Module? = nil) -> Scalar {
             Scalar(typeName: typeName, module: module)
         }
+
+        public var typeName: String
+        public var module: Module?
     }
 }

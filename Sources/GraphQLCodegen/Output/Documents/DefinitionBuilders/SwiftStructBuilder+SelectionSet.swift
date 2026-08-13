@@ -111,7 +111,7 @@ extension SwiftStructBuilder {
                         field: responseKey,
                         fragmentSpread: fragmentSpread
                     )
-                case .selectionSetNeedsTypename, .none: throw error
+                case .none, .selectionSetNeedsTypename: throw error
                 }
             }
             addNestedType(nestedStruct)

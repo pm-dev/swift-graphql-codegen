@@ -1,9 +1,72 @@
 import CryptoKit
-@testable import Fixtures
 import Foundation
 import Testing
+@testable import Fixtures
 
 struct DefaultURLQueryEncoderTests {
+    private struct AnonymousQuery: GraphQLQuery {
+        struct Data: Decodable, Sendable {}
+
+        static let operationName: String? = nil
+        static let document = "{viewer{id}}"
+
+        let variables: Never? = nil
+        let extensions: [String: Fixtures.AnyEncodable]? = nil
+    }
+
+    private struct CurrentUserQuery: GraphQLQuery {
+        struct Data: Decodable, Sendable {}
+
+        static let operationName: String? = "CurrentUser"
+        static let document = "query CurrentUser{viewer{id}}"
+
+        let variables: Never? = nil
+        let extensions: [String: Fixtures.AnyEncodable]? = nil
+    }
+
+    private struct DescribedQuery: GraphQLQuery {
+        struct Data: Decodable, Sendable {}
+
+        static let operationName: String? = "Described"
+        static let document = "query Described{viewer{id}}"
+
+        let variables: Never? = nil
+        let extensions: [String: Fixtures.AnyEncodable]? = nil
+    }
+
+    private struct EncodedExtensions: Decodable {
+        let requestID: String
+    }
+
+    private struct EncodedVariables: Decodable {
+        let includeDetails: Bool
+    }
+
+    private struct ParameterizedQuery: GraphQLQuery {
+        struct Data: Decodable, Sendable {}
+
+        struct Variables: Encodable, Sendable {
+            // periphery:ignore - Used through the synthesized Encodable implementation.
+            let includeDetails: Bool
+        }
+
+        static let operationName: String? = "Parameterized"
+        static let document = "query Parameterized($includeDetails:Boolean!){viewer{id}}"
+
+        let variables = Variables(includeDetails: true)
+        let extensions: [String: Fixtures.AnyEncodable]? = [
+            "requestID": Fixtures.AnyEncodable("request-id"),
+        ]
+    }
+
+    private struct PersistedExtensions: Decodable {
+        struct PersistedQuery: Decodable {
+            let sha256Hash: String
+        }
+
+        let persistedQuery: PersistedQuery
+    }
+
     @Test
     func persistedHashUsesDocument() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
@@ -70,69 +133,6 @@ struct DefaultURLQueryEncoderTests {
         let extensionsData = try #require(extensionsValue.data(using: .utf8))
         let extensions = try JSONDecoder().decode(EncodedExtensions.self, from: extensionsData)
         #expect(extensions.requestID == "request-id")
-    }
-
-    private struct AnonymousQuery: GraphQLQuery {
-        struct Data: Decodable, Sendable {}
-
-        static let operationName: String? = nil
-        static let document = "{viewer{id}}"
-
-        let variables: Never? = nil
-        let extensions: [String: Fixtures.AnyEncodable]? = nil
-    }
-
-    private struct CurrentUserQuery: GraphQLQuery {
-        struct Data: Decodable, Sendable {}
-
-        static let operationName: String? = "CurrentUser"
-        static let document = "query CurrentUser{viewer{id}}"
-
-        let variables: Never? = nil
-        let extensions: [String: Fixtures.AnyEncodable]? = nil
-    }
-
-    private struct DescribedQuery: GraphQLQuery {
-        struct Data: Decodable, Sendable {}
-
-        static let operationName: String? = "Described"
-        static let document = "query Described{viewer{id}}"
-
-        let variables: Never? = nil
-        let extensions: [String: Fixtures.AnyEncodable]? = nil
-    }
-
-    private struct EncodedExtensions: Decodable {
-        let requestID: String
-    }
-
-    private struct EncodedVariables: Decodable {
-        let includeDetails: Bool
-    }
-
-    private struct ParameterizedQuery: GraphQLQuery {
-        struct Data: Decodable, Sendable {}
-
-        static let operationName: String? = "Parameterized"
-        static let document = "query Parameterized($includeDetails:Boolean!){viewer{id}}"
-
-        let variables = Variables(includeDetails: true)
-        let extensions: [String: Fixtures.AnyEncodable]? = [
-            "requestID": Fixtures.AnyEncodable("request-id")
-        ]
-
-        struct Variables: Encodable, Sendable {
-            // periphery:ignore - Used through the synthesized Encodable implementation.
-            let includeDetails: Bool
-        }
-    }
-
-    private struct PersistedExtensions: Decodable {
-        struct PersistedQuery: Decodable {
-            let sha256Hash: String
-        }
-
-        let persistedQuery: PersistedQuery
     }
 
     private func hash(_ document: String) -> String {

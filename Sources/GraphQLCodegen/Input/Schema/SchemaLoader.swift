@@ -10,8 +10,8 @@ private struct LoadedIntrospection {
     let schemaJSON: String
 }
 
-// Type names are guaranteed to be unique
-// https://spec.graphql.org/September2025/#sel-DAHTCKBDLA5BotN
+/// Type names are guaranteed to be unique
+/// https://spec.graphql.org/September2025/#sel-DAHTCKBDLA5BotN
 struct TypeASTCache {
     var scalars: [String: __Schema.__NamedType.Scalar] = [:]
     var objects: [String: __Schema.__NamedType.Object] = [:]
@@ -19,6 +19,7 @@ struct TypeASTCache {
     var unions: [String: __Schema.__NamedType.Union] = [:]
     var enums: [String: __Schema.__NamedType.Enum] = [:]
     var inputObjects: [String: __Schema.__NamedType.InputObject] = [:]
+
     init(_ schema: __Schema) {
         for type in schema.types {
             switch type {
@@ -37,7 +38,8 @@ struct TypeASTCache {
         var remaining = directInterfaces.map(\.name)
         while let name = remaining.popLast() {
             guard inherited.insert(name).inserted,
-                  let interface = interfaces[name] else {
+                  let interface = interfaces[name]
+            else {
                 continue
             }
             remaining.append(contentsOf: interface.interfaces.map(\.name))
@@ -55,7 +57,7 @@ struct TypeCache {
     var inputObjects: [String: Schema.InputObject] = [:]
 
     init(_ cache: TypeASTCache) {
-        scalars = cache.scalars.mapValues { Schema.Scalar(ast: $0) }
+        self.scalars = cache.scalars.mapValues { Schema.Scalar(ast: $0) }
         for (name, ast) in cache.objects {
             objects[name] = Schema.Object(
                 ast: ast,
@@ -76,8 +78,8 @@ struct TypeCache {
                 possibleTypes: Set(ast.possibleTypes.map(\.name))
             )
         }
-        enums = cache.enums.mapValues { Schema.Enum(ast: $0) }
-        inputObjects = cache.inputObjects.mapValues { Schema.InputObject(ast: $0) }
+        self.enums = cache.enums.mapValues { Schema.Enum(ast: $0) }
+        self.inputObjects = cache.inputObjects.mapValues { Schema.InputObject(ast: $0) }
     }
 }
 
@@ -128,22 +130,23 @@ struct SchemaLoader {
         ).run()
         let __schema = try JSONDecoder().decode(IntrospectionResponse.self, from: data).data.__schema
         guard let response = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let schemaObject = response["data"] else {
+              let schemaObject = response["data"]
+        else {
             throw Codegen.Error(description: "The introspection endpoint returned an invalid GraphQL response.")
         }
         let schemaJSON = try JSONSerialization.data(withJSONObject: schemaObject)
-        return LoadedIntrospection(
+        return try LoadedIntrospection(
             schema: __schema,
-            schemaJSON: try decodeUTF8(schemaJSON, source: endpoint)
+            schemaJSON: decodeUTF8(schemaJSON, source: endpoint)
         )
     }
 
     private func loadSchemaFromJSONFile(_ schemaFile: URL) throws -> LoadedIntrospection {
         let data = try Data(contentsOf: schemaFile)
         let __schema = try JSONDecoder().decode(IntrospectionResponse.Data.self, from: data).__schema
-        return LoadedIntrospection(
+        return try LoadedIntrospection(
             schema: __schema,
-            schemaJSON: try decodeUTF8(data, source: schemaFile)
+            schemaJSON: decodeUTF8(data, source: schemaFile)
         )
     }
 

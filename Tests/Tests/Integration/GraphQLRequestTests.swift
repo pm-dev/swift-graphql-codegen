@@ -1,6 +1,6 @@
-@testable import Fixtures
 import Foundation
 import Testing
+@testable import Fixtures
 
 struct GraphQLRequestTests {
     private final class TrackingHTTPBodyEncoder: HTTPBodyEncoder {
@@ -106,7 +106,7 @@ struct GraphQLRequestTests {
         #expect(postSubscriptionRequest.persistedOperationRetry == nil)
         let body = try JSONDecoder().decode(
             EncodedDocument.self,
-            from: try #require(postSubscriptionRequest.urlRequest.httpBody)
+            from: #require(postSubscriptionRequest.urlRequest.httpBody)
         )
         #expect(body.query == StateChangedSubscription.document)
     }
@@ -181,7 +181,7 @@ struct GraphQLRequestTests {
         #expect(urlRequest.value(forHTTPHeaderField: "content-type") == "application/json")
         #expect(urlRequest.value(forHTTPHeaderField: "authorization") == "Bearer token")
 
-        let body = try JSONDecoder().decode(EncodedRequest.self, from: try #require(urlRequest.httpBody))
+        let body = try JSONDecoder().decode(EncodedRequest.self, from: #require(urlRequest.httpBody))
         #expect(body.operationName == "Node")
         #expect(body.query == NodeQuery.document)
         #expect(body.variables.state == "STOPPED")

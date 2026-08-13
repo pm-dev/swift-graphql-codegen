@@ -22,14 +22,14 @@ struct DocumentsResolver {
         let resolvedFragments = try resolveFragments(usedFragments)
         let resolvedDocuments = try resolveDocuments(documents)
         let usage = try usage(in: resolvedDocuments, resolvedFragments: resolvedFragments)
-        return ResolvedDocuments(
+        return try ResolvedDocuments(
             documents: resolvedDocuments,
             fragmentLookup: resolvedFragments,
             fulfilledFragments: usage.fulfilledFragments,
             hasMutation: usage.hasMutation,
             hasSubscription: usage.hasSubscription,
-            indirectOneOfInputObjectFields: try indirectOneOfInputObjectFields(in: usage.usedTypes),
-            requiresIndirectNullable: try requiresIndirectNullable(in: usage.usedTypes),
+            indirectOneOfInputObjectFields: indirectOneOfInputObjectFields(in: usage.usedTypes),
+            requiresIndirectNullable: requiresIndirectNullable(in: usage.usedTypes),
             usedTypes: usage.usedTypes
         )
     }
@@ -73,7 +73,7 @@ struct DocumentsResolver {
         var resolvedFragments: [String: ResolvedFragment] = [:]
         for (name, fragment) in usedFragments.sorted(by: { $0.key < $1.key }) {
             let selectionSet = try SelectionSetResolver(
-                onType: try schema.fragmentType(fragment.ast),
+                onType: schema.fragmentType(fragment.ast),
                 selectionSet: fragment.ast.selectionSet,
                 schema: schema,
                 documents: documents
@@ -158,7 +158,7 @@ struct DocumentsResolver {
                         case .map(let nestedSelectionSet):
                             selectionSets.append(nestedSelectionSet)
                             fieldType = nil
-                        case .optional(let innerType), .list(let innerType):
+                        case .list(let innerType), .optional(let innerType):
                             fieldType = innerType
                         }
                     }
@@ -173,14 +173,14 @@ struct DocumentsResolver {
         _ variableDefinition: GraphQLAST.VariableDefinition,
         to usedTypes: inout Set<String>
     ) throws {
-        var inputTypes = [try schema.inputType(variableDefinition)]
+        var inputTypes = try [schema.inputType(variableDefinition)]
         while let inputType = inputTypes.popLast() {
             switch inputType.value {
             case .SCALAR(let scalar): usedTypes.insert(scalar.ast.name)
             case .ENUM(let `enum`): usedTypes.insert(`enum`.ast.name)
             case .INPUT_OBJECT(let inputObject):
                 guard usedTypes.insert(inputObject.ast.name).inserted else { continue }
-                inputTypes.append(contentsOf: try inputObject.ast.inputFields.map { try schema.inputType($0) })
+                try inputTypes.append(contentsOf: inputObject.ast.inputFields.map { try schema.inputType($0) })
             case .LIST(let innerType): inputTypes.append(innerType)
             }
         }
@@ -222,7 +222,8 @@ struct DocumentsResolver {
                 case .nonNull: true
                 }
             guard storesWithoutNullableWrapper,
-                  case .INPUT_OBJECT(let nestedInputObject) = type.value else {
+                  case .INPUT_OBJECT(let nestedInputObject) = type.value
+            else {
                 return nil
             }
             return InputObjectDependency(

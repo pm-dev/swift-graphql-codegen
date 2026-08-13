@@ -1,12 +1,13 @@
-@testable import Fixtures
 import Foundation
 import GraphQLCodegen
 import Testing
+@testable import Fixtures
 
 struct GraphQLOneOfGeneratorTests {
     private static let testsDirectory = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
+
     private let definitionsDirectory = GraphQLOneOfGeneratorTests.testsDirectory
         .appending(path: "Fixtures/Definitions/OneOf", directoryHint: .isDirectory)
     private let expectedDirectory = GraphQLOneOfGeneratorTests.testsDirectory

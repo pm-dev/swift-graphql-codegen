@@ -41,16 +41,16 @@ struct SelectionSetResolver {
             switch selection {
             case .field(let field):
                 let resolvedField = field.name.value == "__typename" ? ResolvedField(
-                        type: .scalar(typeName: "String", isEnum: false),
-                        deprecation: nil,
-                        description: nil
+                    type: .scalar(typeName: "String", isEnum: false),
+                    deprecation: nil,
+                    description: nil
                 ) : try FieldResolver(
-                        fieldSelection: field,
-                        fieldSchema: onType.field(field),
-                        schema: schema,
-                        schemaCoordinate: .member(type: onType.name, member: field.name.value),
-                        documents: documents
-                    ).resolve()
+                    fieldSelection: field,
+                    fieldSchema: onType.field(field),
+                    schema: schema,
+                    schemaCoordinate: .member(type: onType.name, member: field.name.value),
+                    documents: documents
+                ).resolve()
                 let conditional = typeCondition.isConditional ||
                     inOptionalDirective ||
                     selection.hasOptionalDirective
