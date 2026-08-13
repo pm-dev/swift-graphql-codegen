@@ -49,7 +49,7 @@ struct DefaultEncodersWriter: SupportOutput {
 
         return """
         private extension [URLQueryItem] {
-            static func from(_ body: Body) throws -> Self {
+            static func from(_ body: Body, jsonEncoder: JSONEncoder) throws -> Self {
                 var items = [URLQueryItem]()
                 if let operationName = body.operationName {
                     items.append(URLQueryItem(name: "operationName", value: operationName))
@@ -58,7 +58,7 @@ struct DefaultEncodersWriter: SupportOutput {
                     items.append(
                         URLQueryItem(
                             name: "variables",
-                            value: String(decoding: try JSONEncoder().encode(variables), as: UTF8.self)
+                            value: String(decoding: try jsonEncoder.encode(variables), as: UTF8.self)
                         )
                     )
                 }
@@ -66,7 +66,7 @@ struct DefaultEncodersWriter: SupportOutput {
                     items.append(
                         URLQueryItem(
                             name: "extensions",
-                            value: String(decoding: try JSONEncoder().encode(extensions), as: UTF8.self)
+                            value: String(decoding: try jsonEncoder.encode(extensions), as: UTF8.self)
                         )
                     )
                 }
@@ -107,7 +107,12 @@ struct DefaultEncodersWriter: SupportOutput {
         /// using the spec described at:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
         \(accessLevel)struct DefaultURLQueryEncoder: URLQueryEncoder {
-            \(accessLevel)init() {}
+            private let jsonEncoder: JSONEncoder
+
+            \(accessLevel)init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+                self.jsonEncoder = jsonEncoder
+            }
+
             \(accessLevel)func encode<Operation: GraphQLOperation>(
                 operation: Operation,
                 automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
@@ -116,7 +121,8 @@ struct DefaultEncodersWriter: SupportOutput {
                     Body(
                         operation: operation,
                         automaticPersistedOperationPhase: automaticPersistedOperationPhase
-                    )
+                    ),
+                    jsonEncoder: jsonEncoder
                 )
             }
         }
@@ -133,11 +139,16 @@ struct DefaultEncodersWriter: SupportOutput {
         /// using the spec described at:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
         \(accessLevel)struct DefaultURLQueryEncoder: URLQueryEncoder {
-            \(accessLevel)init() {}
+            private let jsonEncoder: JSONEncoder
+
+            \(accessLevel)init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+                self.jsonEncoder = jsonEncoder
+            }
+
             \(accessLevel)func encode<Query: GraphQLQuery>(
                 query: Query\(registeredOperationParameter)
             ) throws -> [URLQueryItem] {
-                try .from(Body(operation: query\(registeredOperationArgument)))
+                try .from(Body(operation: query\(registeredOperationArgument)), jsonEncoder: jsonEncoder)
             }\(subscriptionSupportWithRegisteredPersistedOperations())
         }
 
@@ -153,9 +164,14 @@ struct DefaultEncodersWriter: SupportOutput {
         /// using the spec described at:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
         \(accessLevel)struct DefaultURLQueryEncoder: URLQueryEncoder {
-            \(accessLevel)init() {}
+            private let jsonEncoder: JSONEncoder
+
+            \(accessLevel)init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+                self.jsonEncoder = jsonEncoder
+            }
+
             \(accessLevel)func encode<Query: GraphQLQuery>(query: Query) throws -> [URLQueryItem] {
-                try .from(Body(operation: query))
+                try .from(Body(operation: query), jsonEncoder: jsonEncoder)
             }\(subscriptionSupportWithNoPersistedOperations())
         }
 
@@ -189,13 +205,18 @@ struct DefaultEncodersWriter: SupportOutput {
         /// as specified by the spec:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
         \(accessLevel)struct JSONBodyEncoder: HTTPBodyEncoder {
-            \(accessLevel)init() {}
+            private let jsonEncoder: JSONEncoder
+
+            \(accessLevel)init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+                self.jsonEncoder = jsonEncoder
+            }
+
             \(accessLevel)let contentType = "application/json"
             \(accessLevel)func encode<Operation: GraphQLOperation>(
                 operation: Operation,
                 automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
             ) throws -> Data {
-                try JSONEncoder().encode(
+                try jsonEncoder.encode(
                     Body(
                         operation: operation,
                         automaticPersistedOperationPhase: automaticPersistedOperationPhase
@@ -240,12 +261,17 @@ struct DefaultEncodersWriter: SupportOutput {
         /// as specified by the spec:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
         \(accessLevel)struct JSONBodyEncoder: HTTPBodyEncoder {
-            \(accessLevel)init() {}
+            private let jsonEncoder: JSONEncoder
+
+            \(accessLevel)init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+                self.jsonEncoder = jsonEncoder
+            }
+
             \(accessLevel)let contentType = "application/json"
             \(accessLevel)func encode<Operation: GraphQLOperation>(
                 operation: Operation\(registeredOperationParameter)
             ) throws -> Data {
-                try JSONEncoder().encode(
+                try jsonEncoder.encode(
                     Body(operation: operation\(registeredOperationArgument))
                 )
             }
@@ -313,10 +339,15 @@ struct DefaultEncodersWriter: SupportOutput {
         /// as specified by the spec:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
         \(accessLevel)struct JSONBodyEncoder: HTTPBodyEncoder {
-            \(accessLevel)init() {}
+            private let jsonEncoder: JSONEncoder
+
+            \(accessLevel)init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+                self.jsonEncoder = jsonEncoder
+            }
+
             \(accessLevel)let contentType = "application/json"
             \(accessLevel)func encode<Operation: GraphQLOperation>(operation: Operation) throws -> Data {
-                try JSONEncoder().encode(Body(operation: operation))
+                try jsonEncoder.encode(Body(operation: operation))
             }
         }
 
@@ -345,7 +376,7 @@ struct DefaultEncodersWriter: SupportOutput {
             \(accessLevel)func encode<Subscription: GraphQLSubscription>(
                 subscription: Subscription\(registeredOperationParameter)
             ) throws -> [URLQueryItem] {
-                try .from(Body(operation: subscription\(registeredOperationArgument)))
+                try .from(Body(operation: subscription\(registeredOperationArgument)), jsonEncoder: jsonEncoder)
             }
         """
     }
@@ -356,7 +387,7 @@ struct DefaultEncodersWriter: SupportOutput {
 
 
             \(accessLevel)func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLQueryItem] {
-                try .from(Body(operation: subscription))
+                try .from(Body(operation: subscription), jsonEncoder: jsonEncoder)
             }
         """
     }
