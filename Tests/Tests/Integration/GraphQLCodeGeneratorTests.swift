@@ -433,6 +433,107 @@ struct GraphQLCodeGeneratorTests {
     }
 
     @Test
+    func preservesParentTypenameWhenConditionalFragmentsAppearInMergedObjectSelections() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Hero($includeDetails: Boolean!) {
+              hero {
+                __typename
+                companion { id }
+                ... on Human {
+                  companion {
+                    ...ViewerFields @include(if: $includeDetails)
+                  }
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { companion: Viewer! }
+            type Human implements Character { companion: Viewer! }
+            type Droid implements Character { companion: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("""
+        companion = try GraphQLResponseDecodingContext.withAncestorTypename(__typename) { \
+        try container.decode(Companion.self, forKey: .companion) }
+        """))
+        #expect(output.contains("""
+        (GraphQLResponseDecodingContext.ancestorTypename(levelsUp: 1) == "Human" && \
+        fragmentDecodingContext.directiveVariables["includeDetails"] == true)
+        """))
+    }
+
+    @Test
+    func preservesAncestorTypenameAcrossMultipleNestedObjectSelections() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Hero($includeDetails: Boolean!) {
+              hero {
+                __typename
+                profile { companion { id } }
+                ... on Human {
+                  profile {
+                    companion {
+                      ...ViewerFields @include(if: $includeDetails)
+                    }
+                  }
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { profile: Profile! }
+            type Human implements Character { profile: Profile! }
+            type Droid implements Character { profile: Profile! }
+            type Profile { companion: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("GraphQLResponseDecodingContext.withAncestorTypename(__typename)"))
+        #expect(output.contains("GraphQLResponseDecodingContext.withAncestorTypename(nil)"))
+        #expect(output.contains("GraphQLResponseDecodingContext.ancestorTypename(levelsUp: 2) == \"Human\""))
+    }
+
+    @Test
+    func requiresParentTypenameForConditionalFragmentsInMergedObjectSelections() async {
+        await expectCodegenError(containing: "'__typename' needed in selection set under the 'hero' field") {
+            try await runCodegen(
+                document: """
+                fragment ViewerFields on Viewer { name }
+
+                query Hero($includeDetails: Boolean!) {
+                  hero {
+                    companion { id }
+                    ... on Human {
+                      companion {
+                        ...ViewerFields @include(if: $includeDetails)
+                      }
+                    }
+                  }
+                }
+                """,
+                schema: """
+                type Query { hero: Character! }
+                interface Character { companion: Viewer! }
+                type Human implements Character { companion: Viewer! }
+                type Droid implements Character { companion: Viewer! }
+                type Viewer { id: ID!, name: String! }
+                """
+            )
+        }
+    }
+
+    @Test
     func mergesTypedFragmentConditionsAcrossConcreteTypes() async throws {
         let output = try await runCodegen(
             document: """

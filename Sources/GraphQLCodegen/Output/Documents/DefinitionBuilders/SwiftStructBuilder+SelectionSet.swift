@@ -69,7 +69,7 @@ extension SwiftStructBuilder {
         let includesDecodable = conformances.contains { conformance in
             SwiftConformanceName(source: conformance).includesDecodable
         }
-        if typePlan.hasFragments, includesDecodable {
+        if typePlan.hasFragments || ancestorTypenameFragment(in: selectionSet) != nil, includesDecodable {
             try addDecodableInitializer(
                 selectionSet,
                 hasFields: !typePlan.fields.isEmpty,
@@ -133,6 +133,11 @@ extension SwiftStructBuilder {
         hasNonnilTypenameField: Bool,
         configuration: Configuration
     ) throws {
+        let currentTypenameFragment = ancestorTypenameFragment(in: selectionSet, levelsUp: 0)
+        if let currentTypenameFragment, !hasNonnilTypenameField {
+            throw SelectionSetError.fragmentSpreadNeedsTypename(fragmentSpread: currentTypenameFragment)
+        }
+
         var initializerBody: [String] = []
         if hasFields {
             initializerBody.append(
@@ -145,20 +150,35 @@ extension SwiftStructBuilder {
             name: SwiftTypeIdentifier.codingKeys.source,
             conformances: ["CodingKey"]
         ) : nil
-        for (responseKey, selection) in selectionSet {
+        var decodingSelections = Array(selectionSet)
+        if currentTypenameFragment != nil,
+           let typenameIndex = decodingSelections.firstIndex(where: { $0.key == "__typename" }) {
+            let typenameSelection = decodingSelections.remove(at: typenameIndex)
+            decodingSelections.insert(typenameSelection, at: 0)
+        }
+        for (responseKey, selection) in decodingSelections {
             switch selection {
             case .field(let field, let conditional):
                 var assignment = "\(storageName(forProperty: responseKey)) = "
-                assignment.append("try container.")
+                var decode = "try container."
                 let typename: String
                 if conditional {
-                    assignment.append("decodeIfPresent(")
+                    decode.append("decodeIfPresent(")
                     typename = field.asNonOptional().sourceTypeName(responseKey: responseKey).formatted()
                 } else {
-                    assignment.append("decode(")
+                    decode.append("decode(")
                     typename = field.sourceTypeName(responseKey: responseKey).formatted()
                 }
-                assignment.append("\(typename).self, forKey: .\(responseKey))")
+                decode.append("\(typename).self, forKey: .\(responseKey))")
+                if let nestedSelectionSet = field.type.unwrappedMap(),
+                   ancestorTypenameFragment(in: nestedSelectionSet) != nil {
+                    let parentTypename = currentTypenameFragment == nil ? "nil" : "__typename"
+                    assignment.append(
+                        "try GraphQLResponseDecodingContext.withAncestorTypename(\(parentTypename)) { \(decode) }"
+                    )
+                } else {
+                    assignment.append(decode)
+                }
                 codingKeysEnum?.addCase(description: nil, deprecation: nil, name: responseKey)
                 initializerBody.append(assignment)
             case .fragmentSpread: break
@@ -166,7 +186,7 @@ extension SwiftStructBuilder {
         }
         if selectionSet.contains(where: { _, selection in
             guard case .fragmentSpread(_, let condition) = selection else { return false }
-            return condition?.directiveVariableNames.isEmpty == false
+            return condition?.dependsOnDirectiveVariables == true
         }) {
             let indentation = configuration.output.indentation.string
             initializerBody.append(contentsOf: [
@@ -214,6 +234,9 @@ extension SwiftStructBuilder {
         case .literal(let value): return String(value)
         case .typename(let typename):
             return "__typename == \(SwiftSource(value: typename).singleLineStringLiteral)"
+        case .ancestorTypename(let typename, let levelsUp):
+            return "GraphQLResponseDecodingContext.ancestorTypename(levelsUp: \(levelsUp)) == " +
+                SwiftSource(value: typename).singleLineStringLiteral
         case .include(let variable):
             return "fragmentDecodingContext.directiveVariables[\(SwiftSource(value: variable).singleLineStringLiteral)] == true"
         case .skip(let variable):
@@ -223,5 +246,24 @@ extension SwiftStructBuilder {
         case .or(let conditions):
             return "(" + conditions.map(fragmentConditionSource).joined(separator: " || ") + ")"
         }
+    }
+
+    private func ancestorTypenameFragment(
+        in selectionSet: ResolvedSelectionSet,
+        levelsUp: Int? = nil
+    ) -> String? {
+        for selection in selectionSet.values {
+            switch selection {
+            case .fragmentSpread(let name, let condition):
+                if condition?.dependsOnAncestorTypename(levelsUp: levelsUp) == true { return name }
+            case .field(let field, _):
+                guard let nestedSelectionSet = field.type.unwrappedMap() else { continue }
+                let nextLevelsUp = levelsUp.map { $0 + 1 }
+                if let name = ancestorTypenameFragment(in: nestedSelectionSet, levelsUp: nextLevelsUp) {
+                    return name
+                }
+            }
+        }
+        return nil
     }
 }

@@ -6,6 +6,7 @@ typealias ResolvedSelectionSet = OrderedDictionary<String, ResolvedSelection>
 indirect enum FragmentFulfillmentCondition: Equatable, Sendable {
     case literal(Bool)
     case typename(String)
+    case ancestorTypename(String, levelsUp: Int)
     case include(String)
     case skip(String)
     case and([FragmentFulfillmentCondition])
@@ -42,19 +43,36 @@ indirect enum FragmentFulfillmentCondition: Equatable, Sendable {
     var requiresTypename: Bool {
         switch self {
         case .typename: true
-        case .literal, .include, .skip: false
+        case .literal, .ancestorTypename, .include, .skip: false
         case .and(let conditions), .or(let conditions): conditions.contains { $0.requiresTypename }
+        }
+    }
+
+    var dependsOnDirectiveVariables: Bool {
+        switch self {
+        case .include, .skip: true
+        case .literal, .typename, .ancestorTypename: false
+        case .and(let conditions), .or(let conditions): conditions.contains { $0.dependsOnDirectiveVariables }
         }
     }
 
     var directiveVariableNames: Set<String> {
         switch self {
         case .include(let name), .skip(let name): [name]
-        case .literal, .typename: []
+        case .literal, .typename, .ancestorTypename: []
         case .and(let conditions), .or(let conditions):
             conditions.reduce(into: Set<String>()) { names, condition in
                 names.formUnion(condition.directiveVariableNames)
             }
+        }
+    }
+
+    func dependsOnAncestorTypename(levelsUp: Int? = nil) -> Bool {
+        switch self {
+        case .ancestorTypename(_, let conditionLevelsUp): levelsUp == nil || levelsUp == conditionLevelsUp
+        case .literal, .typename, .include, .skip: false
+        case .and(let conditions), .or(let conditions):
+            conditions.contains { $0.dependsOnAncestorTypename(levelsUp: levelsUp) }
         }
     }
 }

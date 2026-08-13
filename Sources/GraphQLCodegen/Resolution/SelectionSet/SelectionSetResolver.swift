@@ -46,7 +46,7 @@ struct SelectionSetResolver {
             )
             switch selection {
             case .field(let field):
-                let resolvedField = field.name.value == "__typename" ? ResolvedField(
+                var resolvedField = field.name.value == "__typename" ? ResolvedField(
                     type: .scalar(typeName: "String", isEnum: false),
                     deprecation: nil,
                     description: nil
@@ -58,6 +58,10 @@ struct SelectionSetResolver {
                     documents: documents,
                     inheritedFragmentCondition: effectiveFragmentCondition
                 ).resolve()
+                if case .typename(let typename) = typeCondition,
+                   resolvedField.type.unwrappedMap() != nil {
+                    resolvedField = addingAncestorTypename(typename, to: resolvedField)
+                }
                 let conditional = typeCondition.isConditional ||
                     directiveCondition != nil ||
                     selection.hasOptionalDirective
@@ -142,6 +146,55 @@ struct SelectionSetResolver {
             }
         }
         return FragmentFulfillmentCondition.all(conditions)
+    }
+
+    private func addingAncestorTypename(
+        _ typename: String,
+        to field: ResolvedField,
+        levelsUp: Int = 1
+    ) -> ResolvedField {
+        ResolvedField(
+            type: addingAncestorTypename(typename, to: field.type, levelsUp: levelsUp),
+            deprecation: field.deprecation,
+            description: field.description
+        )
+    }
+
+    private func addingAncestorTypename(
+        _ typename: String,
+        to fieldType: ResolvedFieldType,
+        levelsUp: Int
+    ) -> ResolvedFieldType {
+        switch fieldType {
+        case .scalar:
+            return fieldType
+        case .map(let selectionSet):
+            var conditionedSelectionSet = selectionSet
+            for (responseKey, selection) in selectionSet {
+                switch selection {
+                case .fragmentSpread(let name, let condition):
+                    guard let condition, condition.dependsOnDirectiveVariables else { continue }
+                    conditionedSelectionSet[responseKey] = .fragmentSpread(
+                        name,
+                        condition: FragmentFulfillmentCondition.all([
+                            .ancestorTypename(typename, levelsUp: levelsUp),
+                            condition,
+                        ])
+                    )
+                case .field(let field, let conditional):
+                    guard field.type.unwrappedMap() != nil else { continue }
+                    conditionedSelectionSet[responseKey] = .field(
+                        addingAncestorTypename(typename, to: field, levelsUp: levelsUp + 1),
+                        conditional: conditional
+                    )
+                }
+            }
+            return .map(conditionedSelectionSet)
+        case .list(let innerType):
+            return .list(innerType: addingAncestorTypename(typename, to: innerType, levelsUp: levelsUp))
+        case .optional(let innerType):
+            return .optional(innerType: addingAncestorTypename(typename, to: innerType, levelsUp: levelsUp))
+        }
     }
 
     private func nestedTypeCondition(

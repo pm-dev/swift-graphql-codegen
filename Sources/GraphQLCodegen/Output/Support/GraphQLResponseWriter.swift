@@ -81,9 +81,26 @@ struct GraphQLResponseWriter: SupportOutput {
         \(accessLevel)struct GraphQLResponseDecodingContext: Sendable {
             \(accessLevel)let directiveVariables: [String: Bool]
 
+            @TaskLocal
+            static var ancestorTypenames: [String?] = []
+
             /// Creates a context from effective directive values, including applied operation defaults.
             \(accessLevel)init(directiveVariables: [String: Bool]) {
                 self.directiveVariables = directiveVariables
+            }
+
+            static func withAncestorTypename<Value>(
+                _ typename: String?,
+                _ decode: () throws -> Value
+            ) rethrows -> Value {
+                try $ancestorTypenames.withValue(ancestorTypenames + [typename], operation: decode)
+            }
+
+            static func ancestorTypename(levelsUp: Int) -> String? {
+                let ancestors = ancestorTypenames
+                let index = ancestors.count - levelsUp
+                guard ancestors.indices.contains(index) else { return nil }
+                return ancestors[index]
             }
         }
 
