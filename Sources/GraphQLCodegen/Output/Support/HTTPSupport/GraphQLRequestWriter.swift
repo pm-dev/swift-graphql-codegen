@@ -171,7 +171,7 @@ struct GraphQLRequestWriter: SupportOutput {
                 endpoint: URL,
                 automaticPersistedOperations: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-                accept: String = "application/graphql-response+json"
+                accept: String = "application/graphql-response+json, application/json;q=0.9"
             ) throws where Operation: GraphQLSingleResponseOperation {
                 self.urlRequest = URLRequest(url: endpoint)
                 self.urlRequest.httpMethod = "POST"
@@ -199,7 +199,7 @@ struct GraphQLRequestWriter: SupportOutput {
                 endpoint: URL,
                 useRegisteredOperation: Bool = true,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-                accept: String = "application/graphql-response+json"
+                accept: String = "application/graphql-response+json, application/json;q=0.9"
             ) throws where Operation: GraphQLSingleResponseOperation {
                 self.urlRequest = URLRequest(url: endpoint)
                 self.urlRequest.httpMethod = "POST"
@@ -224,7 +224,7 @@ struct GraphQLRequestWriter: SupportOutput {
                 operation: Operation,
                 endpoint: URL,
                 bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-                accept: String = "application/graphql-response+json"
+                accept: String = "application/graphql-response+json, application/json;q=0.9"
             ) throws where Operation: GraphQLSingleResponseOperation {
                 self.urlRequest = URLRequest(url: endpoint)
                 self.urlRequest.httpMethod = "POST"
@@ -299,13 +299,13 @@ struct GraphQLRequestWriter: SupportOutput {
             ///   and automatic persisted operations is enabled. If the initial request results in a
             ///   "PersistedQueryNotFound" error, the configured retry policy sends the full query document.
             ///   - accept: The value to use in the "accept" header field. By default this is
-            ///   "application/graphql-response+json". This field is required by the spec:
+            ///   "application/graphql-response+json, application/json;q=0.9". This field is required by the spec:
             ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
             \(accessLevel)init(
                 query: Operation,
                 endpoint: URL,
                 strategy: QueryStrategy = .GETWithAutomaticPersistedOperations(),
-                accept: String = "application/graphql-response+json"
+                accept: String = "application/graphql-response+json, application/json;q=0.9"
             ) throws where Operation: GraphQLQuery {
                 let persistedOperationRetry: PersistedOperationRetry?
                 switch strategy {
@@ -385,14 +385,14 @@ struct GraphQLRequestWriter: SupportOutput {
             ///   - useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
             ///   - strategy: The option describing whether the request should be a GET or POST. `GET` by default.
             ///   - accept: The value to use in the "accept" header field. By default this is
-            ///   "application/graphql-response+json". This field is required by the spec:
+            ///   "application/graphql-response+json, application/json;q=0.9". This field is required by the spec:
             ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
             \(accessLevel)init(
                 query: Operation,
                 endpoint: URL,
                 useRegisteredOperation: Bool = true,
                 strategy: QueryStrategy = .GET(),
-                accept: String = "application/graphql-response+json"
+                accept: String = "application/graphql-response+json, application/json;q=0.9"
             ) throws where Operation: GraphQLQuery {
                 switch strategy {
                 case .GET(let queryEncoder):
@@ -447,13 +447,13 @@ struct GraphQLRequestWriter: SupportOutput {
             ///   - endpoint: The GraphQL server endpoint.
             ///   - strategy: The option describing whether the request should be a GET or POST. `GET` by default.
             ///   - accept: The value to use in the "accept" header field. By default this is
-            ///   "application/graphql-response+json". This field is required by the spec:
+            ///   "application/graphql-response+json, application/json;q=0.9". This field is required by the spec:
             ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
             \(accessLevel)init(
                 query: Operation,
                 endpoint: URL,
                 strategy: QueryStrategy = .GET(),
-                accept: String = "application/graphql-response+json"
+                accept: String = "application/graphql-response+json, application/json;q=0.9"
             ) throws where Operation: GraphQLQuery {
                 switch strategy {
                 case .GET(let queryEncoder):

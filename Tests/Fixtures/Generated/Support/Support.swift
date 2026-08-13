@@ -836,13 +836,13 @@ extension GraphQLRequest {
     ///   and automatic persisted operations is enabled. If the initial request results in a
     ///   "PersistedQueryNotFound" error, the configured retry policy sends the full query document.
     ///   - accept: The value to use in the "accept" header field. By default this is
-    ///   "application/graphql-response+json". This field is required by the spec:
+    ///   "application/graphql-response+json, application/json;q=0.9". This field is required by the spec:
     ///   https://graphql.github.io/graphql-over-http/draft/#sec-Accept
     init(
         query: Operation,
         endpoint: URL,
         strategy: QueryStrategy = .GETWithAutomaticPersistedOperations(),
-        accept: String = "application/graphql-response+json"
+        accept: String = "application/graphql-response+json, application/json;q=0.9"
     ) throws where Operation: GraphQLQuery {
         let persistedOperationRetry: PersistedOperationRetry?
         switch strategy {
@@ -897,7 +897,7 @@ extension GraphQLRequest {
         endpoint: URL,
         automaticPersistedOperations: Bool = true,
         bodyEncoder: HTTPBodyEncoder = JSONBodyEncoder(),
-        accept: String = "application/graphql-response+json"
+        accept: String = "application/graphql-response+json, application/json;q=0.9"
     ) throws where Operation: GraphQLSingleResponseOperation {
         self.urlRequest = URLRequest(url: endpoint)
         self.urlRequest.httpMethod = "POST"
