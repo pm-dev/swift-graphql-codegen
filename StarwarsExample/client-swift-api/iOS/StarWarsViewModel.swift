@@ -54,7 +54,7 @@ final class StarWarsViewModel {
     private(set) var subscriptionStatus = OperationStatus.idle
 
     private let endpoint = URL(
-        string: "https://swift-graphql-codegen-starwars.starwars-graphql-server.workers.dev/graphql"
+        string: "https://swift-graphql-codegen-starwars.starwars-graphql-server.workers.dev/graphql-registered"
     )!
 
     func fetchHero() async {
