@@ -203,7 +203,12 @@ enum JSONValue: Decodable, Sendable {
 /// using the spec described at:
 /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
 struct DefaultURLQueryEncoder: URLQueryEncoder {
-    init() {}
+    private let jsonEncoder: JSONEncoder
+
+    init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+        self.jsonEncoder = jsonEncoder
+    }
+
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
         automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
@@ -212,13 +217,14 @@ struct DefaultURLQueryEncoder: URLQueryEncoder {
             Body(
                 operation: operation,
                 automaticPersistedOperationPhase: automaticPersistedOperationPhase
-            )
+            ),
+            jsonEncoder: jsonEncoder
         )
     }
 }
 
 private extension [URLQueryItem] {
-    static func from(_ body: Body) throws -> Self {
+    static func from(_ body: Body, jsonEncoder: JSONEncoder) throws -> Self {
         var items = [URLQueryItem]()
         if let operationName = body.operationName {
             items.append(URLQueryItem(name: "operationName", value: operationName))
@@ -230,7 +236,7 @@ private extension [URLQueryItem] {
             items.append(
                 URLQueryItem(
                     name: "variables",
-                    value: String(decoding: try JSONEncoder().encode(variables), as: UTF8.self)
+                    value: String(decoding: try jsonEncoder.encode(variables), as: UTF8.self)
                 )
             )
         }
@@ -238,7 +244,7 @@ private extension [URLQueryItem] {
             items.append(
                 URLQueryItem(
                     name: "extensions",
-                    value: String(decoding: try JSONEncoder().encode(extensions), as: UTF8.self)
+                    value: String(decoding: try jsonEncoder.encode(extensions), as: UTF8.self)
                 )
             )
         }
@@ -250,13 +256,18 @@ private extension [URLQueryItem] {
 /// as specified by the spec:
 /// https://graphql.github.io/graphql-over-http/draft/#sec-POST
 struct JSONBodyEncoder: HTTPBodyEncoder {
-    init() {}
+    private let jsonEncoder: JSONEncoder
+
+    init(jsonEncoder: JSONEncoder = JSONEncoder()) {
+        self.jsonEncoder = jsonEncoder
+    }
+
     let contentType = "application/json"
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
         automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
     ) throws -> Data {
-        try JSONEncoder().encode(
+        try jsonEncoder.encode(
             Body(
                 operation: operation,
                 automaticPersistedOperationPhase: automaticPersistedOperationPhase
