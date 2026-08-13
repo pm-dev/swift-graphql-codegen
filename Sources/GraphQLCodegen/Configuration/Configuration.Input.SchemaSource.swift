@@ -16,9 +16,10 @@ extension Configuration.Input {
         )
 
         /// Instructs codegen to load your GraphQL schema from a .json file on the local filesystem.
-        /// The JSON must match the object returned in the `data` field by the introspection query bundled with
-        /// this version of the codegen, include deprecated schema members, and conform to the September 2025 GraphQL
-        /// specification. The selected deprecation policy is applied after loading the complete schema.
+        /// The JSON can contain either the introspection query's `data` object (`{"__schema": ...}`) or the complete
+        /// GraphQL response (`{"data": {"__schema": ...}}`). The schema must include deprecated members and conform
+        /// to the September 2025 GraphQL specification. The selected deprecation policy is applied after loading the
+        /// complete schema.
         case JSONSchemaFile(URL)
 
         /// Instructs codegen to load your GraphQL schema from a `.graphqls`, `.sdl`, or `.graphql` file on the
