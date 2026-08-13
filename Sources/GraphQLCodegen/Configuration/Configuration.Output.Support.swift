@@ -6,6 +6,8 @@ extension Configuration.Output {
     /// operations (including errors) enums and nullable fields.
     ///
     /// Codegen writes all generated support types to `Support.swift` inside the configured directory.
+    /// Support for decoding named fragments with `@include` or `@skip` is generated only when an operation
+    /// selects a named fragment whose fulfillment depends on a directive variable.
     public struct Support: Sendable {
         /// Call this function to create a new `Support` instance.
         ///

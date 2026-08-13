@@ -6,6 +6,7 @@ struct FieldResolver {
     let schema: Schema
     let schemaCoordinate: SchemaCoordinate
     let documents: Documents
+    let inheritedFragmentCondition: FragmentFulfillmentCondition?
 
     func resolve() throws -> ResolvedField {
         try ResolvedField(
@@ -53,7 +54,7 @@ struct FieldResolver {
                 selectionSet: selectionSet,
                 schema: schema,
                 documents: documents
-            ).resolve()
+            ).resolve(inheritedFragmentCondition: inheritedFragmentCondition)
         )
     }
 

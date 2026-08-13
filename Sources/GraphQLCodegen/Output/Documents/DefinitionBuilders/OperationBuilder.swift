@@ -23,6 +23,7 @@ struct OperationBuilder {
         addOperationNameProperty(to: &operationStruct)
         addDocumentProperty(to: &operationStruct)
         addVariablesProperty(to: &operationStruct)
+        addResponseDecodingContextProperty(to: &operationStruct)
         addExtensionsProperty(to: &operationStruct)
         addVariablesStruct(to: &operationStruct)
         try addDataStruct(to: &operationStruct)
@@ -101,6 +102,74 @@ struct OperationBuilder {
                 initialized: .direct(defaultValue: "nil")
             )
         )
+    }
+
+    private func addResponseDecodingContextProperty(to operationStruct: inout SwiftStructBuilder) {
+        guard resolvedOperation.requiresResponseDecodingContext else { return }
+        let directiveVariables = (operation.ast.variableDefinitions ?? []).filter { definition in
+            resolvedOperation.fragmentDirectiveVariableNames.contains(definition.variable.name.value)
+        }
+        operationStruct.addProperty(
+            description: "Effective Boolean variables used to decode conditional fragment spreads.",
+            deprecation: nil,
+            isPublic: isPublic,
+            isStatic: false,
+            immutable: true,
+            name: "responseDecodingContext",
+            value: .computed(
+                responseDecodingContextSource(for: directiveVariables),
+                type: "GraphQLResponseDecodingContext"
+            )
+        )
+    }
+
+    private func responseDecodingContextSource(for directiveVariables: [GraphQLAST.VariableDefinition]) -> String {
+        let hasOnlyRequiredVariables = directiveVariables.allSatisfy { variable in
+            guard case .name("Bool") = variable.type.typeName else { return false }
+            return variable.defaultValue == nil
+        }
+        if hasOnlyRequiredVariables {
+            let entries = directiveVariables.map { variable in
+                let name = variable.variable.name.value
+                return "\(SwiftSource(value: name).singleLineStringLiteral): variables.\(identifier(name))"
+            }
+            return "GraphQLResponseDecodingContext(directiveVariables: [\(entries.joined(separator: ", "))])"
+        }
+        let indentation = configuration.output.indentation.string
+        var lines = [
+            "GraphQLResponseDecodingContext(directiveVariables: {",
+            "\(indentation)var directiveVariables: [String: Bool] = [:]",
+        ]
+        for variable in directiveVariables {
+            let name = variable.variable.name.value
+            let key = SwiftSource(value: name).singleLineStringLiteral
+            let value = "variables.\(identifier(name))"
+            switch variable.type.typeName {
+            case .name("Bool"):
+                if let defaultValue = variable.defaultValue {
+                    lines.append("\(indentation)switch \(value) {")
+                    lines.append("\(indentation)case .useDefault: directiveVariables[\(key)] = \(defaultValue.description)")
+                    lines.append("\(indentation)case .value(let value): directiveVariables[\(key)] = value")
+                    lines.append("\(indentation)}")
+                } else {
+                    lines.append("\(indentation)directiveVariables[\(key)] = \(value)")
+                }
+            case .optional(.name("Bool")):
+                lines.append("\(indentation)switch \(value) {")
+                if case .boolean(let defaultValue)? = variable.defaultValue {
+                    lines.append("\(indentation)case .none: directiveVariables[\(key)] = \(defaultValue.value)")
+                } else {
+                    lines.append("\(indentation)case .none: break")
+                }
+                lines.append("\(indentation)case .some(.null): break")
+                lines.append("\(indentation)case .some(.value(let value)): directiveVariables[\(key)] = value")
+                lines.append("\(indentation)}")
+            default: break
+            }
+        }
+        lines.append("\(indentation)return directiveVariables")
+        lines.append("}())")
+        return lines.joined(separator: "\n")
     }
 
     private func addVariablesProperty(to operationStruct: inout SwiftStructBuilder) {

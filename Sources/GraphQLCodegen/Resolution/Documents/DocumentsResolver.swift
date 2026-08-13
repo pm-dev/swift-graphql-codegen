@@ -5,6 +5,7 @@ struct DocumentsResolver {
         var fulfilledFragments: Set<String> = []
         var hasMutation = false
         var hasSubscription = false
+        var requiresResponseDecodingContext = false
         var usedTypes: Set<String> = []
     }
 
@@ -14,7 +15,7 @@ struct DocumentsResolver {
     func resolve() throws -> ResolvedDocuments {
         let usedFragments = try usedFragments()
         let resolvedFragments = try resolveFragments(usedFragments)
-        let resolvedDocuments = try resolveDocuments()
+        let resolvedDocuments = try resolveDocuments(resolvedFragments: resolvedFragments)
         let usage = try usage(in: resolvedDocuments, resolvedFragments: resolvedFragments)
         return try ResolvedDocuments(
             documents: resolvedDocuments,
@@ -23,6 +24,7 @@ struct DocumentsResolver {
             hasMutation: usage.hasMutation,
             hasSubscription: usage.hasSubscription,
             requiresIndirectNullable: requiresIndirectNullable(in: usage.usedTypes),
+            requiresResponseDecodingContext: usage.requiresResponseDecodingContext,
             usedTypes: usage.usedTypes
         )
     }
@@ -78,23 +80,30 @@ struct DocumentsResolver {
         return resolvedFragments
     }
 
-    private func resolveDocuments() throws -> [ResolvedDocument] {
+    private func resolveDocuments(
+        resolvedFragments: [String: ResolvedFragment]
+    ) throws -> [ResolvedDocument] {
         var resolvedDocuments: [ResolvedDocument] = []
         for document in documents.documents {
             var resolvedDefinitions: [ResolvedDefinition] = []
             for definition in document.definitions {
                 switch definition {
                 case .operation(let operation):
-                    try resolvedDefinitions.append(
+                    let selectionSet = try SelectionSetResolver(
+                        onType: .OBJECT(schema.operationType(operation)),
+                        selectionSet: operation.ast.selectionSet,
+                        schema: schema,
+                        documents: documents
+                    ).resolve()
+                    resolvedDefinitions.append(
                         .operation(
                             ResolvedOperation(
                                 operation: operation,
-                                resolvedSelectionSet: SelectionSetResolver(
-                                    onType: .OBJECT(schema.operationType(operation)),
-                                    selectionSet: operation.ast.selectionSet,
-                                    schema: schema,
-                                    documents: documents
-                                ).resolve()
+                                resolvedSelectionSet: selectionSet,
+                                fragmentDirectiveVariableNames: fragmentDirectiveVariableNames(
+                                    in: selectionSet,
+                                    resolvedFragments: resolvedFragments
+                                )
                             )
                         )
                     )
@@ -109,6 +118,33 @@ struct DocumentsResolver {
         return resolvedDocuments
     }
 
+    private func fragmentDirectiveVariableNames(
+        in selectionSet: ResolvedSelectionSet,
+        resolvedFragments: [String: ResolvedFragment]
+    ) -> Set<String> {
+        var names: Set<String> = []
+        var selectionSets = [selectionSet]
+        var visitedFragments: Set<String> = []
+        while let selectionSet = selectionSets.popLast() {
+            for selection in selectionSet.values {
+                switch selection {
+                case .fragmentSpread(let name, let condition):
+                    if let condition {
+                        names.formUnion(condition.directiveVariableNames)
+                    }
+                    guard visitedFragments.insert(name).inserted,
+                          let fragment = resolvedFragments[name] else { continue }
+                    selectionSets.append(fragment.resolvedSelectionSet)
+                case .field(let field, _):
+                    if let nestedSelectionSet = field.type.unwrappedMap() {
+                        selectionSets.append(nestedSelectionSet)
+                    }
+                }
+            }
+        }
+        return names
+    }
+
     private func usage(
         in resolvedDocuments: [ResolvedDocument],
         resolvedFragments: [String: ResolvedFragment]
@@ -120,6 +156,8 @@ struct DocumentsResolver {
                 switch definition {
                 case .operation(let resolvedOperation):
                     selectionSets.append(resolvedOperation.resolvedSelectionSet)
+                    usage.requiresResponseDecodingContext = usage.requiresResponseDecodingContext ||
+                        resolvedOperation.requiresResponseDecodingContext
                     for variableDefinition in resolvedOperation.operation.ast.variableDefinitions ?? [] {
                         try addUsedInputTypes(variableDefinition, to: &usage.usedTypes)
                     }

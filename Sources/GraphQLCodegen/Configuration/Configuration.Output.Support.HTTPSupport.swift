@@ -7,6 +7,9 @@ extension Configuration.Output.Support {
     /// Codegen will use options from `Configuration` to craft Networking APIs specifically to your
     /// use case. For example, if `persistedOperations` is `nil` the generated
     /// APIs for creating a GraphQL request will not include those options.
+    ///
+    /// The default response decoder supplies operation variables when decoding named fragments selected
+    /// conditionally with `@include` or `@skip`.
     public struct HTTPSupport: Sendable {
         /// Call this function to create a new `HTTPSupport` instance.
         ///

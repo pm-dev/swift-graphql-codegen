@@ -3,6 +3,7 @@ import Foundation
 struct GraphQLRequestWriter: SupportOutput {
     let plan: HTTPGenerationPlan
     let configuration: Configuration
+    let requiresResponseDecodingContext: Bool
 
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [SwiftTypeIdentifier(swiftName: "GraphQLRequest")]
@@ -152,11 +153,25 @@ struct GraphQLRequestWriter: SupportOutput {
     }
 
     private func defaultDecoderDeclaration() -> String {
-        """
+        let decoderBody =
+            if requiresResponseDecodingContext {
+                """
+                        { operation, data in
+                            let decoder = JSONDecoder()
+                            decoder.userInfo[.graphQLResponseDecodingContext] = operation.responseDecodingContext
+                            return try decoder.decode(GraphQLResponse<Operation.Data>.self, from: data)
+                        }
+                """
+            } else {
+                """
+                        { _, data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
+                """
+            }
+        return """
 
             /// The decoding function used by default for an operation and its GraphQL response.
             \(accessLevel)static var defaultDecoder: @Sendable (Operation, Data) throws -> GraphQLResponse<Operation.Data> {
-                { _, data in try JSONDecoder().decode(GraphQLResponse<Operation.Data>.self, from: data) }
+        \(decoderBody)
             }
         """
     }

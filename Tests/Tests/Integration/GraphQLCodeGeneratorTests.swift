@@ -183,6 +183,7 @@ struct GraphQLCodeGeneratorTests {
         #expect(supportSource.contains("requires version 26 or newer"))
         #expect(supportSource.contains("UTF8Span(validating: buffer.span)"))
         #expect(!supportSource.contains("String(bytes: buffer, encoding: .utf8)"))
+        #expect(!supportSource.contains("GraphQLResponseDecodingContext"))
     }
 
     @Test
@@ -285,6 +286,378 @@ struct GraphQLCodeGeneratorTests {
                 "__CharacterFields = __typename == \"Human\" ? try CharacterFields(from: decoder) : nil"
             )
         )
+        #expect(!output.contains("responseDecodingContext"))
+    }
+
+    @Test
+    func generatesDecodingContextSupportForConditionalNamedFragmentSpreads() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Viewer($includeDetails: Boolean!) {
+              viewer {
+                id
+                ...ViewerFields @include(if: $includeDetails)
+              }
+            }
+            """,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """,
+            outputRelativePath: "Support/Support.swift"
+        )
+
+        #expect(output.contains("struct GraphQLResponseDecodingContext"))
+        #expect(output.contains("var responseDecodingContext: GraphQLResponseDecodingContext { get }"))
+        #expect(output.contains("decoder.userInfo[.graphQLResponseDecodingContext]"))
+    }
+
+    @Test
+    func addsDecodingContextOnlyToOperationsWithConditionalNamedFragments() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query ConditionalViewer($includeDetails: Boolean!, $includeName: Boolean!) {
+              viewer {
+                id @include(if: $includeName)
+                ...ViewerFields @include(if: $includeDetails)
+              }
+            }
+
+            query PlainViewer($includeName: Boolean!) {
+              viewer {
+                name @include(if: $includeName)
+              }
+            }
+            """,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("struct ConditionalViewerQuery: GraphQLQuery"))
+        #expect(output.contains("struct PlainViewerQuery: GraphQLQuery"))
+        #expect(output.components(separatedBy: "var responseDecodingContext:").count == 2)
+        #expect(output.contains("\"includeDetails\": variables.includeDetails"))
+        #expect(!output.contains("\"includeName\": variables.includeName"))
+    }
+
+    @Test
+    func preservesTypedFragmentSpreadWithIncludeDirective() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Viewer($includeDetails: Boolean!) {
+              viewer {
+                id
+                ...ViewerFields @include(if: $includeDetails)
+              }
+            }
+            """,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("let __ViewerFields: ViewerFields?"))
+        #expect(
+            output.contains(
+                "GraphQLResponseDecodingContext(directiveVariables: [\"includeDetails\": variables.includeDetails])"
+            )
+        )
+        #expect(output.contains("""
+        __ViewerFields = fragmentDecodingContext.directiveVariables["includeDetails"] == true \
+        ? try ViewerFields(from: decoder) : nil
+        """))
+    }
+
+    @Test
+    func preservesTypedFragmentSpreadNestedInConditionalInlineFragment() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Viewer($hideDetails: Boolean!) {
+              viewer {
+                id
+                ... @skip(if: $hideDetails) {
+                  ...ViewerFields
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("let __ViewerFields: ViewerFields?"))
+        #expect(output.contains("""
+        __ViewerFields = fragmentDecodingContext.directiveVariables["hideDetails"] != true \
+        ? try ViewerFields(from: decoder) : nil
+        """))
+    }
+
+    @Test
+    func preservesFragmentConditionWhenObjectFieldSelectionsAreMerged() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Viewer($includeDetails: Boolean!) {
+              viewer { id }
+              viewer @include(if: $includeDetails) {
+                ...ViewerFields
+              }
+            }
+            """,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("let viewer: Viewer"))
+        #expect(output.contains("let __ViewerFields: ViewerFields?"))
+        #expect(output.contains("""
+        __ViewerFields = fragmentDecodingContext.directiveVariables["includeDetails"] == true \
+        ? try ViewerFields(from: decoder) : nil
+        """))
+    }
+
+    @Test
+    func preservesParentTypenameWhenConditionalFragmentsAppearInMergedObjectSelections() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Hero($includeDetails: Boolean!) {
+              hero {
+                __typename
+                companion { id }
+                ... on Human {
+                  companion {
+                    ...ViewerFields @include(if: $includeDetails)
+                  }
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { companion: Viewer! }
+            type Human implements Character { companion: Viewer! }
+            type Droid implements Character { companion: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("""
+        companion = try GraphQLResponseDecodingContext.withAncestorTypename(__typename) { \
+        try container.decode(Companion.self, forKey: .companion) }
+        """))
+        #expect(output.contains("""
+        (GraphQLResponseDecodingContext.ancestorTypename(levelsUp: 1) == "Human" && \
+        fragmentDecodingContext.directiveVariables["includeDetails"] == true)
+        """))
+    }
+
+    @Test
+    func preservesParentTypenameThroughTransitiveConditionalNamedFragments() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            fragment ViewerContainer on Viewer {
+              ...ViewerFields @include(if: $includeDetails)
+            }
+
+            fragment ViewerEnvelope on Viewer {
+              ...ViewerContainer
+            }
+
+            query Hero($includeDetails: Boolean!) {
+              hero {
+                __typename
+                companion { id }
+                ... on Human {
+                  companion {
+                    ...ViewerEnvelope
+                  }
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { companion: Viewer! }
+            type Human implements Character { companion: Viewer! }
+            type Droid implements Character { companion: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("let __ViewerEnvelope: ViewerEnvelope?"))
+        #expect(output.contains("""
+        companion = try GraphQLResponseDecodingContext.withAncestorTypename(__typename) { \
+        try container.decode(Companion.self, forKey: .companion) }
+        """))
+        #expect(output.contains("""
+        __ViewerEnvelope = GraphQLResponseDecodingContext.ancestorTypename(levelsUp: 1) == "Human" \
+        ? try ViewerEnvelope(from: decoder) : nil
+        """))
+        #expect(output.contains("\"includeDetails\": variables.includeDetails"))
+    }
+
+    @Test
+    func preservesAncestorTypenameAcrossMultipleNestedObjectSelections() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Hero($includeDetails: Boolean!) {
+              hero {
+                __typename
+                profile { companion { id } }
+                ... on Human {
+                  profile {
+                    companion {
+                      ...ViewerFields @include(if: $includeDetails)
+                    }
+                  }
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { profile: Profile! }
+            type Human implements Character { profile: Profile! }
+            type Droid implements Character { profile: Profile! }
+            type Profile { companion: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("GraphQLResponseDecodingContext.withAncestorTypename(__typename)"))
+        #expect(output.contains("GraphQLResponseDecodingContext.withAncestorTypename(nil)"))
+        #expect(output.contains("GraphQLResponseDecodingContext.ancestorTypename(levelsUp: 2) == \"Human\""))
+    }
+
+    @Test
+    func requiresParentTypenameForConditionalFragmentsInMergedObjectSelections() async {
+        await expectCodegenError(containing: "'__typename' needed in selection set under the 'hero' field") {
+            try await runCodegen(
+                document: """
+                fragment ViewerFields on Viewer { name }
+
+                query Hero($includeDetails: Boolean!) {
+                  hero {
+                    companion { id }
+                    ... on Human {
+                      companion {
+                        ...ViewerFields @include(if: $includeDetails)
+                      }
+                    }
+                  }
+                }
+                """,
+                schema: """
+                type Query { hero: Character! }
+                interface Character { companion: Viewer! }
+                type Human implements Character { companion: Viewer! }
+                type Droid implements Character { companion: Viewer! }
+                type Viewer { id: ID!, name: String! }
+                """
+            )
+        }
+    }
+
+    @Test
+    func mergesTypedFragmentConditionsAcrossConcreteTypes() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment CharacterFields on Character { name }
+
+            query Hero($includeHuman: Boolean!, $hideDroid: Boolean!) {
+              hero {
+                __typename
+                ... on Human {
+                  ...CharacterFields @include(if: $includeHuman)
+                }
+                ... on Droid {
+                  ...CharacterFields @skip(if: $hideDroid)
+                }
+              }
+            }
+            """,
+            schema: """
+            type Query { hero: Character! }
+            interface Character { name: String! }
+            type Human implements Character { name: String! }
+            type Droid implements Character { name: String! }
+            """
+        )
+
+        #expect(output.contains("let __CharacterFields: CharacterFields?"))
+        #expect(output.contains("""
+        ((__typename == "Human" && fragmentDecodingContext.directiveVariables["includeHuman"] == true) || \
+        (__typename == "Droid" && fragmentDecodingContext.directiveVariables["hideDroid"] != true))
+        """))
+    }
+
+    @Test
+    func includesDefaultedBooleanDirectiveVariablesInResponseDecodingContext() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Viewer($includeDetails: Boolean! = true) {
+              viewer {
+                id
+                ...ViewerFields @include(if: $includeDetails)
+              }
+            }
+            """,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("case .useDefault: directiveVariables[\"includeDetails\"] = true"))
+        #expect(output.contains("case .value(let value): directiveVariables[\"includeDetails\"] = value"))
+    }
+
+    @Test
+    func includesDefaultedNullableBooleanDirectiveVariablesInResponseDecodingContext() async throws {
+        let output = try await runCodegen(
+            document: """
+            fragment ViewerFields on Viewer { name }
+
+            query Viewer($includeDetails: Boolean = true) {
+              viewer {
+                id
+                ...ViewerFields @include(if: $includeDetails)
+              }
+            }
+            """,
+            schema: """
+            type Query { viewer: Viewer! }
+            type Viewer { id: ID!, name: String! }
+            """
+        )
+
+        #expect(output.contains("case .none: directiveVariables[\"includeDetails\"] = true"))
+        #expect(output.contains("case .some(.null): break"))
+        #expect(output.contains("case .some(.value(let value)): directiveVariables[\"includeDetails\"] = value"))
     }
 
     @Test

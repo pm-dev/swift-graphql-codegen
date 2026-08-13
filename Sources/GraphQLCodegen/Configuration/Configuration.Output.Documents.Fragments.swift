@@ -1,5 +1,8 @@
 extension Configuration.Output.Documents {
     /// Options controlling generated Swift structs for fragment definitions contained in `.graphql` documents.
+    ///
+    /// Named fragment spreads support `@include` and `@skip`, including spreads nested inside conditional
+    /// selections. Conditional spreads are represented by optional properties with their generated fragment type.
     public struct Fragments: Sendable {
         /// Call this function to create a new `Fragments` instance.
         ///
