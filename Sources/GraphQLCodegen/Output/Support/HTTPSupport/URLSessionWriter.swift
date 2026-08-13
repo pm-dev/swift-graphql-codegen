@@ -53,7 +53,10 @@ struct URLSessionWriter: SupportOutput {
             """
             case .requestError(let requestError):
                         let containsPersistedQueryNotFound = requestError.errors.contains { error in
-                            error.message == "PersistedQueryNotFound"
+                            if case .string("PERSISTED_QUERY_NOT_FOUND")? = error.extensions?["code"] {
+                                return true
+                            }
+                            return error.message == "PersistedQueryNotFound"
                         }
                         if containsPersistedQueryNotFound,
                            let retry = request.persistedOperationRetry {
