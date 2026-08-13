@@ -1,12 +1,6 @@
 import OrderedCollections
 
 struct DocumentsResolver {
-    private struct InputObjectDependency: Hashable {
-        let fieldName: String
-        let inputObjectName: String
-        let nestedInputObjectName: String
-    }
-
     private struct Usage {
         var fulfilledFragments: Set<String> = []
         var hasMutation = false
@@ -28,7 +22,6 @@ struct DocumentsResolver {
             fulfilledFragments: usage.fulfilledFragments,
             hasMutation: usage.hasMutation,
             hasSubscription: usage.hasSubscription,
-            indirectOneOfInputObjectFields: indirectOneOfInputObjectFields(in: usage.usedTypes),
             requiresIndirectNullable: requiresIndirectNullable(in: usage.usedTypes),
             usedTypes: usage.usedTypes
         )
@@ -186,81 +179,31 @@ struct DocumentsResolver {
     }
 
     private func requiresIndirectNullable(in usedTypes: Set<String>) throws -> Bool {
-        try !recursiveInputObjectDependencies(in: usedTypes) { inputObject in
-            try inputObject.ast.inputFields.compactMap { field in
+        var visiting: Set<String> = []
+        var visited: Set<String> = []
+
+        func hasCycle(in inputObject: Schema.InputObject) throws -> Bool {
+            let name = inputObject.ast.name
+            guard !visited.contains(name) else { return false }
+            guard visiting.insert(name).inserted else { return true }
+            defer { visiting.remove(name) }
+
+            for field in inputObject.ast.inputFields {
                 guard case .INPUT_OBJECT(let nestedInputObject) = try schema.inputType(field).value else {
-                    return nil
+                    continue
                 }
-                return InputObjectDependency(
-                    fieldName: field.name,
-                    inputObjectName: inputObject.ast.name,
-                    nestedInputObjectName: nestedInputObject.ast.name
-                )
+                if try hasCycle(in: nestedInputObject) { return true }
             }
-        }.isEmpty
-    }
 
-    private func indirectOneOfInputObjectFields(in usedTypes: Set<String>) throws -> [String: Set<String>] {
-        let recursiveDependencies = try recursiveInputObjectDependencies(
-            in: usedTypes,
-            dependencies: directlyStoredInputObjectDependencies(in:)
-        )
-        return recursiveDependencies.reduce(into: [:]) { result, dependency in
-            guard schema.typeCache.inputObjects[dependency.inputObjectName]?.ast.isOneOf == true else { return }
-            result[dependency.inputObjectName, default: []].insert(dependency.fieldName)
+            visited.insert(name)
+            return false
         }
-    }
 
-    private func directlyStoredInputObjectDependencies(
-        in inputObject: Schema.InputObject
-    ) throws -> [InputObjectDependency] {
-        try inputObject.ast.inputFields.compactMap { field in
-            let type = try schema.inputType(field)
-            let storesWithoutNullableWrapper =
-                switch type {
-                case .nullable: inputObject.ast.isOneOf
-                case .nonNull: true
-                }
-            guard storesWithoutNullableWrapper,
-                  case .INPUT_OBJECT(let nestedInputObject) = type.value
-            else {
-                return nil
-            }
-            return InputObjectDependency(
-                fieldName: field.name,
-                inputObjectName: inputObject.ast.name,
-                nestedInputObjectName: nestedInputObject.ast.name
-            )
-        }
-    }
-
-    private func recursiveInputObjectDependencies(
-        in usedTypes: Set<String>,
-        dependencies: (Schema.InputObject) throws -> [InputObjectDependency]
-    ) throws -> Set<InputObjectDependency> {
-        var dependenciesByInputObject: [String: [InputObjectDependency]] = [:]
-        for name in usedTypes.sorted() {
+        for name in usedTypes {
             guard let inputObject = schema.typeCache.inputObjects[name] else { continue }
-            dependenciesByInputObject[name] = try dependencies(inputObject)
+            if try hasCycle(in: inputObject) { return true }
         }
 
-        func canReach(_ destination: String, from source: String, visited: inout Set<String>) -> Bool {
-            if source == destination {
-                return true
-            }
-            guard visited.insert(source).inserted else { return false }
-            return dependenciesByInputObject[source, default: []].contains { dependency in
-                canReach(destination, from: dependency.nestedInputObjectName, visited: &visited)
-            }
-        }
-
-        return Set(dependenciesByInputObject.values.joined().filter { dependency in
-            var visited: Set<String> = []
-            return canReach(
-                dependency.inputObjectName,
-                from: dependency.nestedInputObjectName,
-                visited: &visited
-            )
-        })
+        return false
     }
 }
