@@ -24,7 +24,7 @@ struct IntrospectionRunner {
         var urlRequest = URLRequest(url: endpoint)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
-        urlRequest.setValue("application/graphql-response+json", forHTTPHeaderField: "accept")
+        urlRequest.setValue("application/graphql-response+json, application/json;q=0.9", forHTTPHeaderField: "accept")
         for (field, value) in headers {
             urlRequest.setValue(value, forHTTPHeaderField: field)
         }
