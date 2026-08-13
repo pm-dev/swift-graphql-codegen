@@ -199,7 +199,7 @@ enum JSONValue: Decodable, Sendable {
     }
 }
 
-/// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
+/// A URLQueryEncoder that encodes an operation into `URLEncodedQueryItem`s
 /// using the spec described at:
 /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
 struct DefaultURLQueryEncoder: URLQueryEncoder {
@@ -212,7 +212,7 @@ struct DefaultURLQueryEncoder: URLQueryEncoder {
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
         automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
-    ) throws -> [URLQueryItem] {
+    ) throws -> [URLEncodedQueryItem] {
         try .from(
             Body(
                 operation: operation,
@@ -223,18 +223,18 @@ struct DefaultURLQueryEncoder: URLQueryEncoder {
     }
 }
 
-private extension [URLQueryItem] {
+private extension [URLEncodedQueryItem] {
     static func from(_ body: Body, jsonEncoder: JSONEncoder) throws -> Self {
-        var items = [URLQueryItem]()
+        var items = [URLEncodedQueryItem]()
         if let operationName = body.operationName {
-            items.append(URLQueryItem(name: "operationName", value: operationName))
+            items.append(URLEncodedQueryItem(name: "operationName", value: operationName))
         }
         if let query = body.query {
-            items.append(URLQueryItem(name: "query", value: query))
+            items.append(URLEncodedQueryItem(name: "query", value: query))
         }
         if let variables = body.variables {
             items.append(
-                URLQueryItem(
+                URLEncodedQueryItem(
                     name: "variables",
                     value: String(decoding: try jsonEncoder.encode(variables), as: UTF8.self)
                 )
@@ -242,7 +242,7 @@ private extension [URLQueryItem] {
         }
         if let extensions = body.extensions {
             items.append(
-                URLQueryItem(
+                URLEncodedQueryItem(
                     name: "extensions",
                     value: String(decoding: try jsonEncoder.encode(extensions), as: UTF8.self)
                 )
@@ -364,7 +364,30 @@ protocol GraphQLMutation: GraphQLSingleResponseOperation {}
 
 protocol GraphQLSubscription: GraphQLOperation {}
 
-/// A `URLQueryEncoder` converts a GraphQL operation into `URLQueryItem`s for a GET request.
+/// A name-value pair encoded using `application/x-www-form-urlencoded` rules.
+struct URLEncodedQueryItem: Sendable {
+    /// The unencoded parameter name.
+    let name: String
+
+    /// The unencoded parameter value.
+    let value: String
+
+    init(name: String, value: String) {
+        self.name = name
+        self.value = value
+    }
+
+    var percentEncoded: String {
+        let allowedCharacters = CharacterSet(
+            charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789*-._"
+        )
+        let name = name.addingPercentEncoding(withAllowedCharacters: allowedCharacters)!
+        let value = value.addingPercentEncoding(withAllowedCharacters: allowedCharacters)!
+        return (name + "=" + value).replacingOccurrences(of: "%20", with: "+")
+    }
+}
+
+/// A `URLQueryEncoder` converts a GraphQL operation into `URLEncodedQueryItem`s for a GET request.
 protocol URLQueryEncoder {
 
     /// Encodes an operation for a GET request.
@@ -373,11 +396,11 @@ protocol URLQueryEncoder {
     ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
     ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
     ///   should always be sent.
-    /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
+    /// - Returns: An array of `URLEncodedQueryItem`s to be used as the URL's query component.
     func encode<Operation: GraphQLOperation>(
         operation: Operation,
         automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
-    ) throws -> [URLQueryItem]
+    ) throws -> [URLEncodedQueryItem]
 }
 
 /// A `HTTPBodyEncoder` converts a GraphQL operation into the data to be set as the HTTP body
@@ -717,6 +740,19 @@ extension URLSession {
             }
             return try body(line)
         }
+    }
+}
+
+private extension URL {
+    func appending(queryItems: [URLEncodedQueryItem]) -> URL {
+        var components = URLComponents(url: self, resolvingAgainstBaseURL: false)!
+        let percentEncodedQuery = queryItems.map(\.percentEncoded).joined(separator: "&")
+        if let existingQuery = components.percentEncodedQuery, !existingQuery.isEmpty {
+            components.percentEncodedQuery = existingQuery + "&" + percentEncodedQuery
+        } else {
+            components.percentEncodedQuery = percentEncodedQuery
+        }
+        return components.url!
     }
 }
 

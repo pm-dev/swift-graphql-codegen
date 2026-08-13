@@ -30,7 +30,7 @@ struct GraphQLRequestTests {
         func encode<Operation: GraphQLOperation>(
             operation: Operation,
             automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
-        ) throws -> [URLQueryItem] {
+        ) throws -> [URLEncodedQueryItem] {
             encodeCount += 1
             return try DefaultURLQueryEncoder().encode(
                 operation: operation,
@@ -74,6 +74,47 @@ struct GraphQLRequestTests {
     }
 
     @Test
+    func GETRequestsPercentEncodePlusSignsInQueryParameters() throws {
+        let endpoint = try #require(URL(string: "https://example.com/graphql?existing=a+b#section"))
+        let operation = NodeQuery(
+            state: .stopped,
+            extensions: ["email": Fixtures.AnyEncodable("a+b@example.com")]
+        )
+        let standardRequest = try GraphQLRequest(
+            query: operation,
+            endpoint: endpoint,
+            strategy: .GET()
+        )
+        let request = try GraphQLRequest(
+            query: operation,
+            endpoint: endpoint,
+            strategy: .GETWithAutomaticPersistedOperations(retryPolicy: .GET())
+        )
+        let retry = try #require(request.persistedOperationRetry)
+        let retriedRequest = try request.updated(for: retry)
+        let subscriptionRequest = try GraphQLRequest(
+            subscription: StateChangedSubscription(
+                extensions: ["email": Fixtures.AnyEncodable("a+b@example.com")]
+            ),
+            endpoint: endpoint
+        )
+
+        for urlRequest in [
+            standardRequest.urlRequest,
+            request.urlRequest,
+            retriedRequest.urlRequest,
+            subscriptionRequest.urlRequest,
+        ] {
+            let url = try #require(urlRequest.url)
+            let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+            let query = try #require(components.percentEncodedQuery)
+            #expect(query.hasPrefix("existing=a+b&"))
+            #expect(query.contains("a%2Bb%40example.com"))
+            #expect(components.fragment == "section")
+        }
+    }
+
+    @Test
     func compiledFixtureSupportsMutationAndSubscriptionRequests() throws {
         let mutationRequest = try GraphQLRequest(
             operation: SetStateMutation(state: .stopped),
@@ -91,7 +132,7 @@ struct GraphQLRequestTests {
         #expect(subscriptionRequest.persistedOperationRetry == nil)
 
         let url = try #require(subscriptionRequest.urlRequest.url)
-        let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        let queryItems = try formDecodedQueryItems(from: url)
         #expect(
             queryItems.first { $0.name == "query" }?.value
                 == StateChangedSubscription.document
@@ -148,15 +189,15 @@ struct GraphQLRequestTests {
         #expect(urlRequest.value(forHTTPHeaderField: "authorization") == "Bearer token")
 
         let url = try #require(urlRequest.url)
-        let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        let queryItems = try formDecodedQueryItems(from: url)
         #expect(queryItems.first { $0.name == "operationName" }?.value == "Node")
         #expect(queryItems.first { $0.name == "query" }?.value == NodeQuery.document)
 
-        let variablesData = try #require(queryItems.first { $0.name == "variables" }?.value?.data(using: .utf8))
+        let variablesData = try #require(queryItems.first { $0.name == "variables" }?.value.data(using: .utf8))
         let variables = try JSONDecoder().decode(EncodedRequest.Variables.self, from: variablesData)
         #expect(variables.state == "STOPPED")
 
-        let extensionsData = try #require(queryItems.first { $0.name == "extensions" }?.value?.data(using: .utf8))
+        let extensionsData = try #require(queryItems.first { $0.name == "extensions" }?.value.data(using: .utf8))
         let extensions = try JSONDecoder().decode(EncodedExtensions.self, from: extensionsData)
         #expect(extensions.persistedQuery.version == 1)
         #expect(extensions.persistedQuery.sha256Hash.count == 64)
@@ -206,7 +247,7 @@ struct GraphQLRequestTests {
         #expect(urlRequest.httpMethod == "GET")
         #expect(urlRequest.httpBody == nil)
         let url = try #require(urlRequest.url)
-        let queryItems = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        let queryItems = try formDecodedQueryItems(from: url)
         #expect(queryItems.first { $0.name == "query" }?.value == NodeQuery.document)
     }
 
@@ -233,5 +274,15 @@ struct GraphQLRequestTests {
 
         #expect(initialEncoder.persistRequestCount == 0)
         #expect(retryEncoder.persistRequestCount == 1)
+    }
+
+    private func formDecodedQueryItems(from url: URL) throws -> [URLEncodedQueryItem] {
+        let query = try #require(url.query(percentEncoded: true))
+        return try query.split(separator: "&").map { parameter in
+            let components = parameter.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            let name = try #require(components.first?.replacingOccurrences(of: "+", with: " ").removingPercentEncoding)
+            let value = try #require(components.last?.replacingOccurrences(of: "+", with: " ").removingPercentEncoding)
+            return URLEncodedQueryItem(name: name, value: value)
+        }
     }
 }
