@@ -491,11 +491,31 @@ struct GraphQLRequestWriter: SupportOutput {
         subscriptionSupport: String
     ) -> String {
         """
-        \(persistedOperationRetryDeclaration())
+        \(queryItemEncoding())\(persistedOperationRetryDeclaration())
         \(requestDeclaration())
 
         extension GraphQLRequest {\(defaultDecoderDeclaration())\(persistedOperationUpdate())\(querySupport)\(operationInitializer())\(subscriptionSupport)
         }
+        """
+    }
+
+    private func queryItemEncoding() -> String {
+        guard enableGETQueries else { return "" }
+        return """
+        private extension URL {
+            func appending(queryItems: [URLEncodedQueryItem]) -> URL {
+                var components = URLComponents(url: self, resolvingAgainstBaseURL: false)!
+                let percentEncodedQuery = queryItems.map(\\.percentEncoded).joined(separator: "&")
+                if let existingQuery = components.percentEncodedQuery, !existingQuery.isEmpty {
+                    components.percentEncodedQuery = existingQuery + "&" + percentEncodedQuery
+                } else {
+                    components.percentEncodedQuery = percentEncodedQuery
+                }
+                return components.url!
+            }
+        }
+
+
         """
     }
 

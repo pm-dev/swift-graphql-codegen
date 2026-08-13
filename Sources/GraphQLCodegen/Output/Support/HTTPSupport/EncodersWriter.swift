@@ -7,6 +7,7 @@ struct EncodersWriter: SupportOutput {
     var topLevelTypeNames: [SwiftTypeIdentifier] {
         var typeNames = [SwiftTypeIdentifier(swiftName: "HTTPBodyEncoder")]
         if plan.enablesGETQueries {
+            typeNames.append(SwiftTypeIdentifier(swiftName: "URLEncodedQueryItem"))
             typeNames.append(SwiftTypeIdentifier(swiftName: "URLQueryEncoder"))
         }
         if case .automatic = plan.persistence {
@@ -32,7 +33,9 @@ struct EncodersWriter: SupportOutput {
 
     private func getWithAutomaticPersistedOperations() -> String {
         """
-        /// A `URLQueryEncoder` converts a GraphQL operation into `URLQueryItem`s for a GET request.
+        \(urlEncodedQueryItem())
+
+        /// A `URLQueryEncoder` converts a GraphQL operation into `URLEncodedQueryItem`s for a GET request.
         \(accessLevel)protocol URLQueryEncoder {
 
             /// Encodes an operation for a GET request.
@@ -41,11 +44,11 @@ struct EncodersWriter: SupportOutput {
             ///   automaticPersistedOperationPhase: The request phase of the automatic persisted operation.
             ///   Pass a `nil` value to indicate persisted operations are not enabled and the operation document
             ///   should always be sent.
-            /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
+            /// - Returns: An array of `URLEncodedQueryItem`s to be used as the URL's query component.
             func encode<Operation: GraphQLOperation>(
                 operation: Operation,
                 automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
-            ) throws -> [URLQueryItem]
+            ) throws -> [URLEncodedQueryItem]
         }
 
         \(httpBodyEncoderWithAutomaticPersistedOperations())
@@ -55,7 +58,9 @@ struct EncodersWriter: SupportOutput {
     private func getWithRegisteredPersistedOperations() -> String {
         guard plan.allowsUnregisteredOperations else { return getWithNoPersistedOperations() }
         return """
-        /// A `URLQueryEncoder` converts a GraphQL query operation into `URLQueryItem`s when a GET request.
+        \(urlEncodedQueryItem())
+
+        /// A `URLQueryEncoder` converts a GraphQL query operation into `URLEncodedQueryItem`s when a GET request.
         /// is being used.
         \(accessLevel)protocol URLQueryEncoder {
 
@@ -63,11 +68,11 @@ struct EncodersWriter: SupportOutput {
             /// - Parameters:
             ///   query: The query operation to encode.
             ///   useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
-            /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
+            /// - Returns: An array of `URLEncodedQueryItem`s to be used as the URL's query component.
             func encode<Query: GraphQLQuery>(
                 query: Query,
                 useRegisteredOperation: Bool
-            ) throws -> [URLQueryItem]\(subscriptionSupportWithRegisteredPersistedOperations())
+            ) throws -> [URLEncodedQueryItem]\(subscriptionSupportWithRegisteredPersistedOperations())
         }
 
         \(httpBodyEncoderWithRegisteredPersistedOperations())
@@ -76,18 +81,47 @@ struct EncodersWriter: SupportOutput {
 
     private func getWithNoPersistedOperations() -> String {
         """
-        /// A `URLQueryEncoder` converts a GraphQL query operation into `URLQueryItem`s when a GET request.
+        \(urlEncodedQueryItem())
+
+        /// A `URLQueryEncoder` converts a GraphQL query operation into `URLEncodedQueryItem`s when a GET request.
         /// is being used.
         \(accessLevel)protocol URLQueryEncoder {
 
             /// Encodes a query operation for a GET request.
             /// - Parameters:
             ///   query: The query operation to encode.
-            /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
-            func encode<Query: GraphQLQuery>(query: Query) throws -> [URLQueryItem]\(subscriptionSupportWithNoPersistedOperations())
+            /// - Returns: An array of `URLEncodedQueryItem`s to be used as the URL's query component.
+            func encode<Query: GraphQLQuery>(query: Query) throws -> [URLEncodedQueryItem]\(subscriptionSupportWithNoPersistedOperations())
         }
 
         \(httpBodyEncoderWithNoPersistedOperations())
+        """
+    }
+
+    private func urlEncodedQueryItem() -> String {
+        """
+        /// A name-value pair encoded using `application/x-www-form-urlencoded` rules.
+        \(accessLevel)struct URLEncodedQueryItem: Sendable {
+            /// The unencoded parameter name.
+            \(accessLevel)let name: String
+
+            /// The unencoded parameter value.
+            \(accessLevel)let value: String
+
+            \(accessLevel)init(name: String, value: String) {
+                self.name = name
+                self.value = value
+            }
+
+            var percentEncoded: String {
+                let allowedCharacters = CharacterSet(
+                    charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789*-._"
+                )
+                let name = name.addingPercentEncoding(withAllowedCharacters: allowedCharacters)!
+                let value = value.addingPercentEncoding(withAllowedCharacters: allowedCharacters)!
+                return (name + "=" + value).replacingOccurrences(of: "%20", with: "+")
+            }
+        }
         """
     }
 
@@ -195,11 +229,11 @@ struct EncodersWriter: SupportOutput {
             /// - Parameters:
             ///   subscription: The subscription operation to encode.
             ///   useRegisteredOperation: Whether to send the registered operation hash instead of the full document.
-            /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
+            /// - Returns: An array of `URLEncodedQueryItem`s to be used as the URL's query component.
             func encode<Subscription: GraphQLSubscription>(
                 subscription: Subscription,
                 useRegisteredOperation: Bool
-            ) throws -> [URLQueryItem]
+            ) throws -> [URLEncodedQueryItem]
         """
     }
 
@@ -211,8 +245,8 @@ struct EncodersWriter: SupportOutput {
             /// Encodes a subscription operation for a GET request.
             /// - Parameters:
             ///   subscription: The subscription operation to encode.
-            /// - Returns: An array of `URLQueryItem`s to be used in the GET request as the URL's query component.
-            func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLQueryItem]
+            /// - Returns: An array of `URLEncodedQueryItem`s to be used as the URL's query component.
+            func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLEncodedQueryItem]
         """
     }
 }

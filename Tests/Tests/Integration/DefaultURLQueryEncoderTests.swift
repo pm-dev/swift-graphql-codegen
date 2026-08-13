@@ -68,6 +68,13 @@ struct DefaultURLQueryEncoderTests {
     }
 
     @Test
+    func queryItemsUseFormEncoding() {
+        let item = URLEncodedQueryItem(name: "request + id", value: "a+b@example.com ~*")
+
+        #expect(item.percentEncoded == "request+%2B+id=a%2Bb%40example.com+%7E*")
+    }
+
+    @Test
     func persistedHashUsesDocument() throws {
         let queryItems = try DefaultURLQueryEncoder().encode(
             operation: DescribedQuery(),
@@ -90,7 +97,6 @@ struct DefaultURLQueryEncoderTests {
         )
 
         #expect(queryItems.map(\.name) == ["operationName", "extensions"])
-        #expect(queryItems.allSatisfy { $0.value != nil })
     }
 
     @Test
@@ -101,7 +107,6 @@ struct DefaultURLQueryEncoderTests {
         )
 
         #expect(queryItems.map(\.name) == ["operationName", "query"])
-        #expect(queryItems.allSatisfy { $0.value != nil })
         #expect(queryItems.first { $0.name == "query" }?.value == CurrentUserQuery.document)
     }
 

@@ -45,7 +45,7 @@ struct DefaultEncodersWriter: SupportOutput {
         let optionalQueryItem = """
 
                 if let query = body.query {
-                    items.append(URLQueryItem(name: "query", value: query))
+                    items.append(URLEncodedQueryItem(name: "query", value: query))
                 }
         """
         let queryItem: String
@@ -55,19 +55,19 @@ struct DefaultEncodersWriter: SupportOutput {
         case .registered(let allowsUnregisteredOperations):
             queryItem = allowsUnregisteredOperations ? optionalQueryItem : ""
         case .none:
-            queryItem = "\n        items.append(URLQueryItem(name: \"query\", value: body.query))"
+            queryItem = "\n        items.append(URLEncodedQueryItem(name: \"query\", value: body.query))"
         }
 
         return """
-        private extension [URLQueryItem] {
+        private extension [URLEncodedQueryItem] {
             static func from(_ body: Body, jsonEncoder: JSONEncoder) throws -> Self {
-                var items = [URLQueryItem]()
+                var items = [URLEncodedQueryItem]()
                 if let operationName = body.operationName {
-                    items.append(URLQueryItem(name: "operationName", value: operationName))
+                    items.append(URLEncodedQueryItem(name: "operationName", value: operationName))
                 }\(queryItem)
                 if let variables = body.variables {
                     items.append(
-                        URLQueryItem(
+                        URLEncodedQueryItem(
                             name: "variables",
                             value: String(decoding: try jsonEncoder.encode(variables), as: UTF8.self)
                         )
@@ -75,7 +75,7 @@ struct DefaultEncodersWriter: SupportOutput {
                 }
                 if let extensions = body.extensions {
                     items.append(
-                        URLQueryItem(
+                        URLEncodedQueryItem(
                             name: "extensions",
                             value: String(decoding: try jsonEncoder.encode(extensions), as: UTF8.self)
                         )
@@ -103,7 +103,7 @@ struct DefaultEncodersWriter: SupportOutput {
 
     private func getWithAutomaticPersistedOperations() -> String {
         """
-        /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
+        /// A URLQueryEncoder that encodes an operation into `URLEncodedQueryItem`s
         /// using the spec described at:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
         \(accessLevel)struct DefaultURLQueryEncoder: URLQueryEncoder {
@@ -116,7 +116,7 @@ struct DefaultEncodersWriter: SupportOutput {
             \(accessLevel)func encode<Operation: GraphQLOperation>(
                 operation: Operation,
                 automaticPersistedOperationPhase: AutomaticPersistedOperationPhase?
-            ) throws -> [URLQueryItem] {
+            ) throws -> [URLEncodedQueryItem] {
                 try .from(
                     Body(
                         operation: operation,
@@ -135,7 +135,7 @@ struct DefaultEncodersWriter: SupportOutput {
 
     private func getWithRegisteredPersistedOperations() -> String {
         """
-        /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
+        /// A URLQueryEncoder that encodes an operation into `URLEncodedQueryItem`s
         /// using the spec described at:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
         \(accessLevel)struct DefaultURLQueryEncoder: URLQueryEncoder {
@@ -147,7 +147,7 @@ struct DefaultEncodersWriter: SupportOutput {
 
             \(accessLevel)func encode<Query: GraphQLQuery>(
                 query: Query\(registeredOperationParameter)
-            ) throws -> [URLQueryItem] {
+            ) throws -> [URLEncodedQueryItem] {
                 try .from(Body(operation: query\(registeredOperationArgument)), jsonEncoder: jsonEncoder)
             }\(subscriptionSupportWithRegisteredPersistedOperations())
         }
@@ -160,7 +160,7 @@ struct DefaultEncodersWriter: SupportOutput {
 
     private func getWithNoPersistedOperations() -> String {
         """
-        /// A URLQueryEncoder that encodes an operation into `URLQueryItem`s
+        /// A URLQueryEncoder that encodes an operation into `URLEncodedQueryItem`s
         /// using the spec described at:
         /// https://graphql.github.io/graphql-over-http/draft/#sec-GET
         \(accessLevel)struct DefaultURLQueryEncoder: URLQueryEncoder {
@@ -170,7 +170,7 @@ struct DefaultEncodersWriter: SupportOutput {
                 self.jsonEncoder = jsonEncoder
             }
 
-            \(accessLevel)func encode<Query: GraphQLQuery>(query: Query) throws -> [URLQueryItem] {
+            \(accessLevel)func encode<Query: GraphQLQuery>(query: Query) throws -> [URLEncodedQueryItem] {
                 try .from(Body(operation: query), jsonEncoder: jsonEncoder)
             }\(subscriptionSupportWithNoPersistedOperations())
         }
@@ -375,7 +375,7 @@ struct DefaultEncodersWriter: SupportOutput {
 
             \(accessLevel)func encode<Subscription: GraphQLSubscription>(
                 subscription: Subscription\(registeredOperationParameter)
-            ) throws -> [URLQueryItem] {
+            ) throws -> [URLEncodedQueryItem] {
                 try .from(Body(operation: subscription\(registeredOperationArgument)), jsonEncoder: jsonEncoder)
             }
         """
@@ -386,7 +386,7 @@ struct DefaultEncodersWriter: SupportOutput {
         return """
 
 
-            \(accessLevel)func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLQueryItem] {
+            \(accessLevel)func encode<Subscription: GraphQLSubscription>(subscription: Subscription) throws -> [URLEncodedQueryItem] {
                 try .from(Body(operation: subscription), jsonEncoder: jsonEncoder)
             }
         """
