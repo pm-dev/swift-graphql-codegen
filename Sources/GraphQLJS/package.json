@@ -1,7 +1,7 @@
 {
   "name": "GraphQLJS",
   "version": "1.0.0",
-  "packageManager": "pnpm@11.21.0",
+  "packageManager": "pnpm@11.22.0",
   "type": "module",
   "description": "",
   "main": "index.js",
