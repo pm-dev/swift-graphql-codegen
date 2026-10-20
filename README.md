@@ -15,7 +15,7 @@
 
 # Swift GraphQL Codegen
 
-Swift GraphQL Codegen generates type-safe Swift models and optional networking helpers from GraphQL schemas and operation documents.
+Swift GraphQL Codegen generates type-safe Swift models and optional networking helpers from GraphQL schemas and operation documents. No runtime dependency required!
 
 Supports the [September 2025 GraphQL specification](https://spec.graphql.org/September2025/), including `@oneOf` input objects,
 executable-document descriptions, schema coordinates, deprecated input values, and modern schema introspection.
