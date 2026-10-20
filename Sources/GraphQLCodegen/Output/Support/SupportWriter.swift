@@ -82,7 +82,7 @@ struct SupportWriter {
         if !preamble.isEmpty {
             sections.append(preamble.joined(separator: "\n"))
         }
-        sections.append(contentsOf: outputs.map(\.source))
+        sections.append(contentsOf: outputs.map(\.indentedSource))
         let source = sections.joined(separator: "\n\n") + "\n"
         try source.write(
             to: destinationPath.appending(path: "Support.swift", directoryHint: .notDirectory),
