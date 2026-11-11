@@ -12,7 +12,7 @@ let package = Package(
         .plugin(name: "GraphQLCodegenPlugin", targets: ["GraphQLCodegenPlugin"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-collections", from: "1.7.5"),
+        .package(url: "https://github.com/apple/swift-collections", from: "1.7.6"),
     ],
     targets: [
         .target(
